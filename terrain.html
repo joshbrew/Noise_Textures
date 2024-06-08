@@ -24,6 +24,7 @@
   </style>
 </head>
 <body>
+    <div>
   <div class="canvas-container">
     <div class="canvas-title">Perlin Noise</div>
     <canvas id="perlinCanvas" width="500" height="500"></canvas>
@@ -32,6 +33,8 @@
     <div class="canvas-title">Billow Noise</div>
     <canvas id="billowCanvas" width="500" height="500"></canvas>
   </div>
+  </div>
+  <div>
   <div class="canvas-container">
     <div class="canvas-title">Ridged Multifractal Noise</div>
     <canvas id="multifractalCanvas" width="500" height="500"></canvas>
@@ -40,10 +43,15 @@
     <div class="canvas-title">Fractal Brownian Motion w/ Simplex Noise</div>
     <canvas id="fbmCanvas" width="500" height="500"></canvas>
   </div>
+  </div>
   <script>
     class Noise {
-      constructor(seed) {
+      constructor(seed=Date.now()) {
+
         this.seedN = seed;
+        this.seedK = seed;
+
+
         this.grad3 = [
           [1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0],
           [1, 0, 1], [-1, 0, 1], [1, 0, -1], [-1, 0, -1],
@@ -66,6 +74,16 @@
           const j = Math.floor(random() * (i + 1));
           [this.p[i], this.p[j]] = [this.p[j], this.p[i]];
         }
+      }
+
+      seededRandom() {
+        this.seedK += Math.E;
+        const x = 1000000000*Math.sin(this.seedK);
+        return x - Math.floor(x);
+      }
+
+      resetSeed() {
+        this.seedK = this.seedN;
       }
 
       xorshift(seed) {
@@ -122,8 +140,10 @@
     }
     
     class SimplexNoise {
-        constructor(seed) {
+        constructor(seed=Date.now()) {
+
             this.seedN = seed;
+            this.seedK = seed;
             this.perm = new Uint8Array(512);
             this.grad3 = [
                 [1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0],
@@ -147,6 +167,17 @@
                 this.perm[i + 256] = this.perm[i];
             }
         }
+
+        seededRandom() {
+          this.seedK += Math.E;
+          const x = 1000000000*Math.sin(this.seedK);
+          return x - Math.floor(x);
+        }
+
+        resetSeed() {
+          this.seedK = this.seedN;
+        }
+
 
         xorshift(seed) {
             let x = seed;
@@ -240,7 +271,7 @@
 
             let sum = 0;
             let amp = 1.0;
-            let freq = 1.0;
+            let freq = 1;
 
             let shift = 100;
 
@@ -258,7 +289,7 @@
                 
                 //x *= 2; y *= 2;
                 
-                x += shift; y += shift;
+                //x += shift; y += shift;
                 
                 freq *= lacunarity;
                 amp *= gain;
@@ -307,7 +338,7 @@
         let freq = 1.0;
 
         let angle = this.seedN * 2*Math.PI; //start at random angle;
-        let angleIncr = Math.PI / 4;
+        let angleIncr = Math.PI/4;
 
         for (let i = 0; i < octaves; i++) {
             const noiseValue = this.noise(x * freq, y * freq, z * freq);
@@ -327,7 +358,7 @@
     }
 
     class RidgedMultifractalNoise extends Noise {
-      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.75) {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.75, exp1 = 1.0, exp2 = 1.0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -337,18 +368,24 @@
 
         
         let angle = this.seedN * 2*Math.PI; //start at random angle;
-        let angleIncr = Math.PI / 4;
+        let angleIncr = Math.PI/4;
         for (let i = 1; i < octaves; i++) {
             x *= lacunarity;
             y *= lacunarity;
             z *= lacunarity;
 
             amp *= gain;
-            sum -= (1 - Math.abs(this.noise(x, y, z))) * amp;
+
+            let noise = Math.abs(this.noise(x, y, z));
+            let noiseValue = 1 - (Math.pow(noise, exp2));
+            noiseValue = Math.pow(noiseValue, exp1);
+            
+            sum -= noiseValue * amp;
           
             //adds some rotation to vary the textures more 
-            x = x * Math.cos(angle) + x*Math.sin(angle);
-            y = y * Math.sin(angle) + y*Math.cos(angle); 
+            let lastX;
+            x = x * Math.cos(angle) + x * Math.sin(angle);
+            y = y * Math.sin(angle) + y * Math.cos(angle); 
             angle += angleIncr;
         }
 
@@ -399,12 +436,12 @@
             const billowValue = billow.generateNoise(x, y, 0, zoom, octaves, lacunarity, gain - 0.2 > 0 ? gain - 0.2 : 0.01); // Slightly lower gain so effects are better looking
             billowHeightmap[y * width + x] = billowValue;
 
-            const color2 = Math.floor((billowValue + 1) * 128);
+            const color2 = Math.floor((billowValue + 1.5) * 128); //slightly increase brightness for demonstrating purposes
             billowCtx.fillStyle = `rgb(${color2}, ${color2}, ${color2})`;
             billowCtx.fillRect(x, y, 1, 1);
 
             // Generate Ridged Multifractal noise
-            const ridgedValue = ridged.generateNoise(x, y, 0, zoom, octaves, lacunarity, gain + 0.1 < 1 ? gain + 0.1 : 0.99); //slight increase in gain
+            const ridgedValue = ridged.generateNoise(x, y, 0, zoom, octaves, lacunarity, gain + 0.1 < 1 ? gain + 0.1 : 0.99, 4, 2); //slight increase in gain
             ridgedHeightmap[y * width + x] = ridgedValue;
 
             const color3 = Math.floor((ridgedValue + 1) * 128);
