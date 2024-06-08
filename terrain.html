@@ -244,10 +244,16 @@
 
             for (let i = 0; i < octaves; i++) {
                 sum += amp * this.noise(x * freq, y * freq, z * freq);
+                
+                
+                //adds some rotation to vary the textures more 
                 x = x * Math.cos(0.5) + x*Math.sin(0.5);
                 y = y * Math.sin(0.5) + y*Math.cos(0.5); 
+                
                 //x *= 2; y *= 2;
+                
                 x += shift; y += shift;
+                
                 freq *= lacunarity;
                 amp *= gain;
             }
@@ -267,9 +273,13 @@
         let freq = 1.0;
 
         for (let i = 0; i < octaves; i++) {
-          sum += this.noise(x * freq, y * freq, z * freq) * amp;
-          freq *= lacunarity;
-          amp *= gain;
+            sum += this.noise(x * freq, y * freq, z * freq) * amp;
+            freq *= lacunarity;
+            amp *= gain;
+          
+            //adds some rotation to vary the textures more 
+            //x = x * Math.cos(0.5) + x*Math.sin(0.5);
+            //y = y * Math.sin(0.5) + y*Math.cos(0.5); 
         }
 
         return sum;
@@ -287,11 +297,15 @@
         let freq = 1.0;
 
         for (let i = 0; i < octaves; i++) {
-          const noiseValue = this.noise(x * freq, y * freq, z * freq);
-          sum += (2 * Math.abs(noiseValue) - 1) * amp;
+            const noiseValue = this.noise(x * freq, y * freq, z * freq);
+            sum += (2 * Math.abs(noiseValue) - 1) * amp;
 
-          freq *= lacunarity;
-          amp *= gain;
+            freq *= lacunarity;
+            amp *= gain;
+
+            //adds some rotation to vary the textures more 
+            x = x * Math.cos(0.5) + x*Math.sin(0.5);
+            y = y * Math.sin(0.5) + y*Math.cos(0.5); 
         }
 
         return sum;
@@ -308,12 +322,17 @@
         let amp = 1.0;
 
         for (let i = 1; i < octaves; i++) {
-          x *= lacunarity;
-          y *= lacunarity;
-          z *= lacunarity;
+            x *= lacunarity;
+            y *= lacunarity;
+            z *= lacunarity;
 
-          amp *= gain;
-          sum -= (1 - Math.abs(this.noise(x, y, z))) * amp;
+
+            amp *= gain;
+            sum -= (1 - Math.abs(this.noise(x, y, z))) * amp;
+          
+            //adds some rotation to vary the textures more 
+            x = x * Math.cos(0.5) + x*Math.sin(0.5);
+            y = y * Math.sin(0.5) + y*Math.cos(0.5); 
         }
 
         return sum;
