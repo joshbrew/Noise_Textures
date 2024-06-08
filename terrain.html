@@ -43,6 +43,7 @@
   <script>
     class Noise {
       constructor(seed) {
+        this.seedN = seed;
         this.grad3 = [
           [1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0],
           [1, 0, 1], [-1, 0, 1], [1, 0, -1], [-1, 0, -1],
@@ -122,6 +123,7 @@
     
     class SimplexNoise {
         constructor(seed) {
+            this.seedN = seed;
             this.perm = new Uint8Array(512);
             this.grad3 = [
                 [1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0],
@@ -242,13 +244,17 @@
 
             let shift = 100;
 
+            let angle = this.seedN * 2*Math.PI; //start at a random rotation based on seed;
+            let angleIncr = Math.PI/4;
+
             for (let i = 0; i < octaves; i++) {
                 sum += amp * this.noise(x * freq, y * freq, z * freq);
                 
                 
                 //adds some rotation to vary the textures more 
-                x = x * Math.cos(0.5) + x*Math.sin(0.5);
-                y = y * Math.sin(0.5) + y*Math.cos(0.5); 
+                x = x * Math.cos(angle) + x*Math.sin(angle);
+                y = y * Math.sin(angle) + y*Math.cos(angle); 
+                angle += angleIncr;
                 
                 //x *= 2; y *= 2;
                 
@@ -272,14 +278,18 @@
         let amp = 1.0;
         let freq = 1.0;
 
+        //let angle = this.seedN * 2*Math.PI; //start at random angle;
+        //let angleIncr = Math.PI / 4;
+
         for (let i = 0; i < octaves; i++) {
             sum += this.noise(x * freq, y * freq, z * freq) * amp;
             freq *= lacunarity;
             amp *= gain;
           
             //adds some rotation to vary the textures more 
-            //x = x * Math.cos(0.5) + x*Math.sin(0.5);
-            //y = y * Math.sin(0.5) + y*Math.cos(0.5); 
+            // x = x * Math.cos(angle) + x*Math.sin(angle);
+            // y = y * Math.sin(angle) + y*Math.cos(angle); 
+            // angle += angleIncr;
         }
 
         return sum;
@@ -296,6 +306,9 @@
         let amp = 1.0;
         let freq = 1.0;
 
+        let angle = this.seedN * 2*Math.PI; //start at random angle;
+        let angleIncr = Math.PI / 4;
+
         for (let i = 0; i < octaves; i++) {
             const noiseValue = this.noise(x * freq, y * freq, z * freq);
             sum += (2 * Math.abs(noiseValue) - 1) * amp;
@@ -304,8 +317,9 @@
             amp *= gain;
 
             //adds some rotation to vary the textures more 
-            x = x * Math.cos(0.5) + x*Math.sin(0.5);
-            y = y * Math.sin(0.5) + y*Math.cos(0.5); 
+            x = x * Math.cos(angle) + x*Math.sin(angle);
+            y = y * Math.sin(angle) + y*Math.cos(angle); 
+            angle += angleIncr;
         }
 
         return sum;
@@ -321,18 +335,21 @@
         let sum = 1 - Math.abs(this.noise(x, y, z));
         let amp = 1.0;
 
+        
+        let angle = this.seedN * 2*Math.PI; //start at random angle;
+        let angleIncr = Math.PI / 4;
         for (let i = 1; i < octaves; i++) {
             x *= lacunarity;
             y *= lacunarity;
             z *= lacunarity;
 
-
             amp *= gain;
             sum -= (1 - Math.abs(this.noise(x, y, z))) * amp;
           
             //adds some rotation to vary the textures more 
-            x = x * Math.cos(0.5) + x*Math.sin(0.5);
-            y = y * Math.sin(0.5) + y*Math.cos(0.5); 
+            x = x * Math.cos(angle) + x*Math.sin(angle);
+            y = y * Math.sin(angle) + y*Math.cos(angle); 
+            angle += angleIncr;
         }
 
         return sum;
