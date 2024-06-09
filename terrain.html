@@ -264,71 +264,43 @@
     }
 
     class FractalBrownianMotion extends SimplexNoise {
-        generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5) {
-            x /= zoom;
-            y /= zoom;
-            z /= zoom;
+      fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+          x /= zoom;
+          y /= zoom;
+          z /= zoom;
 
-            let sum = 0;
-            let amp = 1.0;
-            let freq = 1;
+          let sum = 0;
+          let amplitude = 1.0;
+          let frequency = 1.0;
+          let maxValue = 0;
 
-            let shift = 100;
+          for (let i = 0; i < octaves; i++) {
+              sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+              maxValue += amplitude;
 
-            let angle = this.seedN * 2*Math.PI; //start at a random rotation based on seed;
-            let angleIncr = Math.PI/4;
+              frequency *= lacunarity;
+              amplitude *= gain;
 
-            for (let i = 0; i < octaves; i++) {
-                sum += amp * this.noise(x * freq, y * freq, z * freq);
-                
-                
-                //adds some rotation to vary the textures more 
-                x = x * Math.cos(angle) + x*Math.sin(angle);
-                y = y * Math.sin(angle) + y*Math.cos(angle); 
-                angle += angleIncr;
-                
-                //x *= 2; y *= 2;
-                
-                //x += shift; y += shift;
-                
-                freq *= lacunarity;
-                amp *= gain;
-            }
+              x += shift;
+              y += shift;
+          }
 
-            return sum;
-        }
-    }
+          return sum / maxValue;
+      }
 
-    class PerlinNoise extends Noise {
-      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5) {
-        x /= zoom;
-        y /= zoom;
-        z /= zoom;
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+          // Initial FBM pass
+          let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift);
 
-        let sum = 0;
-        let amp = 1.0;
-        let freq = 1.0;
+          // Recursive FBM pass using the output of the initial FBM
+          let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift);
 
-        //let angle = this.seedN * 2*Math.PI; //start at random angle;
-        //let angleIncr = Math.PI / 4;
-
-        for (let i = 0; i < octaves; i++) {
-            sum += this.noise(x * freq, y * freq, z * freq) * amp;
-            freq *= lacunarity;
-            amp *= gain;
-          
-            //adds some rotation to vary the textures more 
-            // x = x * Math.cos(angle) + x*Math.sin(angle);
-            // y = y * Math.sin(angle) + y*Math.cos(angle); 
-            // angle += angleIncr;
-        }
-
-        return sum;
+          return fbm2;
       }
     }
 
-    class BillowNoise extends Noise {
-      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5) {
+    class PerlinNoise extends Noise {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -338,7 +310,47 @@
         let freq = 1.0;
 
         let angle = this.seedN * 2*Math.PI; //start at random angle;
-        let angleIncr = Math.PI/4;
+        let angleIncr = Math.PI / 4;
+        const angleIncrement = Math.PI/4;
+
+
+        for (let i = 0; i < octaves; i++) {
+            sum += this.noise(x * freq, y * freq, z * freq) * amp;
+            freq *= lacunarity;
+            amp *= gain;
+          
+            // Apply rotation to the coordinates
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+
+            const newX = x * cosAngle - y * sinAngle;
+            const newY = x * sinAngle + y * cosAngle;
+
+            x = newX;
+            y = newY;
+            angle += angleIncrement;
+
+            // Apply shift to the coordinates
+            x += shift;
+            y += shift;
+        }
+
+        return sum;
+      }
+    }
+
+    class BillowNoise extends Noise {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amp = 1.0;
+        let freq = 1.0;
+
+        let angle = this.seedN * 2*Math.PI; //start at random angle;
+        const angleIncrement = Math.PI/4;
 
         for (let i = 0; i < octaves; i++) {
             const noiseValue = this.noise(x * freq, y * freq, z * freq);
@@ -347,10 +359,20 @@
             freq *= lacunarity;
             amp *= gain;
 
-            //adds some rotation to vary the textures more 
-            x = x * Math.cos(angle) + x*Math.sin(angle);
-            y = y * Math.sin(angle) + y*Math.cos(angle); 
-            angle += angleIncr;
+            // Apply rotation to the coordinates
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+
+            const newX = x * cosAngle - y * sinAngle;
+            const newY = x * sinAngle + y * cosAngle;
+
+            x = newX;
+            y = newY;
+            angle += angleIncrement;
+
+            // Apply shift to the coordinates
+            x += shift;
+            y += shift;
         }
 
         return sum;
@@ -441,7 +463,7 @@
             billowCtx.fillRect(x, y, 1, 1);
 
             // Generate Ridged Multifractal noise
-            const ridgedValue = ridged.generateNoise(x, y, 0, zoom, octaves, lacunarity, gain + 0.1 < 1 ? gain + 0.1 : 0.99, 4, 2); //slight increase in gain
+            const ridgedValue = ridged.generateNoise(x, y, 0, zoom, octaves, lacunarity, gain + 0.1 < 1 ? gain + 0.1 : 0.99, 1, 1); //slight increase in gain
             ridgedHeightmap[y * width + x] = ridgedValue;
 
             const color3 = Math.floor((ridgedValue + 1) * 128);
