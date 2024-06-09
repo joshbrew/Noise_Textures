@@ -8,12 +8,6 @@
       justify-content: center;
       flex-wrap: wrap;
     }
-    .canvas-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin: 10px;
-    }
     canvas {
       border: 1px solid black;
       margin-top: 5px;
@@ -25,25 +19,36 @@
 </head>
 <body>
     <div>
-  <div class="canvas-container">
-    <div class="canvas-title">Perlin Noise</div>
-    <canvas id="perlinCanvas" width="500" height="500"></canvas>
-  </div>
-  <div class="canvas-container">
-    <div class="canvas-title">Billow Noise</div>
-    <canvas id="billowCanvas" width="500" height="500"></canvas>
-  </div>
-  </div>
-  <div>
-  <div class="canvas-container">
-    <div class="canvas-title">Ridged Multifractal Noise</div>
-    <canvas id="multifractalCanvas" width="500" height="500"></canvas>
-  </div>
-  <div class="canvas-container">
-    <div class="canvas-title">Fractal Brownian Motion w/ Simplex Noise</div>
-    <canvas id="fbmCanvas" width="500" height="500"></canvas>
-  </div>
-  </div>
+      <div class="canvas-container">
+        <div class="canvas-title">Perlin Noise</div>
+        <canvas id="perlinCanvas" width="500" height="500"></canvas>
+      </div>
+      <div class="canvas-container">
+        <div class="canvas-title">Billow Noise</div>
+        <canvas id="billowCanvas" width="500" height="500"></canvas>
+      </div>
+    </div>
+    <div>
+      <div class="canvas-container">
+        <div class="canvas-title">Ridged Multifractal Noise</div>
+        <canvas id="multifractalCanvas" width="500" height="500"></canvas>
+      </div>
+      <div class="canvas-container">
+        <div class="canvas-title">FBM Variant 1</div>
+        <canvas id="fbmCanvas1" width="500" height="500"></canvas>
+      </div>
+    </div>
+    <div>
+      <div class="canvas-container">
+        <div class="canvas-title">FBM Variant 2</div>
+        <canvas id="fbmCanvas2" width="500" height="500"></canvas>
+      </div>
+      <div class="canvas-container">
+        <div class="canvas-title">FBM Variant 3</div>
+        <canvas id="fbmCanvas3" width="500" height="500"></canvas>
+      </div>  
+    </div>
+
   <script>
     class Noise {
       constructor(seed=Date.now()) {
@@ -263,41 +268,7 @@
         }
     }
 
-    class FractalBrownianMotion extends SimplexNoise {
-      fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
-          x /= zoom;
-          y /= zoom;
-          z /= zoom;
-
-          let sum = 0;
-          let amplitude = 1.0;
-          let frequency = 1.0;
-          let maxValue = 0;
-
-          for (let i = 0; i < octaves; i++) {
-              sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
-              maxValue += amplitude;
-
-              frequency *= lacunarity;
-              amplitude *= gain;
-
-              x += shift;
-              y += shift;
-          }
-
-          return sum / maxValue;
-      }
-
-      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
-          // Initial FBM pass
-          let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift);
-
-          // Recursive FBM pass using the output of the initial FBM
-          let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift);
-
-          return fbm2;
-      }
-    }
+    
 
     class PerlinNoise extends Noise {
       generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0) {
@@ -380,7 +351,7 @@
     }
 
     class RidgedMultifractalNoise extends Noise {
-      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.75, exp1 = 1.0, exp2 = 1.0) {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.75, shift=0, exp1 = 1.0, exp2 = 1.0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -398,6 +369,7 @@
 
             amp *= gain;
 
+            //add some variation on the fractal pattern with exponents
             let noise = Math.abs(this.noise(x, y, z));
             let noiseValue = 1 - (Math.pow(noise, exp2));
             noiseValue = Math.pow(noiseValue, exp1);
@@ -409,23 +381,145 @@
             x = x * Math.cos(angle) + x * Math.sin(angle);
             y = y * Math.sin(angle) + y * Math.cos(angle); 
             angle += angleIncr;
+
+            x += shift;
+            y += shift;
         }
 
         return sum;
       }
     }
 
+    class FractalBrownianMotion extends SimplexNoise {
+        fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+            x /= zoom;
+            y /= zoom;
+            z /= zoom;
 
+            let sum = 0;
+            let amplitude = 1.0;
+            let frequency = 1.0;
+            let maxValue = 0;
+
+            for (let i = 0; i < octaves; i++) {
+                sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+                maxValue += amplitude;
+
+                frequency *= lacunarity;
+                amplitude *= gain;
+
+                x += shift;
+                y += shift;
+            }
+
+            return sum / maxValue;
+        }
+
+        generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+            // Initial FBM pass
+            let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift);
+
+            // Recursive FBM pass using the output of the initial FBM
+            let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift);
+
+            return fbm2;
+        }
+      }
+
+      class FractalBrownianMotion2 extends SimplexNoise {
+        fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+            x /= zoom;
+            y /= zoom;
+            z /= zoom;
+
+            let sum = 0;
+            let amplitude = 1.0;
+            let frequency = 1.0;
+            let maxValue = 0;
+
+            for (let i = 0; i < octaves; i++) {
+                sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+                maxValue += amplitude;
+
+                frequency *= lacunarity;
+                amplitude *= gain;
+
+                x += shift;
+                y += shift;
+            }
+
+            return sum / maxValue;
+        }
+
+        generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+            // Initial FBM pass
+            let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift);
+
+            // Second FBM pass using the output of the initial FBM
+            let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift);
+
+            // Third FBM pass using the output of the second FBM
+            let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift);
+
+            return fbm3;
+        }
+    }
+
+    class FractalBrownianMotion3 extends SimplexNoise {
+        fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+            x /= zoom;
+            y /= zoom;
+            z /= zoom;
+
+            let sum = 0;
+            let amplitude = 1.0;
+            let frequency = 1.0;
+            let maxValue = 0;
+
+            for (let i = 0; i < octaves; i++) {
+                sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+                maxValue += amplitude;
+
+                frequency *= lacunarity;
+                amplitude *= gain;
+
+                x += shift;
+                y += shift;
+            }
+
+            return sum / maxValue;
+        }
+
+        generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+            // Initial FBM pass
+            let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift);
+
+            // Second FBM pass using the output of the initial FBM
+            let fbm2 = this.fbm(x + fbm1 * zoom, y + fbm1 * zoom, z + fbm1 * zoom, zoom, octaves, lacunarity, gain, shift);
+
+            // Third FBM pass using the output of the second FBM
+            let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift);
+
+            return fbm3;
+        }
+    }
     
+
     document.addEventListener('DOMContentLoaded', function() {
       const perlinCanvas = document.getElementById('perlinCanvas');
-      const perlinCtx = perlinCanvas.getContext('2d');
       const billowCanvas = document.getElementById('billowCanvas');
-      const billowCtx = billowCanvas.getContext('2d');
       const multifractalCanvas = document.getElementById('multifractalCanvas');
+      const fbmCanvas = document.getElementById('fbmCanvas1');
+      const fbmCanvas2 = document.getElementById('fbmCanvas2');
+      const fbmCanvas3 = document.getElementById('fbmCanvas3');
+
+      const perlinCtx = perlinCanvas.getContext('2d');
+      const billowCtx = billowCanvas.getContext('2d');
       const multifractalCtx = multifractalCanvas.getContext('2d');
-      const fbmCanvas = document.getElementById('fbmCanvas');
       const fbmCtx = fbmCanvas.getContext('2d');
+      const fbmCtx2 = fbmCanvas2.getContext('2d');
+      const fbmCtx3 = fbmCanvas3.getContext('2d');
+
       const width = perlinCanvas.width;
       const height = perlinCanvas.height;
 
@@ -433,55 +527,54 @@
       const octaves = 8; // Number of octaves for the noise
       const lacunarity = 2.0; // Lacunarity for the noise
       const gain = 0.5; // Gain for the noise
+      const shift = 0; //e.g. a time shift
+
       const perlinHeightmap = new Float32Array(width * height);
       const billowHeightmap = new Float32Array(width * height);
       const ridgedHeightmap = new Float32Array(width * height);
       const fbmHeightmap = new Float32Array(width * height);
+      const fbmHeightmap2 = new Float32Array(width * height);
+      const fbmHeightmap3 = new Float32Array(width * height);
+
       const perlin = new PerlinNoise(12345); // Set a seed for reproducibility
       const billow = new BillowNoise(12345); // Set a seed for reproducibility
       const ridged = new RidgedMultifractalNoise(12345); // Set a seed for reproducibility
       const fbm = new FractalBrownianMotion(12345); // Set a seed for reproducibility
+      const fbm2 = new FractalBrownianMotion2(12345); // Set a seed for reproducibility
+      const fbm3 = new FractalBrownianMotion3(12345); // Set a seed for reproducibility
 
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
+      let iterateCanvas = (
+        noiseGen, 
+        heightmap, 
+        ctx,
       
-            // Generate Perlin noise
-            const noiseValue = perlin.generateNoise(x, y, 0, zoom, octaves, lacunarity, gain);
-            perlinHeightmap[y * width + x] = noiseValue;
+        zoom,
+        octaves,
+        lacunarity,
+        gain,
+        shift
+      ) => {
+
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+              // Generate Perlin noiseGen
+            const noiseValue = noiseGen.generateNoise(x, y, 0, zoom, octaves, lacunarity, gain, shift); //2d
+            heightmap[y * width + x] = noiseValue;
 
             const color = Math.floor((noiseValue + 1) * 128);
-            perlinCtx.fillStyle = `rgb(${color}, ${color}, ${color})`;
-            perlinCtx.fillRect(x, y, 1, 1);
-
-            
-            // Generate Billow noise
-            const billowValue = billow.generateNoise(x, y, 0, zoom, octaves, lacunarity, gain - 0.2 > 0 ? gain - 0.2 : 0.01); // Slightly lower gain so effects are better looking
-            billowHeightmap[y * width + x] = billowValue;
-
-            const color2 = Math.floor((billowValue + 1.5) * 128); //slightly increase brightness for demonstrating purposes
-            billowCtx.fillStyle = `rgb(${color2}, ${color2}, ${color2})`;
-            billowCtx.fillRect(x, y, 1, 1);
-
-            // Generate Ridged Multifractal noise
-            const ridgedValue = ridged.generateNoise(x, y, 0, zoom, octaves, lacunarity, gain + 0.1 < 1 ? gain + 0.1 : 0.99, 1, 1); //slight increase in gain
-            ridgedHeightmap[y * width + x] = ridgedValue;
-
-            const color3 = Math.floor((ridgedValue + 1) * 128);
-            multifractalCtx.fillStyle = `rgb(${color3}, ${color3}, ${color3})`;
-            multifractalCtx.fillRect(x, y, 1, 1);
-
-            // Generate SingleValueFractalFBM noise
-
-            const fbmValue = fbm.generateNoise(x, y, 0, zoom, octaves, lacunarity, gain);//fbm.generateNoise(fbm.generateNoise(x,y,...inps),fbm.generateNoise(x,y,...inps),...inps);
-            fbmHeightmap[y * width + x] = fbmValue;
-
-            const color4 = Math.floor((fbmValue + 1) * 128);
-            fbmCtx.fillStyle = `rgb(${color4}, ${color4}, ${color4})`;
-            fbmCtx.fillRect(x, y, 1, 1);
-        
+            ctx.fillStyle = `rgb(${color}, ${color}, ${color})`;
+            ctx.fillRect(x, y, 1, 1);
+          }
         }
-      
-    }
+      }
+
+
+      iterateCanvas(perlin,perlinHeightmap,perlinCtx, zoom,octaves,lacunarity,gain,shift);
+      iterateCanvas(billow,billowHeightmap,billowCtx, zoom,octaves,lacunarity,gain-0.2,shift);
+      iterateCanvas(ridged,ridgedHeightmap,multifractalCtx, zoom,octaves,lacunarity,gain+0.1,shift);
+      iterateCanvas(fbm,fbmHeightmap,fbmCtx, zoom,octaves,lacunarity,gain,shift);
+      iterateCanvas(fbm2,fbmHeightmap2,fbmCtx2, zoom,octaves,lacunarity,gain,shift);
+      iterateCanvas(fbm3,fbmHeightmap3,fbmCtx3, zoom,octaves,lacunarity,gain,shift);
 
     //   console.log('Perlin Heightmap:', perlinHeightmap);
     //   console.log('Billow Heightmap:', billowHeightmap);
