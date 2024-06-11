@@ -59,40 +59,32 @@
     </div>
 
   <script>
-    class Noise {
-      constructor(seed=Date.now()) {
+    class BaseNoise {
 
+      constructor(seed = Date.now()) {
         this.seedN = seed;
         this.seedK = seed;
-
-
-        this.grad3 = [
-          [1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0],
-          [1, 0, 1], [-1, 0, 1], [1, 0, -1], [-1, 0, -1],
-          [0, 1, 1], [0, -1, 1], [0, 1, -1], [0, -1, -1]
-        ];
-        this.p = [];
-        this.seed(seed); // Seed the permutation array
-        this.perm = [];
-        for (let i = 0; i < 512; i++) {
-          this.perm[i] = this.p[i & 255]; // Repeat the permutation
-        }
+        this.perm = new Uint8Array(512);
+        this.seed(seed);
       }
 
       seed(seed) {
         const random = this.xorshift(seed);
         for (let i = 0; i < 256; i++) {
-          this.p[i] = i;
+          this.perm[i] = i;
         }
         for (let i = 255; i > 0; i--) {
           const j = Math.floor(random() * (i + 1));
-          [this.p[i], this.p[j]] = [this.p[j], this.p[i]];
+          [this.perm[i], this.perm[j]] = [this.perm[j], this.perm[i]];
+        }
+        for (let i = 0; i < 256; i++) {
+          this.perm[i + 256] = this.perm[i];
         }
       }
 
       seededRandom() {
         this.seedK += Math.E;
-        const x = 1000000000*Math.sin(this.seedK);
+        const x = 1000000000 * Math.sin(this.seedK);
         return x - Math.floor(x);
       }
 
@@ -110,16 +102,27 @@
         };
       }
 
-      dot(g, x, y, z) {
+      dot(g, x=0, y=0, z=0) {
         return g[0] * x + g[1] * y + g[2] * z;
       }
+    }
 
-      mix(a, b, t) {
-        return (1.0 - t) * a + t * b;
+    class Noise extends BaseNoise {
+      constructor(seed = Date.now()) {
+        super(seed);
+        this.grad3 = [
+          [1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0],
+          [1, 0, 1], [-1, 0, 1], [1, 0, -1], [-1, 0, -1],
+          [0, 1, 1], [0, -1, 1], [0, 1, -1], [0, -1, -1]
+        ];
       }
 
       fade(t) {
         return t * t * t * t * (t * (t * (70 - 20 * t) - 84) + 35);
+      }
+
+      mix(a, b, t) {
+        return (1 - t) * a + t * b;
       }
 
       noise(x, y, z) {
@@ -152,193 +155,111 @@
           this.dot(this.grad3[this.perm[BB + 1] % 12], x - 1, y - 1, z - 1), u), v), w);
       }
     }
-    
-    class SimplexNoise {
-        constructor(seed=Date.now()) {
 
-            this.seedN = seed;
-            this.seedK = seed;
-            this.perm = new Uint8Array(512);
-            this.grad3 = [
-                [1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0],
-                [1, 0, 1], [-1, 0, 1], [1, 0, -1], [-1, 0, -1],
-                [0, 1, 1], [0, -1, 1], [0, 1, -1], [0, -1, -1]
-            ];
+    class SimplexNoise extends BaseNoise {
+      constructor(seed = Date.now()) {
+        super(seed);
+        this.grad3 = [
+          [1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0],
+          [1, 0, 1], [-1, 0, 1], [1, 0, -1], [-1, 0, -1],
+          [0, 1, 1], [0, -1, 1], [0, 1, -1], [0, -1, -1]
+        ];
+      }
 
-            this.seed(seed);
+      noise(xin, yin) {
+        const F2 = 0.5 * (Math.sqrt(3.0) - 1.0);
+        const G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
+        let n0, n1, n2; // Noise contributions from the three corners
+
+        // Skew the input space to determine which simplex cell we're in
+        const s = (xin + yin) * F2; // Hairy factor for 2D
+        const i = Math.floor(xin + s);
+        const j = Math.floor(yin + s);
+        const t = (i + j) * G2;
+        const X0 = i - t; // Unskew the cell origin back to (x,y) space
+        const Y0 = j - t;
+        const x0 = xin - X0; // The x,y distances from the cell origin
+        const y0 = yin - Y0;
+
+        // For the 2D case, the simplex shape is an equilateral triangle.
+        // Determine which simplex we are in.
+        let i1, j1; // Offsets for the second (middle) corner of simplex in (i,j) coordinates
+        if (x0 > y0) { // Lower triangle, XY order: (0,0)->(1,0)->(1,1)
+            i1 = 1;
+            j1 = 0;
+        } else { // Upper triangle, YX order: (0,0)->(0,1)->(1,1)
+            i1 = 0;
+            j1 = 1;
         }
 
-        seed(seed) {
-            const random = this.xorshift(seed);
-            for (let i = 0; i < 256; i++) {
-                this.perm[i] = i;
-            }
-            for (let i = 255; i > 0; i--) {
-                const j = Math.floor(random() * (i + 1));
-                [this.perm[i], this.perm[j]] = [this.perm[j], this.perm[i]];
-            }
-            for (let i = 0; i < 256; i++) {
-                this.perm[i + 256] = this.perm[i];
-            }
+        // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
+        // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
+        // c = (3-sqrt(3))/6
+
+        const x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coordinates
+        const y1 = y0 - j1 + G2;
+        const x2 = x0 - 1.0 + 2.0 * G2; // Offsets for last corner in (x,y) unskewed coordinates
+        const y2 = y0 - 1.0 + 2.0 * G2;
+
+        // Work out the hashed gradient indices of the three simplex corners
+        const ii = i & 255;
+        const jj = j & 255;
+        const gi0 = this.perm[ii + this.perm[jj]] % 12;
+        const gi1 = this.perm[ii + i1 + this.perm[jj + j1]] % 12;
+        const gi2 = this.perm[ii + 1 + this.perm[jj + 1]] % 12;
+
+        // Calculate the contribution from the three corners
+        let t0 = 0.5 - x0 * x0 - y0 * y0;
+        if (t0 < 0) n0 = 0.0;
+        else {
+            t0 *= t0;
+            n0 = t0 * t0 * this.dot(this.grad3[gi0], x0, y0); // (x,y) of grad3 used for 2D gradient
         }
 
-        seededRandom() {
-          this.seedK += Math.E;
-          const x = 1000000000*Math.sin(this.seedK);
-          return x - Math.floor(x);
+        let t1 = 0.5 - x1 * x1 - y1 * y1;
+        if (t1 < 0) n1 = 0.0;
+        else {
+            t1 *= t1;
+            n1 = t1 * t1 * this.dot(this.grad3[gi1], x1, y1);
         }
 
-        resetSeed() {
-          this.seedK = this.seedN;
+        let t2 = 0.5 - x2 * x2 - y2 * y2;
+        if (t2 < 0) n2 = 0.0;
+        else {
+            t2 *= t2;
+            n2 = t2 * t2 * this.dot(this.grad3[gi2], x2, y2);
         }
 
-
-        xorshift(seed) {
-            let x = seed;
-            return function() {
-                x ^= x << 13;
-                x ^= x >> 17;
-                x ^= x << 5;
-                return (x < 0 ? 1 + ~x : x) / 0xFFFFFFFF;
-            };
-        }
-
-        dot(g, x, y) {
-            return g[0] * x + g[1] * y;
-        }
-
-        noise(xin, yin) {
-            const F2 = 0.5 * (Math.sqrt(3.0) - 1.0);
-            const G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
-            let n0, n1, n2; // Noise contributions from the three corners
-
-            // Skew the input space to determine which simplex cell we're in
-            const s = (xin + yin) * F2; // Hairy factor for 2D
-            const i = Math.floor(xin + s);
-            const j = Math.floor(yin + s);
-            const t = (i + j) * G2;
-            const X0 = i - t; // Unskew the cell origin back to (x,y) space
-            const Y0 = j - t;
-            const x0 = xin - X0; // The x,y distances from the cell origin
-            const y0 = yin - Y0;
-
-            // For the 2D case, the simplex shape is an equilateral triangle.
-            // Determine which simplex we are in.
-            let i1, j1; // Offsets for the second (middle) corner of simplex in (i,j) coordinates
-            if (x0 > y0) { // Lower triangle, XY order: (0,0)->(1,0)->(1,1)
-                i1 = 1;
-                j1 = 0;
-            } else { // Upper triangle, YX order: (0,0)->(0,1)->(1,1)
-                i1 = 0;
-                j1 = 1;
-            }
-
-            // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
-            // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
-            // c = (3-sqrt(3))/6
-
-            const x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coordinates
-            const y1 = y0 - j1 + G2;
-            const x2 = x0 - 1.0 + 2.0 * G2; // Offsets for last corner in (x,y) unskewed coordinates
-            const y2 = y0 - 1.0 + 2.0 * G2;
-
-            // Work out the hashed gradient indices of the three simplex corners
-            const ii = i & 255;
-            const jj = j & 255;
-            const gi0 = this.perm[ii + this.perm[jj]] % 12;
-            const gi1 = this.perm[ii + i1 + this.perm[jj + j1]] % 12;
-            const gi2 = this.perm[ii + 1 + this.perm[jj + 1]] % 12;
-
-            // Calculate the contribution from the three corners
-            let t0 = 0.5 - x0 * x0 - y0 * y0;
-            if (t0 < 0) n0 = 0.0;
-            else {
-                t0 *= t0;
-                n0 = t0 * t0 * this.dot(this.grad3[gi0], x0, y0); // (x,y) of grad3 used for 2D gradient
-            }
-
-            let t1 = 0.5 - x1 * x1 - y1 * y1;
-            if (t1 < 0) n1 = 0.0;
-            else {
-                t1 *= t1;
-                n1 = t1 * t1 * this.dot(this.grad3[gi1], x1, y1);
-            }
-
-            let t2 = 0.5 - x2 * x2 - y2 * y2;
-            if (t2 < 0) n2 = 0.0;
-            else {
-                t2 *= t2;
-                n2 = t2 * t2 * this.dot(this.grad3[gi2], x2, y2);
-            }
-
-            // Add contributions from each corner to get the final noise value.
-            // The result is scaled to return values in the interval [-1,1].
-            return 70.0 * (n0 + n1 + n2);
-        }
+        // Add contributions from each corner to get the final noise value.
+        // The result is scaled to return values in the interval [-1,1].
+        return 70.0 * (n0 + n1 + n2);
+      }
     }
 
-
-    //Slow! Uses nested for loops!
-    class LanczosValueNoise {
+    class LanczosNoise extends BaseNoise {
       constructor(seed = Date.now()) {
-        this.seedN = seed;
-        this.seedK = seed;
-        this.perm = new Uint8Array(512);
-        this.seed(seed);
+        super(seed);
+        this.lanczosX = new Float32Array(6);
       }
 
-      seed(seed) {
-        const random = this.xorshift(seed);
-        const perm = new Uint8Array(256);
-        for (let i = 0; i < 256; i++) {
-          perm[i] = i;
-        }
-        for (let i = 255; i > 0; i--) {
-          const j = Math.floor(random() * (i + 1));
-          [perm[i], perm[j]] = [perm[j], perm[i]];
-        }
-        for (let i = 0; i < 256; i++) {
-          this.perm[i] = perm[i];
-          this.perm[i + 256] = perm[i];
-        }
-      }
-
-      xorshift(seed) {
-        let x = seed;
-        return function() {
-          x ^= x << 13;
-          x ^= x >> 17;
-          x ^= x << 5;
-          return (x < 0 ? 1 + ~x : x) / 0xFFFFFFFF;
-        };
-      }
-
-      static lookup = new Uint8Array([151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, //taken from https://github.com/Zomare/Lanczos-Noise/blob/main/ValueNoise.cs
-          225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6, 148, 247,
-          120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33,
-          88, 237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74, 165, 71, 134,
-          139, 48, 27, 166, 77, 146, 158, 231, 83, 111, 229, 122, 60, 211, 133, 230, 220,
-          105, 92, 41, 55, 46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80,
-          73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116, 188, 159, 86,
-          164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226, 250, 124, 123, 5, 202, 38,
-          147, 118, 126, 255, 82, 85, 212, 207, 206, 59, 227, 47, 16, 58, 17, 182, 189,
-          28, 42, 223, 183, 170, 213, 119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101,
-          155, 167, 43, 172, 9, 129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232,
-          178, 185, 112, 104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144, 12,
-          191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107, 49, 192, 214, 31, 181,
-          199, 106, 157, 184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254, 138, 236,
-          205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180]);
+      static lookup = new Uint8Array([151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6, 148, 247,
+        120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33,
+        88, 237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74, 165, 71, 134,
+        139, 48, 27, 166, 77, 146, 158, 231, 83, 111, 229, 122, 60, 211, 133, 230, 220,
+        105, 92, 41, 55, 46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80,
+        73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116, 188, 159, 86,
+        164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226, 250, 124, 123, 5, 202, 38,
+        147, 118, 126, 255, 82, 85, 212, 207, 206, 59, 227, 47, 16, 58, 17, 182, 189,
+        28, 42, 223, 183, 170, 213, 119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101,
+        155, 167, 43, 172, 9, 129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232,
+        178, 185, 112, 104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144, 12,
+        191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107, 49, 192, 214, 31, 181,
+        199, 106, 157, 184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254, 138, 236,
+        205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180]);
 
       static random(x1, y1) {
-        const table = LanczosValueNoise.lookup;
-
+        const table = LanczosNoise.lookup;
         return ((table[(x1 + table[y1 & 255]) & 255] / 255) * 2 - 1);
-      }
-
-      seededRandom() {
-          this.seedK += Math.E;
-          const x = 1000000000*Math.sin(this.seedK);
-          return x - Math.floor(x);
       }
 
       static lanczos(t) {
@@ -350,8 +271,6 @@
         return 3 * (Math.sin(Math.PI * t) * Math.sin(Math.PI * (t / 3)) / (Math.PI * Math.PI * t * t));
       }
 
-      lanczosX = new Float32Array(6);
-
       noise(x, y) {
         const ix = Math.floor(x);
         const iy = Math.floor(y);
@@ -361,7 +280,7 @@
 
         let avgX = 0;
         for (let px = -2; px < 4; px++) {
-          const f = LanczosValueNoise.lanczos(dx - px);
+          const f = LanczosNoise.lanczos(dx - px);
           avgX += f;
           this.lanczosX[px + 2] = f;
         }
@@ -371,19 +290,96 @@
         for (let py = -2; py < 4; py++) {
           let a = 0;
           for (let px = -2; px < 4; px++) {
-            a += LanczosValueNoise.random(ix + px, iy + py) * this.lanczosX[px + 2];
+            a += LanczosNoise.random(ix + px, iy + py) * this.lanczosX[px + 2];
           }
           a /= avgX;
-          const lanczosY = LanczosValueNoise.lanczos(dy - py);
+          const lanczosY = LanczosNoise.lanczos(dy - py);
           n += a * lanczosY;
           avgY += lanczosY;
         }
 
-        return (n / avgY) / 2;
+        return (n / avgY) * 0.5;
       }
     }
 
-    
+    //much faster than true lanczos
+    class FastLanczosNoise extends BaseNoise {
+      constructor(seed = Date.now()) {
+        super(seed);
+        this.lanczosX = new Float32Array(6);
+      }
+
+      static lookup = new Uint8Array([151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6, 148, 247,
+        120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33,
+        88, 237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74, 165, 71, 134,
+        139, 48, 27, 166, 77, 146, 158, 231, 83, 111, 229, 122, 60, 211, 133, 230, 220,
+        105, 92, 41, 55, 46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80,
+        73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116, 188, 159, 86,
+        164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226, 250, 124, 123, 5, 202, 38,
+        147, 118, 126, 255, 82, 85, 212, 207, 206, 59, 227, 47, 16, 58, 17, 182, 189,
+        28, 42, 223, 183, 170, 213, 119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101,
+        155, 167, 43, 172, 9, 129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232,
+        178, 185, 112, 104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144, 12,
+        191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107, 49, 192, 214, 31, 181,
+        199, 106, 157, 184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254, 138, 236,
+        205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180]);
+
+      static random(x1, y1) {
+        const table = FastLanczosNoise.lookup;
+        return ((table[(x1 + table[y1 & 255]) & 255] / 255) * 2 - 1);
+      }
+
+      static lanczos(t) {
+        if (t === 0) {
+          return 1;
+        } else if (t > 4 || t < -4) {
+          return 0;
+        }
+        return 3 * (Math.sin(Math.PI * t) * Math.sin(Math.PI * (t / 3)) / (Math.PI * Math.PI * t * t));
+      }
+
+      cubicInterpolate(p0, p1, p2, p3, t) {
+        return p1 + 0.5 * t * (p2 - p0 + t * (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3 + t * (3.0 * (p1 - p2) + p3 - p0)));
+      }
+
+      noise(x, y) {
+        const ix = Math.floor(x);
+        const iy = Math.floor(y);
+
+        const dx = x - ix;
+        const dy = y - iy;
+
+        const n00 = FastLanczosNoise.random(ix - 1, iy - 1);
+        const n10 = FastLanczosNoise.random(ix + 0, iy - 1);
+        const n20 = FastLanczosNoise.random(ix + 1, iy - 1);
+        const n30 = FastLanczosNoise.random(ix + 2, iy - 1);
+
+        const n01 = FastLanczosNoise.random(ix - 1, iy + 0);
+        const n11 = FastLanczosNoise.random(ix + 0, iy + 0);
+        const n21 = FastLanczosNoise.random(ix + 1, iy + 0);
+        const n31 = FastLanczosNoise.random(ix + 2, iy + 0);
+
+        const n02 = FastLanczosNoise.random(ix - 1, iy + 1);
+        const n12 = FastLanczosNoise.random(ix + 0, iy + 1);
+        const n22 = FastLanczosNoise.random(ix + 1, iy + 1);
+        const n32 = FastLanczosNoise.random(ix + 2, iy + 1);
+
+        const n03 = FastLanczosNoise.random(ix - 1, iy + 2);
+        const n13 = FastLanczosNoise.random(ix + 0, iy + 2);
+        const n23 = FastLanczosNoise.random(ix + 1, iy + 2);
+        const n33 = FastLanczosNoise.random(ix + 2, iy + 2);
+
+        const col0 = this.cubicInterpolate(n00, n10, n20, n30, dx);
+        const col1 = this.cubicInterpolate(n01, n11, n21, n31, dx);
+        const col2 = this.cubicInterpolate(n02, n12, n22, n32, dx);
+        const col3 = this.cubicInterpolate(n03, n13, n23, n33, dx);
+
+        let result = this.cubicInterpolate(col0, col1, col2, col3, dy);
+
+        return result;
+      }
+    }
+
 
     class PerlinNoise extends Noise {
       generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0, turbulence = false) {
@@ -430,13 +426,102 @@
       }
     }
 
-    class BillowNoise extends LanczosValueNoise {
+    class LanczosBillowNoise extends FastLanczosNoise {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0; 
+        let maxAmp = 0;
+        let amp = 1.0;
+        let freq = 1.0;
+
+        let angle = this.seedN * 2*Math.PI; //start at random angle;
+        const angleIncrement = Math.PI/4;
+
+        for (let i = 0; i < octaves; i++) {
+            const noiseValue = this.noise(x * freq, y * freq, z * freq);
+            sum += (2 * Math.abs(noiseValue) - 1) * amp;
+
+            maxAmp += amp;
+            freq *= lacunarity;
+            amp *= gain;
+
+            // Apply rotation to the coordinates
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+
+            const newX = x * cosAngle - y * sinAngle;
+            const newY = x * sinAngle + y * cosAngle;
+
+            x = newX;
+            y = newY;
+            angle += angleIncrement;
+
+            // Apply shift to the coordinates
+            x += shift;
+            y += shift;
+        }
+
+        sum /= maxAmp;
+
+        return sum;
+      }
+    }
+
+
+    class LanczosAntiBillowNoise extends FastLanczosNoise {
       generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
 
         let sum = 0;
+        let amp = 1.0; let maxAmp = 0;
+        let freq = 1.0;
+
+        let angle = this.seedN * 2*Math.PI; //start at random angle;
+        const angleIncrement = Math.PI/4;
+
+        for (let i = 0; i < octaves; i++) {
+            const noiseValue = this.noise(x * freq, y * freq, z * freq);
+            sum += (2 * Math.abs(noiseValue) - 1) * amp;
+
+            maxAmp += amp;
+            freq *= lacunarity;
+            amp *= gain;
+
+            // Apply rotation to the coordinates
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+
+            const newX = x * cosAngle - y * sinAngle;
+            const newY = x * sinAngle + y * cosAngle;
+
+            x = newX;
+            y = newY;
+            angle += angleIncrement;
+
+            // Apply shift to the coordinates
+            x += shift;
+            y += shift;
+        }
+
+        sum /= maxAmp;
+
+        return -sum;
+      }
+    }
+
+    
+    class BillowNoise extends Noise {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0; 
         let amp = 1.0;
         let freq = 1.0;
 
@@ -473,7 +558,7 @@
     }
 
 
-    class AntiBillowNoise extends LanczosValueNoise {
+    class AntiBillowNoise extends Noise {
       generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0) {
         x /= zoom;
         y /= zoom;
@@ -514,9 +599,8 @@
         return -sum;
       }
     }
-
     
-    class RidgedMultifractalNoise extends LanczosValueNoise {
+    class RidgedMultifractalNoise extends FastLanczosNoise {
       generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.75, shift=0, exp1 = 3, exp2 = 1.0) {
         x /= zoom;
         y /= zoom;
@@ -525,7 +609,6 @@
         let sum = 1 - Math.abs(this.noise(x, y, z));
         let amp = 1.0;
 
-        
         let angle = this.seedN * 2*Math.PI; //start at random angle;
         let angleIncr = Math.PI/4;
         for (let i = 1; i < octaves; i++) {
@@ -552,8 +635,7 @@
             y += shift;
         }
 
-
-        return -sum;
+        return -sum; //the negative makes it more ridgelike, positive more bubbly
       }
     }
 
@@ -633,42 +715,42 @@
     }
 
     class FractalBrownianMotion3 extends SimplexNoise {
-        fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
-            x /= zoom;
-            y /= zoom;
-            z /= zoom;
+      fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+          x /= zoom;
+          y /= zoom;
+          z /= zoom;
 
-            let sum = 0;
-            let amplitude = 1.0;
-            let frequency = 1.0;
-            let maxValue = 0;
+          let sum = 0;
+          let amplitude = 1.0;
+          let frequency = 1.0;
+          let maxValue = 0;
 
-            for (let i = 0; i < octaves; i++) {
-                sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
-                maxValue += amplitude;
+          for (let i = 0; i < octaves; i++) {
+              sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+              maxValue += amplitude;
 
-                frequency *= lacunarity;
-                amplitude *= gain;
+              frequency *= lacunarity;
+              amplitude *= gain;
 
-                x += shift;
-                y += shift;
-            }
+              x += shift;
+              y += shift;
+          }
 
-            return sum / maxValue;
-        }
+          return sum / maxValue;
+      }
 
-        generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
-            // Initial FBM pass
-            let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift);
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+          // Initial FBM pass
+          let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift);
 
-            // Second FBM pass using the output of the initial FBM
-            let fbm2 = this.fbm(x + fbm1 * zoom, y + fbm1 * zoom, z + fbm1 * zoom, zoom, octaves, lacunarity, gain, shift);
+          // Second FBM pass using the output of the initial FBM
+          let fbm2 = this.fbm(x + fbm1 * zoom, y + fbm1 * zoom, z + fbm1 * zoom, zoom, octaves, lacunarity, gain, shift);
 
-            // Third FBM pass using the output of the second FBM
-            let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift);
+          // Third FBM pass using the output of the second FBM
+          let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift);
 
-            return fbm3;
-        }
+          return fbm3;
+      }
     }
     
 
@@ -692,7 +774,7 @@
       const width = perlinCanvas.width;
       const height = perlinCanvas.height;
 
-      const zoom = 100; // Adjust zoom for more zoomed-in noise pattern
+      const zoom = 50; // Adjust zoom for more zoomed-in noise pattern
       const octaves = 8; // Number of octaves for the noise
       const lacunarity = 2.0; // Lacunarity for the noise
       const gain = 0.5; // Gain for the noise
@@ -707,8 +789,8 @@
       const fbmHeightmap3 = new Float32Array(width * height);
 
       const perlin = new PerlinNoise(12345); // Set a seed for reproducibility
-      const billow = new BillowNoise(12345); // Set a seed for reproducibility
-      const invbillow = new AntiBillowNoise(12345); // Set a seed for reproducibility
+      const billow = new LanczosBillowNoise(12345); // Set a seed for reproducibility
+      const invbillow = new LanczosAntiBillowNoise(12345); // Set a seed for reproducibility
       const ridged = new RidgedMultifractalNoise(12345); // Set a seed for reproducibility
       const fbm = new FractalBrownianMotion(12345); // Set a seed for reproducibility
       const fbm2 = new FractalBrownianMotion2(12345); // Set a seed for reproducibility
@@ -718,9 +800,13 @@
     // Define a set of gradient colors
       const gradientColors = [
           [0, 0, 51],     // Dark blue
-          [0, 0, 51],     // Dark blue
+          [0, 0, 151],     // Lighter blue
+          [0, 0, 151],     // Lighter blue
+          [255, 178, 102],// Light orange
           [0, 51, 0],     // Dark green
-          [0, 51, 0],     // Dark green
+          [117, 181, 130],     // Light green
+          [153, 76, 0],   // Darker orange
+          [204, 102, 0],  // Dark orange
           [102, 51, 0],   // Dark brown
           [153, 76, 0],   // Darker orange
           [204, 102, 0],  // Dark orange
@@ -822,6 +908,7 @@
       await iterateCanvas(fbm2,fbmHeightmap2,fbmCtx2, zoom,octaves,lacunarity,gain,shift);
       await wait();
       await iterateCanvas(fbm3,fbmHeightmap3,fbmCtx3, zoom,octaves,lacunarity,gain,shift);
+      await wait();
 
     //   console.log('Perlin Heightmap:', perlinHeightmap);
     //   console.log('Billow Heightmap:', billowHeightmap);
@@ -842,8 +929,8 @@
           const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
 
           // Create a ground mesh
-          const width = 200;
-          const height = 200;
+          const width = 500;
+          const height = 500;
 
           // Generate Perlin noise
           const noiseGen = fbm; // Replace with your noise generator
@@ -852,9 +939,9 @@
           // Populate heightmap with noise values
           for (let y = 0; y <= height; y++) {
               for (let x = 0; x <= width; x++) {
-                  const noiseValue = noiseGen.generateNoise(x, y, 0, 800, octaves, lacunarity, gain, shift) + 
-                  fbm2.generateNoise(x, y, 0, 800, octaves, lacunarity, gain, shift) + 
-                  billow.generateNoise(x, y, 0, 200, octaves, lacunarity, gain, shift) - 0.2;
+                  const noiseValue = noiseGen.generateNoise(x, y, 0, 1000, octaves, lacunarity, gain, shift) + 
+                  fbm2.generateNoise(x, y, 0, 1000, octaves, lacunarity, gain, shift) + 
+                  billow.generateNoise(x, y, 0, 250, octaves, lacunarity, gain, shift) - 0.2;
                   heightmap[y * (width + 1) + x] = noiseValue;
               }
           }
