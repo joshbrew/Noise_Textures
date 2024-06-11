@@ -16,6 +16,7 @@
       text-align: center;
     }
   </style>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
 </head>
 <body>
     <div>
@@ -50,6 +51,10 @@
       <div class="canvas-container">
         <div class="canvas-title">FBM Variant 3</div>
         <canvas id="fbmCanvas3" width="500" height="500"></canvas>
+      </div>  
+      <div class="canvas-container">
+        <div class="canvas-title">3D Terrain</div>
+        <canvas id="3dcanvas" width="800" height="800"></canvas>
       </div>  
     </div>
 
@@ -599,13 +604,26 @@
       const fbm3 = new FractalBrownianMotion3(12345); // Set a seed for reproducibility
 
     // Define a set of gradient colors
-    const gradientColors = [
-        [0, 0, 51],     // Dark blue
-        [0, 51, 0],     // Dark green
-        [0, 102, 102],  // Blue-green
-        [183, 183, 132],// Tan
-        [132, 234, 132],// Light green
-        [234, 255, 234] // Very light green
+    // Define a set of gradient colors
+      const gradientColors = [
+          [0, 0, 51],     // Dark blue
+          [0, 0, 51],     // Dark blue
+          [0, 51, 0],     // Dark green
+          [0, 51, 0],     // Dark green
+          [102, 51, 0],   // Dark brown
+          [153, 76, 0],   // Darker orange
+          [204, 102, 0],  // Dark orange
+          [255, 128, 0],  // Medium dark orange
+          [255, 178, 102],// Light orange
+          [234, 153, 102],// Lighter brown
+          [204, 102, 51], // Medium light brown
+          [153, 51, 0],   // Medium dark brown
+          [102, 51, 0],   // Dark brown
+          [51, 25, 0],    // Very dark brown
+          [153, 76, 0],   // Darker orange
+          [204, 102, 0],  // Dark orange
+          [255, 128, 0],  // Medium dark orange
+          [255, 178, 102],// Light orange
       ];
 
       // Function to interpolate between two colors
@@ -633,7 +651,7 @@
 
       // Function to adjust color brightness
       const adjustBrightness = (color, factor) => {
-        return color.map(c => Math.round(c * factor));
+        return color.map(c => Math.round(c * (factor)));
       };
 
       let iterateCanvas = async (
@@ -697,7 +715,87 @@
     //   console.log('Billow Heightmap:', billowHeightmap);
     //   console.log('Ridged Heightmap:', ridgedHeightmap);
     //   console.log('FBM Heightmap:', fbmHeightmap);
-    });
+
+
+
+    const canvas3d = document.getElementById('3dcanvas');
+      const engine = new BABYLON.Engine(canvas3d, { antialias: true});
+      //const engine = new BABYLON.WebGPUEngine(canvas3d, { antialias: true});
+      const createScene = async () => {
+
+          //await engine.initAsync();
+          const scene = new BABYLON.Scene(engine);
+          const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2, 50, new BABYLON.Vector3(0, 0, 0), scene);
+          camera.attachControl(canvas3d, true);
+          const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+
+          // Create a ground mesh
+          const width = 2000;
+          const height = 2000;
+
+          // Generate Perlin noise
+          const noiseGen = fbm; // Replace with your noise generator
+          const heightmap = new Float32Array((width + 1) * (height + 1));
+
+          // Populate heightmap with noise values
+          for (let y = 0; y <= height; y++) {
+              for (let x = 0; x <= width; x++) {
+                  const noiseValue = noiseGen.generateNoise(x, y, 0, 400, octaves, lacunarity, gain, shift) + fbm2.generateNoise(x, y, 0, 400, octaves, lacunarity, gain, shift) + billow.generateNoise(x, y, 0, 400, octaves, lacunarity, gain, shift);
+                  heightmap[y * (width + 1) + x] = noiseValue;
+              }
+          }
+
+          // Create custom mesh
+          const positions = [];
+          const indices = [];
+          const colors = [];
+          const uvs = [];
+
+            for (let y = 0; y <= height; y++) {
+                for (let x = 0; x <= width; x++) {
+                    const heightValue = heightmap[y * (width + 1) + x];
+                    positions.push(x - width / 2, heightValue * 20, y - height / 2);
+                    const baseColor = getColor(heightValue);
+                    const brightnessFactor = (heightValue + 1) * 0.5;
+                    const [r, g, b] = baseColor//adjustBrightness(baseColor, brightnessFactor);
+                    colors.push(r/255, g/255, b/255, 1);
+                    uvs.push(x / width, y / height);
+                }
+            }
+
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const i = y * (width + 1) + x;
+                    indices.push(i, i + 1, i + width + 1);
+                    indices.push(i + 1, i + width + 2, i + width + 1);
+                }
+            }
+
+            const customMesh = new BABYLON.Mesh("custom", scene);
+            const vertexData = new BABYLON.VertexData();
+            vertexData.positions = positions;
+            vertexData.indices = indices;
+            vertexData.colors = colors;
+            vertexData.uvs = uvs;
+            vertexData.applyToMesh(customMesh);
+
+            const material = new BABYLON.StandardMaterial("material", scene);
+            material.vertexColorEnabled = true;
+            material.specularColor = new BABYLON.Color3(0, 0, 0);
+            customMesh.material = material;
+
+            return scene;
+      };
+
+      const scene = await createScene();
+      engine.runRenderLoop(() => {
+          scene.render();
+      });
+
+      window.addEventListener('resize', () => {
+          engine.resize();
+      });
+  });
   </script>
 </body>
 </html>
