@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mock Planet Generator</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    canvas {
+      border: 1px solid black;
+      margin-top: 5px;
+    }
+    .canvas-title {
+      text-align: center;
+    }
+  </style>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+</head>
+<body>
+    <!-- <div>
+      <div class="canvas-container">
+        <div class="canvas-title">Perlin Noise</div>
+        <canvas id="perlinCanvas" width="500" height="500"></canvas>
+      </div>
+      <div class="canvas-container">
+        <div class="canvas-title">Billow Noise</div>
+        <canvas id="billowCanvas" width="500" height="500"></canvas>
+      </div>
+    </div>
+    <div>
+      <div class="canvas-container">
+        <div class="canvas-title">Reversed Billow Noise</div>
+        <canvas id="invbillowCanvas" width="500" height="500"></canvas>
+      </div>
+      <div class="canvas-container">
+        <div class="canvas-title">Ridged Multifractal Noise</div>
+        <canvas id="multifractalCanvas" width="500" height="500"></canvas>
+      </div>
+    </div>
+    <div>
+      <div class="canvas-container">
+        <div class="canvas-title">FBM Variant 1</div>
+        <canvas id="fbmCanvas1" width="500" height="500"></canvas>
+      </div>
+      <div class="canvas-container">
+        <div class="canvas-title">FBM Variant 2</div>
+        <canvas id="fbmCanvas2" width="500" height="500"></canvas>
+      </div>
+    </div>
+    <div>
+      <div class="canvas-container">
+        <div class="canvas-title">FBM Variant 3</div>
+        <canvas id="fbmCanvas3" width="500" height="500"></canvas>
+      </div>   
+    </div>
+    <div>
+      
+      <div class="canvas-container">
+        <div class="canvas-title">Perlin Worms</div>
+        <canvas id="perlinwormsCanvas" width="500" height="500"></canvas>
+      </div>
+      <div class="canvas-container">
+        <div class="canvas-title">Hex Worms</div>
+        <canvas id="hexwormsCanvas" width="500" height="500"></canvas>
+      </div>
+    </div>
+    <div> -->
+       
+      <div class="canvas-container">
+        <div class="canvas-title">Planet Terrain</div>
+        <canvas id="3dcanvas" width="800" height="800"></canvas>
+      </div>
+    </div>
+
+  <script>
+    class BaseNoise {
+
+      constructor(seed = Date.now()) {
+        this.seedN = seed;
+        this.seedK = seed;
+        this.perm = new Uint8Array(512);
+        this.seed(seed);
+      }
+
+      seed(seed) {
+        const random = this.xorshift(seed);
+        for (let i = 0; i < 256; i++) {
+          this.perm[i] = i;
+        }
+        for (let i = 255; i > 0; i--) {
+          const j = Math.floor(random() * (i + 1));
+          [this.perm[i], this.perm[j]] = [this.perm[j], this.perm[i]];
+        }
+        for (let i = 0; i < 256; i++) {
+          this.perm[i + 256] = this.perm[i];
+        }
+      }
+
+      random(x, y) {
+        const idx = (this.perm[(x & 255) + this.perm[y & 255]]) & 255;
+        return ((this.perm[idx] / 255) * 2 - 1);
+      }
+
+      seededRandom() {
+        this.seedK += Math.E;
+        const x = 1000000000 * Math.sin(this.seedK);
+        return x - Math.floor(x);
+      }
+
+      resetSeed() {
+        this.seedK = this.seedN;
+      }
+
+      xorshift(seed) {
+        let x = seed;
+        return function() {
+          x ^= x << 13;
+          x ^= x >> 17;
+          x ^= x << 5;
+          return (x < 0 ? 1 + ~x : x) / 0xFFFFFFFF; //(x >>> 0) for different result
+        };
+      }
+
+      dot(g, x=0, y=0, z=0) {
+        return g[0] * x + g[1] * y + g[2] * z;
+      }
+    }
+
+    class Noise extends BaseNoise {
+      constructor(seed = Date.now()) {
+        super(seed);
+        this.grad3 = [
+          [1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0],
+          [1, 0, 1], [-1, 0, 1], [1, 0, -1], [-1, 0, -1],
+          [0, 1, 1], [0, -1, 1], [0, 1, -1], [0, -1, -1]
+        ];
+      }
+
+      fade(t) {
+        return t * t * t * t * (t * (t * (70 - 20 * t) - 84) + 35);
+      }
+
+      mix(a, b, t) {
+        return (1 - t) * a + t * b;
+      }
+
+      noise(x, y, z) {
+        let X = Math.floor(x) & 255;
+        let Y = Math.floor(y) & 255;
+        let Z = Math.floor(z) & 255;
+
+        x -= Math.floor(x);
+        y -= Math.floor(y);
+        z -= Math.floor(z);
+
+        let u = this.fade(x);
+        let v = this.fade(y);
+        let w = this.fade(z);
+
+        let A = this.perm[X] + Y;
+        let AA = this.perm[A] + Z;
+        let AB = this.perm[A + 1] + Z;
+        let B = this.perm[X + 1] + Y;
+        let BA = this.perm[B] + Z;
+        let BB = this.perm[B + 1] + Z;
+
+        return this.mix(this.mix(this.mix(this.dot(this.grad3[this.perm[AA] % 12], x, y, z),
+          this.dot(this.grad3[this.perm[BA] % 12], x - 1, y, z), u),
+          this.mix(this.dot(this.grad3[this.perm[AB] % 12], x, y - 1, z),
+          this.dot(this.grad3[this.perm[BB] % 12], x - 1, y - 1, z), u), v),
+          this.mix(this.mix(this.dot(this.grad3[this.perm[AA + 1] % 12], x, y, z - 1),
+          this.dot(this.grad3[this.perm[BA + 1] % 12], x - 1, y, z - 1), u),
+          this.mix(this.dot(this.grad3[this.perm[AB + 1] % 12], x, y - 1, z - 1),
+          this.dot(this.grad3[this.perm[BB + 1] % 12], x - 1, y - 1, z - 1), u), v), w);
+      }
+    }
+
+    class SimplexNoise extends BaseNoise {
+      constructor(seed = Date.now()) {
+        super(seed);
+        this.grad3 = [
+          [1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0],
+          [1, 0, 1], [-1, 0, 1], [1, 0, -1], [-1, 0, -1],
+          [0, 1, 1], [0, -1, 1], [0, 1, -1], [0, -1, -1]
+        ];
+      }
+
+      noise(xin, yin) {
+        const F2 = 0.5 * (Math.sqrt(3.0) - 1.0);
+        const G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
+        let n0, n1, n2; // Noise contributions from the three corners
+
+        // Skew the input space to determine which simplex cell we're in
+        const s = (xin + yin) * F2; // Hairy factor for 2D
+        const i = Math.floor(xin + s);
+        const j = Math.floor(yin + s);
+        const t = (i + j) * G2;
+        const X0 = i - t; // Unskew the cell origin back to (x,y) space
+        const Y0 = j - t;
+        const x0 = xin - X0; // The x,y distances from the cell origin
+        const y0 = yin - Y0;
+
+        // For the 2D case, the simplex shape is an equilateral triangle.
+        // Determine which simplex we are in.
+        let i1, j1; // Offsets for the second (middle) corner of simplex in (i,j) coordinates
+        if (x0 > y0) { // Lower triangle, XY order: (0,0)->(1,0)->(1,1)
+            i1 = 1;
+            j1 = 0;
+        } else { // Upper triangle, YX order: (0,0)->(0,1)->(1,1)
+            i1 = 0;
+            j1 = 1;
+        }
+
+        // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
+        // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
+        // c = (3-sqrt(3))/6
+
+        const x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coordinates
+        const y1 = y0 - j1 + G2;
+        const x2 = x0 - 1.0 + 2.0 * G2; // Offsets for last corner in (x,y) unskewed coordinates
+        const y2 = y0 - 1.0 + 2.0 * G2;
+
+        // Work out the hashed gradient indices of the three simplex corners
+        const ii = i & 255;
+        const jj = j & 255;
+        const gi0 = this.perm[ii + this.perm[jj]] % 12;
+        const gi1 = this.perm[ii + i1 + this.perm[jj + j1]] % 12;
+        const gi2 = this.perm[ii + 1 + this.perm[jj + 1]] % 12;
+
+        // Calculate the contribution from the three corners
+        let t0 = 0.5 - x0 * x0 - y0 * y0;
+        if (t0 < 0) n0 = 0.0;
+        else {
+            t0 *= t0;
+            n0 = t0 * t0 * this.dot(this.grad3[gi0], x0, y0); // (x,y) of grad3 used for 2D gradient
+        }
+
+        let t1 = 0.5 - x1 * x1 - y1 * y1;
+        if (t1 < 0) n1 = 0.0;
+        else {
+            t1 *= t1;
+            n1 = t1 * t1 * this.dot(this.grad3[gi1], x1, y1);
+        }
+
+        let t2 = 0.5 - x2 * x2 - y2 * y2;
+        if (t2 < 0) n2 = 0.0;
+        else {
+            t2 *= t2;
+            n2 = t2 * t2 * this.dot(this.grad3[gi2], x2, y2);
+        }
+
+        // Add contributions from each corner to get the final noise value.
+        // The result is scaled to return values in the interval [-1,1].
+        return 70.0 * (n0 + n1 + n2);
+      }
+    }
+
+    class LanczosNoise extends BaseNoise {
+      constructor(seed = Date.now()) {
+        super(seed);
+        this.lanczosX = new Float32Array(6);
+      }
+
+      lanczos(t) {
+        if (t === 0) {
+          return 1;
+        } else if (t > 4 || t < -4) {
+          return 0;
+        }
+        return 3 * (Math.sin(Math.PI * t) * Math.sin(Math.PI * (t / 3)) / (Math.PI * Math.PI * t * t));
+      }
+
+
+      noise(x, y, z) {
+        const ix = Math.floor(x);
+        const iy = Math.floor(y);
+
+        const dx = x - ix;
+        const dy = y - iy;
+
+        let avgX = 0;
+        for (let px = -2; px < 4; px++) {
+          const f = this.lanczos(dx - px);
+          avgX += f;
+          this.lanczosX[px + 2] = f;
+        }
+
+        let avgY = 0;
+        let n = 0;
+        for (let py = -2; py < 4; py++) {
+          let a = 0;
+          for (let px = -2; px < 4; px++) {
+            a += this.random(ix + px, iy + py) * this.lanczosX[px + 2];
+          }
+          a /= avgX;
+          const lanczosY = this.lanczos(dy - py);
+          n += a * lanczosY;
+          avgY += lanczosY;
+        }
+
+        return (n / avgY) * 0.5;
+      }
+
+    }
+ 
+    
+    //hardcoded permutations array 
+    const lookup = new Uint8Array([151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6, 148, 247,
+        120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33,
+        88, 237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74, 165, 71, 134,
+        139, 48, 27, 166, 77, 146, 158, 231, 83, 111, 229, 122, 60, 211, 133, 230, 220,
+        105, 92, 41, 55, 46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80,
+        73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116, 188, 159, 86,
+        164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226, 250, 124, 123, 5, 202, 38,
+        147, 118, 126, 255, 82, 85, 212, 207, 206, 59, 227, 47, 16, 58, 17, 182, 189,
+        28, 42, 223, 183, 170, 213, 119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101,
+        155, 167, 43, 172, 9, 129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232,
+        178, 185, 112, 104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144, 12,
+        191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107, 49, 192, 214, 31, 181,
+        199, 106, 157, 184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254, 138, 236,
+        205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180]);
+        
+
+    //much faster than true lanczos
+    class FastLanczosNoise extends BaseNoise {
+      constructor(seed = Date.now()) {
+        super(seed);
+      }
+
+      cubicInterpolate(p0, p1, p2, p3, t) {
+        return p1 + 0.5 * t * (p2 - p0 + t * (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3 + t * (3.0 * (p1 - p2) + p3 - p0)));
+      }
+
+      noise(x, y, z) {
+        const ix = Math.floor(x);
+        const iy = Math.floor(y);
+
+        const dx = x - ix;
+        const dy = y - iy;
+
+        const n00 = this.random(ix - 1, iy - 1);
+        const n10 = this.random(ix + 0, iy - 1);
+        const n20 = this.random(ix + 1, iy - 1);
+        const n30 = this.random(ix + 2, iy - 1);
+
+        const n01 = this.random(ix - 1, iy + 0);
+        const n11 = this.random(ix + 0, iy + 0);
+        const n21 = this.random(ix + 1, iy + 0);
+        const n31 = this.random(ix + 2, iy + 0);
+
+        const n02 = this.random(ix - 1, iy + 1);
+        const n12 = this.random(ix + 0, iy + 1);
+        const n22 = this.random(ix + 1, iy + 1);
+        const n32 = this.random(ix + 2, iy + 1);
+
+        const n03 = this.random(ix - 1, iy + 2);
+        const n13 = this.random(ix + 0, iy + 2);
+        const n23 = this.random(ix + 1, iy + 2);
+        const n33 = this.random(ix + 2, iy + 2);
+
+        const col0 = this.cubicInterpolate(n00, n10, n20, n30, dx);
+        const col1 = this.cubicInterpolate(n01, n11, n21, n31, dx);
+        const col2 = this.cubicInterpolate(n02, n12, n22, n32, dx);
+        const col3 = this.cubicInterpolate(n03, n13, n23, n33, dx);
+
+        let result = this.cubicInterpolate(col0, col1, col2, col3, dy);
+
+        return result;
+      }
+    }
+
+
+    class VoronoiNoise extends BaseNoise {
+      constructor(seed = Date.now()) {
+        super(seed);
+      }
+
+      random(x, y) {
+        const idx = (this.perm[(x & 255) + this.perm[y & 255]]) & 255;
+        return this.perm[idx] / 255;
+      }
+
+      noise(x, y) {
+        let minDist = Infinity;
+        let minVal = 0;
+
+        for (let i = -1; i <= 1; i++) {
+          for (let j = -1; j <= 1; j++) {
+            const xi = Math.floor(x) + i;
+            const yi = Math.floor(y) + j;
+
+            const px = xi + this.random(xi, yi);
+            const py = yi + this.random(yi, xi);
+
+            const dist = (px - x) * (px - x) + (py - y) * (py - y);
+
+            if (dist < minDist) {
+              minDist = dist;
+              minVal = this.random(xi, yi);
+            }
+          }
+        }
+
+        return minVal;
+      }
+    }
+
+    //very sensitive to changes
+    class CellularNoise extends BaseNoise {
+      constructor(seed = Date.now()) {
+        super(seed);
+      }
+
+      random(x, y) {
+        const idx = (this.perm[(x & 255) + this.perm[y & 255]]) & 255;
+        return this.perm[idx] / 255;
+      }
+
+      noise(x, y) {
+        let minDist1 = Infinity;
+        let minDist2 = Infinity;
+
+        for (let i = -1; i <= 1; i++) {
+          for (let j = -1; j <= 1; j++) {
+            const xi = Math.floor(x) + i;
+            const yi = Math.floor(y) + j;
+
+            const px = xi + this.random(xi, yi);
+            const py = yi + this.random(yi, xi);
+
+            const dist = (px - x) * (px - x) + (py - y) * (py - y);
+
+            if (dist < minDist1) {
+              minDist2 = minDist1;
+              minDist1 = dist;
+            } else if (dist < minDist2) {
+              minDist2 = dist;
+            }
+          }
+        }
+
+        return minDist2 - minDist1;
+      }
+    }
+
+    //very sensitive to changes
+    class WorleyNoise extends BaseNoise {
+      constructor(seed = Date.now()) {
+        super(seed);
+      }
+
+      random(x, y) {
+        const idx = (this.perm[(x & 255) + this.perm[y & 255]]) & 255;
+        return this.perm[idx] / 255;
+      }
+
+      noise(x, y) {
+        let minDist = Infinity;
+
+        for (let i = -1; i <= 1; i++) {
+          for (let j = -1; j <= 1; j++) {
+            const xi = Math.floor(x) + i;
+            const yi = Math.floor(y) + j;
+
+            const px = xi + this.random(xi, yi);
+            const py = yi + this.random(yi, xi);
+
+            const dist = (px - x) * (px - x) + (py - y) * (py - y);
+
+            if (dist < minDist) {
+              minDist = dist;
+            }
+          }
+        }
+
+        return Math.sqrt(minDist);
+      }
+    }
+
+
+    //The next 3 are essentially identical
+    class HermiteNoise extends BaseNoise {
+      constructor(seed = Date.now()) {
+        super(seed);
+      }
+
+      hermiteInterpolate(a, b, t) {
+        const f = t * t * (3 - 2 * t);
+        return a * (1 - f) + b * f;
+      }
+
+      noise(x, y) {
+        const ix = Math.floor(x);
+        const iy = Math.floor(y);
+
+        const dx = x - ix;
+        const dy = y - iy;
+
+        const n00 = this.random(ix, iy);
+        const n10 = this.random(ix + 1, iy);
+        const n01 = this.random(ix, iy + 1);
+        const n11 = this.random(ix + 1, iy + 1);
+
+        const nx0 = this.hermiteInterpolate(n00, n10, dx);
+        const nx1 = this.hermiteInterpolate(n01, n11, dx);
+
+        return this.hermiteInterpolate(nx0, nx1, dy);
+      }
+    }
+
+    class QuinticNoise extends BaseNoise {
+      constructor(seed = Date.now()) {
+        super(seed);
+      }
+
+      quinticInterpolate(t) {
+        return t * t * t * (t * (t * 6 - 15) + 10);
+      }
+
+      noise(x, y) {
+        const ix = Math.floor(x);
+        const iy = Math.floor(y);
+
+        const dx = x - ix;
+        const dy = y - iy;
+
+        const n00 = this.random(ix, iy);
+        const n10 = this.random(ix + 1, iy);
+        const n01 = this.random(ix, iy + 1);
+        const n11 = this.random(ix + 1, iy + 1);
+
+        const u = this.quinticInterpolate(dx);
+        const v = this.quinticInterpolate(dy);
+
+        const nx0 = n00 * (1 - u) + n10 * u;
+        const nx1 = n01 * (1 - u) + n11 * u;
+
+        return nx0 * (1 - v) + nx1 * v;
+      }
+    }
+
+    class CosineNoise extends BaseNoise {
+      constructor(seed = Date.now()) {
+        super(seed);
+      }
+
+      cosineInterpolate(a, b, t) {
+        const t2 = (1 - Math.cos(t * Math.PI)) / 2;
+        return a * (1 - t2) + b * t2;
+      }
+
+      noise(x, y) {
+        const ix = Math.floor(x);
+        const iy = Math.floor(y);
+
+        const dx = x - ix;
+        const dy = y - iy;
+
+        const n00 = this.random(ix, iy);
+        const n10 = this.random(ix + 1, iy);
+        const n01 = this.random(ix, iy + 1);
+        const n11 = this.random(ix + 1, iy + 1);
+
+        const nx0 = this.cosineInterpolate(n00, n10, dx);
+        const nx1 = this.cosineInterpolate(n01, n11, dx);
+
+        return this.cosineInterpolate(nx0, nx1, dy);
+      }
+    }
+
+
+    //now for generator implementations, just extend them with the previous noise generators
+
+
+    class PerlinNoise extends Noise {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0, turbulence = false) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amp = 1.0;
+        let freq = 1.0;
+
+        let angle = this.seedN * 2*Math.PI; //start at random angle;
+        let angleIncr = Math.PI / 4;
+        const angleIncrement = Math.PI/4;
+
+
+        for (let i = 0; i < octaves; i++) {
+            let noiseValue = this.noise(x * freq, y * freq, z * freq) * amp;
+            if (turbulence) { noiseValue = Math.abs(noiseValue); }
+            sum += noiseValue;
+            
+            freq *= lacunarity;
+            amp *= gain;
+            
+            // Apply rotation to the coordinates
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+
+            const newX = x * cosAngle - y * sinAngle;
+            const newY = x * sinAngle + y * cosAngle;
+
+            x = newX;
+            y = newY;
+            angle += angleIncrement;
+
+            // Apply shift to the coordinates
+            x += shift;
+            y += shift;
+        }
+
+        if(turbulence) sum -= 1;
+        return sum;
+      }
+    }
+
+    class HexWorms extends CellularNoise {
+      noise(x, y, z) {
+        const steps = 5;
+        const persistence = 0.5;
+
+        let total = 0;
+        let frequency = 1;
+        let amplitude = 1;
+
+        for (let i = 0; i < steps; i++) {
+          const angle = super.noise(x * frequency, y * frequency, z * frequency) * Math.PI * 2;
+          const nx = x + Math.cos(angle) * 0.5;
+          const ny = y + Math.sin(angle) * 0.5;
+          total += super.noise(nx, ny, z) * amplitude;
+
+          amplitude *= persistence;
+          frequency *= 2;
+        }
+
+        total -= 1; 
+
+        return total;
+      }
+
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amp = 1.0;
+        let freq = 1.0;
+
+        for (let i = 0; i < octaves; i++) {
+          sum += this.noise(x * freq, y * freq, z * freq) * amp;
+          freq *= lacunarity;
+          amp *= gain;
+
+          // Apply shift to the coordinates
+          x += shift;
+          y += shift;
+          z += shift;
+        }
+
+        return sum;
+      }
+    }
+
+    class PerlinWorms extends Noise {
+      noise(x, y, z) {
+        const steps = 5;
+        const persistence = 0.5;
+
+        let total = 0;
+        let frequency = 1;
+        let amplitude = 1;
+
+        for (let i = 0; i < steps; i++) {
+          const angle = super.noise(x * frequency, y * frequency, z * frequency) * Math.PI * 2;
+          const nx = x + Math.cos(angle) * 0.5;
+          const ny = y + Math.sin(angle) * 0.5;
+          total += super.noise(nx, ny, z) * amplitude;
+
+          amplitude *= persistence;
+          frequency *= 2;
+        }
+
+
+        return total;
+      }
+
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amp = 1.0;
+        let freq = 1.0;
+
+        for (let i = 0; i < octaves; i++) {
+          sum += this.noise(x * freq, y * freq, z * freq) * amp;
+          freq *= lacunarity;
+          amp *= gain;
+
+          // Apply shift to the coordinates
+          x += shift;
+          y += shift;
+          z += shift;
+        }
+
+        return sum;
+      }
+    }
+
+    class LanczosBillowNoise extends FastLanczosNoise {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0; 
+        let maxAmp = 0;
+        let amp = 1.0;
+        let freq = 1.0;
+
+        let angle = this.seedN * 2*Math.PI; //start at random angle;
+        const angleIncrement = Math.PI/4;
+
+        for (let i = 0; i < octaves; i++) {
+            const noiseValue = this.noise(x * freq, y * freq, z * freq);
+            sum += (2 * Math.abs(noiseValue) - 1) * amp;
+
+            maxAmp += amp;
+            freq *= lacunarity;
+            amp *= gain;
+
+            // Apply rotation to the coordinates
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+            
+            const newX = x * cosAngle - y * sinAngle;
+            const newY = x * sinAngle + y * cosAngle;
+            const newZ = y * sinAngle + z * cosAngle;
+
+            x = newX;
+            y = newY;
+            z = newZ;
+            angle += angleIncrement;
+
+            // Apply shift to the coordinates
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        //sum += 1 //for others
+        sum /= maxAmp; //for fast lancsoz
+
+        return sum;
+      }
+    }
+
+
+    class LanczosAntiBillowNoise extends FastLanczosNoise {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amp = 1.0; let maxAmp = 0;
+        let freq = 1.0;
+
+        let angle = this.seedN * 2*Math.PI; //start at random angle;
+        const angleIncrement = Math.PI/4;
+
+        for (let i = 0; i < octaves; i++) {
+            const noiseValue = this.noise(x * freq, y * freq, z * freq);
+            sum += (2 * Math.abs(noiseValue) - 1) * amp;
+
+            maxAmp += amp;
+            freq *= lacunarity;
+            amp *= gain;
+
+            // Apply rotation to the coordinates
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+
+            const newX = x * cosAngle - y * sinAngle;
+            const newY = x * sinAngle + y * cosAngle;
+            z = y * sinAngle + z * cosAngle;
+
+            x = newX;
+            y = newY;
+            angle += angleIncrement;
+
+            // Apply shift to the coordinates
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        //sum += 1 //for others
+        sum /= maxAmp; //for fast lancsoz
+
+        return -sum;
+      }
+    }
+
+    class RidgeNoise extends Noise {
+      noise(x, y, z) {
+        let value = super.noise(x, y, z);
+        value = 1 - Math.abs(value);
+        return value * value;
+      }
+
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amp = 1.0;
+        let freq = 1.0;
+
+
+        for (let i = 0; i < octaves; i++) {
+          sum += this.noise(x * freq, y * freq, z * freq) * amp;
+          freq *= lacunarity;
+
+          amp *= gain;
+
+          // Apply shift to the coordinates
+          x += shift;
+          y += shift;
+          z += shift;
+        }
+
+        sum -= 1.5;
+
+        return sum;
+      }
+    }
+
+    
+    class BillowNoise extends Noise {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0; 
+        let amp = 1.0;
+        let freq = 1.0;
+
+        let angle = this.seedN * 2*Math.PI; //start at random angle;
+        const angleIncrement = Math.PI/4;
+
+        for (let i = 0; i < octaves; i++) {
+            const noiseValue = this.noise(x * freq, y * freq, z * freq);
+            sum += (2 * Math.abs(noiseValue) - 1) * amp;
+
+            freq *= lacunarity;
+            amp *= gain;
+
+            // Apply rotation to the coordinates
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+
+            const newX = x * cosAngle - y * sinAngle;
+            const newY = x * sinAngle + y * cosAngle;
+            z = y * sinAngle + z * cosAngle;
+
+            x = newX;
+            y = newY;
+            angle += angleIncrement;
+
+            // Apply shift to the coordinates
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        sum += 1;
+
+        return sum;
+      }
+    }
+
+
+    class AntiBillowNoise extends Noise {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amp = 1.0;
+        let freq = 1.0;
+
+        let angle = this.seedN * 2*Math.PI; //start at random angle;
+        const angleIncrement = Math.PI/4;
+
+        for (let i = 0; i < octaves; i++) {
+            const noiseValue = this.noise(x * freq, y * freq, z * freq);
+            sum += (2 * Math.abs(noiseValue) - 1) * amp;
+
+            freq *= lacunarity;
+            amp *= gain;
+
+            // Apply rotation to the coordinates
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+
+            const newX = x * cosAngle - y * sinAngle;
+            const newY = x * sinAngle + y * cosAngle;
+            z = y * sinAngle + z * cosAngle;
+
+            x = newX;
+            y = newY;
+            angle += angleIncrement;
+
+            // Apply shift to the coordinates
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        sum += 1;
+
+        return -sum;
+      }
+    }
+    
+    class RidgedMultifractalNoise extends FastLanczosNoise {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.75, shift=0, exp1 = 3, exp2 = 1.0) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 1 - Math.abs(this.noise(x, y, z));
+        let amp = 1.0;
+
+        let angle = this.seedN * 2*Math.PI; //start at random angle;
+        let angleIncr = Math.PI/4;
+        for (let i = 1; i < octaves; i++) {
+            x *= lacunarity;
+            y *= lacunarity;
+            z *= lacunarity;
+
+            amp *= gain;
+
+            //add some variation on the fractal pattern with exponents
+            let noise = Math.abs(this.noise(x, y, z));
+            let noiseValue = 1 - (Math.pow(noise, exp2));
+            noiseValue = Math.pow(noiseValue, exp1);
+            
+            sum -= noiseValue * amp;
+          
+            //adds some rotation to vary the textures more 
+            let lastX;
+            x = x * Math.cos(angle) + x * Math.sin(angle);
+            y = y * Math.sin(angle) + y * Math.cos(angle); 
+            z = z * Math.sin(angle) + z * Math.cos(angle); 
+            //z ?
+            angle += angleIncr;
+
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        return -sum; //the negative makes it more ridgelike, positive more bubbly
+      }
+    }
+
+    class FractalBrownianMotion extends SimplexNoise {
+        fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+            x /= zoom;
+            y /= zoom;
+            z /= zoom;
+
+            let sum = 0;
+            let amplitude = 1.0;
+            let frequency = 1.0;
+            let maxValue = 0;
+
+            for (let i = 0; i < octaves; i++) {
+                sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+                maxValue += amplitude;
+
+                frequency *= lacunarity;
+                amplitude *= gain;
+
+                x += shift;
+                y += shift;
+                z += shift;
+            }
+
+            return sum / maxValue;
+        }
+
+        generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+            // Initial FBM pass
+            let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift);
+
+            // Recursive FBM pass using the output of the initial FBM
+            let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift);
+
+            return fbm2;
+        }
+      }
+
+      class FractalBrownianMotion2 extends SimplexNoise {
+        fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+            x /= zoom;
+            y /= zoom;
+            z /= zoom;
+
+            let sum = 0;
+            let amplitude = 1.0;
+            let frequency = 1.0;
+            let maxValue = 0;
+
+            for (let i = 0; i < octaves; i++) {
+                sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+                maxValue += amplitude;
+
+                frequency *= lacunarity;
+                amplitude *= gain;
+
+                x += shift;
+                y += shift;
+                z += shift;
+            }
+
+            return sum / maxValue;
+        }
+
+        generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+            // Initial FBM pass
+            let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift);
+
+            // Second FBM pass using the output of the initial FBM
+            let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift);
+
+            // Third FBM pass using the output of the second FBM
+            let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift);
+
+            return fbm3;
+        }
+    }
+
+    class FractalBrownianMotion3 extends SimplexNoise {
+      fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+          x /= zoom;
+          y /= zoom;
+          z /= zoom;
+
+          let sum = 0;
+          let amplitude = 1.0;
+          let frequency = 1.0;
+          let maxValue = 0;
+
+          for (let i = 0; i < octaves; i++) {
+              sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+              maxValue += amplitude;
+
+              frequency *= lacunarity;
+              amplitude *= gain;
+
+              x += shift;
+              y += shift;
+             //z += shift;
+          }
+
+          return sum / maxValue;
+      }
+
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+          // Initial FBM pass
+          let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift);
+
+          // Second FBM pass using the output of the initial FBM
+          let fbm2 = this.fbm(x + fbm1 * zoom, y + fbm1 * zoom, z + fbm1 * zoom, zoom, octaves, lacunarity, gain, shift);
+
+          // Third FBM pass using the output of the second FBM
+          let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift);
+
+          return fbm3;
+      }
+    }
+    
+
+    document.addEventListener('DOMContentLoaded', async function() {
+      // const perlinCanvas = document.getElementById('perlinCanvas');
+      // const perlinwormsCanvas =  document.getElementById('perlinwormsCanvas');
+      // const hexwormsCanvas =  document.getElementById('hexwormsCanvas');
+      // const billowCanvas = document.getElementById('billowCanvas');
+      // const invbillowCanvas = document.getElementById('invbillowCanvas');
+      // const multifractalCanvas = document.getElementById('multifractalCanvas');
+      // const fbmCanvas = document.getElementById('fbmCanvas1');
+      // const fbmCanvas2 = document.getElementById('fbmCanvas2');
+      // const fbmCanvas3 = document.getElementById('fbmCanvas3');
+
+      // const perlinCtx = perlinCanvas.getContext('2d');
+      // const perlinwormsCtx = perlinwormsCanvas.getContext('2d');
+      // const hexwormsCtx =  hexwormsCanvas.getContext('2d');
+      // const billowCtx = billowCanvas.getContext('2d');
+      // const invbillowCtx = invbillowCanvas.getContext('2d');
+      // const multifractalCtx = multifractalCanvas.getContext('2d');
+      // const fbmCtx = fbmCanvas.getContext('2d');
+      // const fbmCtx2 = fbmCanvas2.getContext('2d');
+      // const fbmCtx3 = fbmCanvas3.getContext('2d');
+
+      // const width = perlinCanvas.width;
+      // const height = perlinCanvas.height;
+
+      const zoom = 50; // Adjust zoom for more zoomed-in noise pattern
+      const octaves = 8; // Number of octaves for the noise
+      const lacunarity = 2; // Lacunarity for the noise
+      const gain = 0.5; // Gain for the noise
+      const shift = 200; //domain shift
+
+      // const perlinHeightmap = new Float32Array(width * height);
+      // const perlinwormsHeightmap = new Float32Array(width * height);
+      // const hexwormsHeightmap = new Float32Array(width * height);
+      // const billowHeightmap = new Float32Array(width * height);
+      // const invbillowHeightmap = new Float32Array(width * height);
+      // const ridgedHeightmap = new Float32Array(width * height);
+      // const fbmHeightmap = new Float32Array(width * height);
+      // const fbmHeightmap2 = new Float32Array(width * height);
+      // const fbmHeightmap3 = new Float32Array(width * height);
+
+      const perlin = new PerlinNoise(12345); // Set a seed for reproducibility
+      const perlinworms = new PerlinWorms(12345); // Set a seed for reproducibility
+      const hexworms = new HexWorms(12345); // Set a seed for reproducibility
+      const billow = new LanczosBillowNoise(12345); // Set a seed for reproducibility
+      const invbillow = new LanczosAntiBillowNoise(12345); // Set a seed for reproducibility
+      const ridged = new RidgedMultifractalNoise(12345); // Set a seed for reproducibility
+      const fbm = new FractalBrownianMotion(12345); // Set a seed for reproducibility
+      const fbm2 = new FractalBrownianMotion2(12345); // Set a seed for reproducibility
+      const fbm3 = new FractalBrownianMotion3(12345); // Set a seed for reproducibility
+
+    // Define a set of gradient colors
+    // Define a set of gradient colors
+      const gradientColors = [
+          [0, 0, 51],     // Dark blue
+          [0, 0, 151],     // Lighter blue
+          [0, 0, 151],     // Lighter blue
+          [255, 178, 102],// Light orange
+          [0, 51, 0],     // Dark green
+          [117, 181, 130],     // Light green
+          [153, 76, 0],   // Darker orange
+          [204, 102, 0],  // Dark orange
+          [102, 51, 0],   // Dark brown
+          [153, 76, 0],   // Darker orange
+          [204, 102, 0],  // Dark orange
+          [255, 128, 0],  // Medium dark orange
+          [255, 178, 102],// Light orange
+          [153, 51, 0],   // Medium dark brown
+          [234, 153, 102],// Lighter brown
+          [204, 102, 51], // Medium light brown
+          [153, 51, 0],   // Medium dark brown
+          [102, 51, 0],   // Dark brown
+          [51, 25, 0],    // Very dark brown
+          [153, 76, 0],   // Darker orange
+          [204, 102, 0],  // Dark orange
+          [255, 128, 0],  // Medium dark orange
+          [255, 178, 102],// Light orange
+      ];
+
+      // Function to interpolate between two colors
+      const interpolateColor = (color1, color2, factor) => {
+        return color1.map((c, i) => Math.round(c + factor * (color2[i] - c)));
+      };
+
+      // Function to map noise values to the gradient
+      const getColor = (value) => {
+        const numColors = gradientColors.length;
+        const scaledValue = (value + 1) * 0.5 * (numColors - 1);
+        let lowerIndex = Math.floor(scaledValue);
+        if(lowerIndex < 0) lowerIndex = 0;
+        else if(lowerIndex >= numColors) lowerIndex = numColors - 2;
+        let upperIndex = Math.min(lowerIndex + 1, numColors - 1);
+        if(upperIndex >= numColors) {
+          upperIndex = numColors - 1;
+          lowerIndex = numColors - 2;
+        }
+
+        const factor = scaledValue - lowerIndex;
+
+        return interpolateColor(gradientColors[lowerIndex], gradientColors[upperIndex], factor);
+      };
+
+      // Function to adjust color brightness
+      const adjustBrightness = (color, factor) => {
+        return color.map(c => Math.round(c * (factor)));
+      };
+
+      let iterateCanvas = async (
+        noiseGen,
+        heightmap,
+        ctx,
+        zoom,
+        octaves,
+        lacunarity,
+        gain,
+        shift
+      ) => {
+        // Create an ImageData object
+        const imageData = ctx.createImageData(width, height);
+        const data = imageData.data;
+
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            // Generate Perlin noise
+            const noiseValue = noiseGen.generateNoise(x, y, 0, zoom, octaves, lacunarity, gain, shift); // 2D
+            heightmap[y * width + x] = noiseValue;
+
+            //const baseColor = getColor(noiseValue);
+            const brightnessFactor = (noiseValue + 1) * 0.5;
+
+            const instensity = Math.floor(brightnessFactor*255);
+
+            const [r, g, b] = [instensity,instensity,instensity]//adjustBrightness(baseColor, brightnessFactor);
+            const index = (y * width + x) * 4;
+            data[index] = r; // Red
+            data[index + 1] = g; // Green
+            data[index + 2] = b; // Blue
+            data[index + 3] = 255; // Alpha
+          }
+        }
+
+        // Put the ImageData back to the canvas
+        ctx.putImageData(imageData, 0, 0);
+
+        return true;
+      }
+
+
+      let wait = (time=50) => {
+        return new Promise((res) => {setTimeout(()=>{res(true)},time)})
+      }
+
+
+      
+    // await iterateCanvas(perlin,perlinHeightmap,perlinCtx,zoom,octaves,lacunarity,gain,shift);
+    // await wait();
+    // await iterateCanvas(billow,billowHeightmap,billowCtx, zoom,octaves,lacunarity,gain,shift);
+    // await wait();
+    // await iterateCanvas(invbillow,invbillowHeightmap,invbillowCtx, zoom,octaves,lacunarity,gain,shift);
+    // await wait();
+    // await iterateCanvas(ridged,ridgedHeightmap,multifractalCtx, zoom,octaves,lacunarity,gain,shift);
+    // await wait();
+    // await iterateCanvas(fbm,fbmHeightmap,fbmCtx, zoom,octaves,lacunarity,gain,shift);
+    // await wait();
+    // await iterateCanvas(fbm2,fbmHeightmap2,fbmCtx2, zoom,octaves,lacunarity,gain,shift);
+    // await wait();
+    // await iterateCanvas(fbm3,fbmHeightmap3,fbmCtx3, zoom,octaves,lacunarity,gain,shift);
+    // await wait();
+    // await iterateCanvas(perlinworms,perlinwormsHeightmap,perlinwormsCtx,zoom,octaves,lacunarity,gain,shift);
+    // await wait();
+    // await iterateCanvas(hexworms,hexwormsHeightmap,hexwormsCtx,zoom,octaves,lacunarity,gain,shift);
+    // await wait();
+
+
+    //   console.log('Perlin Heightmap:', perlinHeightmap);
+    //   console.log('Billow Heightmap:', billowHeightmap);
+    //   console.log('Ridged Heightmap:', ridgedHeightmap);
+    //   console.log('FBM Heightmap:', fbmHeightmap);
+
+
+
+    const canvas3d = document.getElementById('3dcanvas');
+const engine = new BABYLON.Engine(canvas3d, { antialias: true });
+
+const createScene = async () => {
+    const scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color3(0, 0, 0); // Black background for the starry sky
+
+    const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2, 100, new BABYLON.Vector3(0, 0, 0), scene);
+    camera.attachControl(canvas3d, true);
+
+    // Create a rotating point light
+    const pointLight = new BABYLON.PointLight("pointLight", new BABYLON.Vector3(0, 50, 0), scene);
+    pointLight.intensity = 10;
+    pointLight.diffuse = new BABYLON.Color3(1, 1, 1);
+    pointLight.specular = new BABYLON.Color3(1, 1, 1);
+
+    // Create a sphere to represent the sun
+    const sun = BABYLON.MeshBuilder.CreateSphere("sun", { diameter: 5 }, scene);
+    sun.material = new BABYLON.StandardMaterial("sunMaterial", scene);
+    sun.material.emissiveColor = new BABYLON.Color3(1, 1, 0); // Bright yellow
+
+    // Enable shadows
+    const shadowGenerator = new BABYLON.ShadowGenerator(2048, pointLight);
+    shadowGenerator.usePercentageCloserFiltering = true;
+
+    // Parameters for the sphere
+    const segments = 800;
+    const radius = 50;
+
+    // Generate Perlin noise
+    const noiseGen = fbm; // Replace with your noise generator
+
+    // Create custom mesh
+    const positions = [];
+    const normals = [];
+    const indices = [];
+    const colors = [];
+    const uvs = [];
+
+    // Generate positions, normals, and uvs
+    for (let lat = 0; lat <= segments; lat++) {
+        const theta = lat * Math.PI / segments;
+        const poleScale = Math.sin(theta); 
+        for (let lon = 0; lon <= segments; lon++) {
+            const phi = lon * 2 * Math.PI / segments;
+
+            // Spherical coordinates to Cartesian coordinates
+            const x = Math.sin(theta) * Math.cos(phi);
+            const y = Math.sin(theta) * Math.sin(phi);
+            const z = Math.cos(theta);
+
+            // Add complex variations and offsets to noise coordinates with scaling
+            let noiseX = x + 2 + poleScale * (0.1 * Math.sin(phi + theta) + 0.75 * Math.cos(2 * phi));
+            let noiseY = y + 2 + poleScale * (0.1 * Math.cos(theta + phi) + 0.75 * Math.sin(2 * theta));
+            let noiseZ = z + 2 + poleScale * (0.1 * Math.sin(2 * phi + theta) + 0.75 * Math.cos(2 * theta + phi));
+            //this needs to be improved so that there is a wider variation in the stretched areas or use a different variation entirely to avoid symmetries
+
+            const noiseValue = noiseGen.generateNoise(noiseX, noiseY, noiseZ, 5, 6, 2.0, 0.5, 0) +
+                fbm2.generateNoise(noiseX, noiseY, noiseZ, 5, 6, 2.0, 0.5, 0) +
+                ridged.generateNoise(noiseX, noiseY, noiseZ, 10, 6, 2.0, 0.5, 0) +
+                2*billow.generateNoise(noiseX, noiseY, noiseZ, 10, 6, 2.0, 0.5, 0) + 0.5;
+
+            const heightValue = noiseValue * 5; // Adjust the multiplier as needed
+            const nx = x * radius + x * heightValue;
+            const ny = y * radius + y * heightValue;
+            const nz = z * radius + z * heightValue;
+
+            positions.push(nx, ny, nz);
+            normals.push(x, y, z); // Normalized coordinates for the normals
+
+            const baseColor = getColor(noiseValue);
+            const [r, g, b] = baseColor;
+            colors.push(r / 255, g / 255, b / 255, 1);
+            uvs.push(lon / segments, lat / segments);
+        }
+    }
+
+    // Generate indices
+    for (let lat = 0; lat < segments; lat++) {
+        for (let lon = 0; lon < segments; lon++) {
+            const first = (lat * (segments + 1)) + lon;
+            const second = first + segments + 1;
+
+            indices.push(first, second, first + 1);
+            indices.push(second, second + 1, first + 1);
+        }
+    }
+
+    const customMesh = new BABYLON.Mesh("custom", scene);
+    const vertexData = new BABYLON.VertexData();
+    vertexData.positions = positions;
+    vertexData.indices = indices;
+    vertexData.normals = normals; // Apply normals
+    vertexData.colors = colors;
+    vertexData.uvs = uvs;
+    vertexData.applyToMesh(customMesh);
+
+    const material = new BABYLON.StandardMaterial("material", scene);
+    material.vertexColorEnabled = true;
+    material.specularColor = new BABYLON.Color3(0.015, 0.015, 0.015);
+    customMesh.material = material;
+
+    material.backFaceCulling = false;
+
+    customMesh.receiveShadows = true;
+    shadowGenerator.addShadowCaster(customMesh);
+
+
+    // Create starry sky point cloud system
+    const pcs = new BABYLON.PointsCloudSystem("pcs", 1, scene);
+
+    const starDistance = 150; // Maximum distance from the center of the terrain
+    const minStarDistance = 85; // Minimum distance from the center of the terrain
+    const numStars = 20000;
+
+    const gaussianRandom = (mean = 0, stdev = 1) => {
+        let u = 1 - Math.random(); // Converting [0,1) to (0,1)
+        let v = Math.random();
+        let z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        return z * stdev + mean;
+    };
+
+    const starFunc = (particle) => {
+        let theta, phi;
+
+        if (Math.random() < 0.75) {
+            theta = Math.random() * Math.PI * (1.5 + Math.random() * 0.5);
+
+            const verticalOffset = gaussianRandom(0, Math.PI / 16);
+            const sharpClustering = gaussianRandom(0, Math.PI / 48);
+
+            phi = Math.PI / 2 + verticalOffset + sharpClustering;
+        } else {
+            theta = Math.random() * 2 * Math.PI;
+            phi = Math.acos(2 * (Math.random() - 0.5));
+        }
+
+        const distanceFactor = Math.pow(Math.random(), 0.4);
+        const radius = minStarDistance + distanceFactor * (starDistance - minStarDistance);
+
+        particle.position = new BABYLON.Vector3(
+            radius * Math.sin(phi) * Math.cos(theta),
+            radius * Math.sin(phi) * Math.sin(theta),
+            radius * Math.cos(phi)
+        );
+
+        particle.color = new BABYLON.Color4(Math.random(), Math.random(), Math.random(), 1);
+        particle.pivot = BABYLON.Vector3.Zero();
+    };
+
+    pcs.addPoints(numStars, starFunc);
+
+    pcs.buildMeshAsync().then(() => {
+        pcs.mesh.isPickable = false;
+        pcs.mesh.alwaysSelectAsActiveMesh = true;
+
+        pcs.mesh.rotation.y += Math.PI / 2;
+    });
+
+    // Create night light
+    const nightLight = new BABYLON.HemisphericLight("nightLight", new BABYLON.Vector3(0, 1, 0), scene);
+    nightLight.intensity = 0.5;
+
+    // Animate the point light
+    let prevTime = performance.now() * 0.000125;
+    scene.registerBeforeRender(() => {
+        const time = performance.now() * 0.000125;
+        const dt = time - prevTime;
+        prevTime = time;
+
+        let rotY = Math.sin(time);
+        const sunHeight = 3*radius * rotY;
+        const normalizedHeight = (sunHeight + 2*radius) / (2 * radius);
+
+        pcs.mesh.rotation.x -= dt;
+
+        // if (rotY < 0.01 && sphere.receiveShadows) {
+        //     sphere.receiveShadows = false;
+        // } else if (rotY > 0.01 && !sphere.receiveShadows) {
+        //   sphere.receiveShadows = true;
+        // }
+
+        pointLight.position = new BABYLON.Vector3(
+            10*radius * Math.cos(time),
+            10*radius * rotY,
+            0
+        );
+        
+        sun.position = new BABYLON.Vector3(
+            3*radius * Math.cos(time),
+            3*radius * rotY,
+            0
+        );
+
+        // if (rotY > 0.5) {
+        //     pointLight.diffuse = BABYLON.Color3.Lerp(new BABYLON.Color3(1, 1, 1), new BABYLON.Color3(1, 0.65, 0.65), (rotY - 0.75) / 0.25);
+        //     pointLight.specular = pointLight.diffuse;
+        // } else if (rotY > 0.25) {
+        //     pointLight.diffuse = BABYLON.Color3.Lerp(new BABYLON.Color3(1, 0.65, 0.65), new BABYLON.Color3(1, 0.3, 0.3), (rotY - 0.5) / 0.25);
+        //     pointLight.specular = pointLight.diffuse;
+        // } else if (rotY > 0.15) {
+        //     pointLight.diffuse = BABYLON.Color3.Lerp(new BABYLON.Color3(1, 0.3, 0.3), new BABYLON.Color3(1, 0.08, 0.57), (rotY - 0.25) / 0.25);
+        //     pointLight.specular = pointLight.diffuse;
+        // } else if (rotY > 0) {
+        //     pointLight.diffuse = BABYLON.Color3.Lerp(new BABYLON.Color3(1, 0.08, 0.57), new BABYLON.Color3(0.1, 0.01, 0.44), rotY / 0.25);
+        //     pointLight.specular = pointLight.diffuse;
+        // } else {
+        //     pointLight.diffuse = BABYLON.Color3.Lerp(new BABYLON.Color3(0.1, 0.01, 0.44), new BABYLON.Color3(0.1, 0.1, 0.1), rotY / 0.25);
+        //     pointLight.specular = pointLight.diffuse;
+        // }
+
+        // nightLight.intensity = Math.max(0.3, 0.5 - Math.abs(normalizedHeight + 0.3));
+        // pointLight.intensity = Math.min(10, Math.max(0, (2 * Math.abs(normalizedHeight + 0.05) - 1) * 10));
+    });
+
+    return scene;
+};
+
+const scene = await createScene();
+engine.runRenderLoop(() => {
+    scene.render();
+});
+
+window.addEventListener('resize', () => {
+    engine.resize();
+});;
+
+
+
+  });
+  </script>
+</body>
+</html>
