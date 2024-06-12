@@ -1231,24 +1231,27 @@
         return new Promise((res) => {setTimeout(()=>{res(true)},time)})
       }
 
-      await iterateCanvas(perlin,perlinHeightmap,perlinCtx,zoom,octaves,lacunarity,gain,shift);
-      await wait();
-      await iterateCanvas(billow,billowHeightmap,billowCtx, zoom,octaves,lacunarity,gain,shift);
-      await wait();
-      await iterateCanvas(invbillow,invbillowHeightmap,invbillowCtx, zoom,octaves,lacunarity,gain,shift);
-      await wait();
-      await iterateCanvas(ridged,ridgedHeightmap,multifractalCtx, zoom,octaves,lacunarity,gain,shift);
-      await wait();
-      await iterateCanvas(fbm,fbmHeightmap,fbmCtx, zoom,octaves,lacunarity,gain,shift);
-      await wait();
-      await iterateCanvas(fbm2,fbmHeightmap2,fbmCtx2, zoom,octaves,lacunarity,gain,shift);
-      await wait();
-      await iterateCanvas(fbm3,fbmHeightmap3,fbmCtx3, zoom,octaves,lacunarity,gain,shift);
-      await wait();
-      await iterateCanvas(perlinworms,perlinwormsHeightmap,perlinwormsCtx,zoom,octaves,lacunarity,gain,shift);
-      await wait();
-      await iterateCanvas(hexworms,hexwormsHeightmap,hexwormsCtx,zoom,octaves,lacunarity,gain,shift);
-      await wait();
+
+      
+    await iterateCanvas(perlin,perlinHeightmap,perlinCtx,zoom,octaves,lacunarity,gain,shift);
+    await wait();
+    await iterateCanvas(billow,billowHeightmap,billowCtx, zoom,octaves,lacunarity,gain,shift);
+    await wait();
+    await iterateCanvas(invbillow,invbillowHeightmap,invbillowCtx, zoom,octaves,lacunarity,gain,shift);
+    await wait();
+    await iterateCanvas(ridged,ridgedHeightmap,multifractalCtx, zoom,octaves,lacunarity,gain,shift);
+    await wait();
+    await iterateCanvas(fbm,fbmHeightmap,fbmCtx, zoom,octaves,lacunarity,gain,shift);
+    await wait();
+    await iterateCanvas(fbm2,fbmHeightmap2,fbmCtx2, zoom,octaves,lacunarity,gain,shift);
+    await wait();
+    await iterateCanvas(fbm3,fbmHeightmap3,fbmCtx3, zoom,octaves,lacunarity,gain,shift);
+    await wait();
+    await iterateCanvas(perlinworms,perlinwormsHeightmap,perlinwormsCtx,zoom,octaves,lacunarity,gain,shift);
+    await wait();
+    await iterateCanvas(hexworms,hexwormsHeightmap,hexwormsCtx,zoom,octaves,lacunarity,gain,shift);
+    await wait();
+
 
     //   console.log('Perlin Heightmap:', perlinHeightmap);
     //   console.log('Billow Heightmap:', billowHeightmap);
@@ -1276,7 +1279,7 @@
         pointLight.specular = new BABYLON.Color3(1, 1, 1);
 
         // Create a sphere to represent the sun
-        const sun = BABYLON.MeshBuilder.CreateSphere("sun", { diameter: 5 }, scene);
+        const sun = BABYLON.MeshBuilder.CreateSphere("sun", { diameter: 20 }, scene);
         sun.material = new BABYLON.StandardMaterial("sunMaterial", scene);
         sun.material.emissiveColor = new BABYLON.Color3(1, 1, 0); // Bright yellow
 
@@ -1347,17 +1350,44 @@
         // Create starry sky point cloud system
         const pcs = new BABYLON.PointsCloudSystem("pcs", 1, scene);
 
-        const starDistance = width*1.5; // Distance from the center of the terrain
+        const starDistance = width * 1.5; // Maximum distance from the center of the terrain
+        const minStarDistance = width * 0.85; // Minimum distance from the center of the terrain
         const numStars = 20000;
 
+        // Function to generate a Gaussian distribution
+        const gaussianRandom = (mean = 0, stdev = 1) => {
+            let u = 1 - Math.random(); // Converting [0,1) to (0,1)
+            let v = Math.random();
+            let z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            return z * stdev + mean;
+        };
+
+              
         const starFunc = (particle) => {
-            const theta = Math.random() * 2 * Math.PI;
-            const phi = Math.acos((Math.random() * 2) - 1);
+            let theta, phi;
+            
+            // Determine whether the star is part of the Milky Way plane or in the general distribution
+            if (Math.random() < 0.75) { // 75% probability for Milky Way stars
+                theta = Math.random() * Math.PI * (1.5 + Math.random()*0.5); // Spans 3/4ths around the sphere
+                
+                // Two levels of clustering
+                const verticalOffset = gaussianRandom(0, Math.PI / 16); // Gaussian spread for vertical offset
+                const sharpClustering = gaussianRandom(0, Math.PI / 48); // Sharper clustering
+
+                // Combine both clustering effects
+                phi = Math.PI / 2 + verticalOffset + sharpClustering;
+            } else {
+                theta = Math.random() * 2 * Math.PI;
+                phi = Math.acos(2 * (Math.random() - 0.5));
+            }
+
+            const distanceFactor = Math.pow(Math.random(), 0.4); // Increases density towards the center
+            const radius = minStarDistance + distanceFactor * (starDistance - minStarDistance); // Ensures minimum radius
 
             particle.position = new BABYLON.Vector3(
-                starDistance * Math.sin(phi) * Math.cos(theta),
-                starDistance * Math.sin(phi) * Math.sin(theta),
-                starDistance * Math.cos(phi)
+                radius * Math.sin(phi) * Math.cos(theta),
+                radius * Math.sin(phi) * Math.sin(theta),
+                radius * Math.cos(phi)
             );
 
             particle.color = new BABYLON.Color4(Math.random(), Math.random(), Math.random(), 1);
@@ -1369,6 +1399,8 @@
         pcs.buildMeshAsync().then(() => {
             pcs.mesh.isPickable = false;
             pcs.mesh.alwaysSelectAsActiveMesh = true;
+
+            pcs.mesh.rotation.y += Math.PI/2;
         });
 
         // Create night light
@@ -1376,26 +1408,25 @@
         nightLight.intensity = 0;
 
         // Animate the point light
+        let prevTime = performance.now() * 0.000125
         scene.registerBeforeRender(() => {
-            const time = performance.now() * 0.00015;
+            const time = performance.now() * 0.000125;
+            const dt = time - prevTime;
+            prevTime = time;
 
             let rotY = Math.sin(time);
             const sunHeight = width * rotY;
             const normalizedHeight = (sunHeight + width) / (2 * width);
 
-            if(rotY < 0.05 && customMesh.receiveShadows) {
+            //pcs.mesh.rotation.z += dt;
+            pcs.mesh.rotation.x -= dt;
+
+            if(rotY < 0.01 && customMesh.receiveShadows) {
               customMesh.receiveShadows = false;
 
-            } else if (rotY > 0.05 && !customMesh.receiveShadows) {
+            } else if (rotY > 0.01 && !customMesh.receiveShadows) {
               customMesh.receiveShadows = true;
             }
-
-            pointLight.position = new BABYLON.Vector3(
-                width * Math.cos(time),
-                width * rotY,
-                0
-            );
-
 
             // Update point light position
             pointLight.position = new BABYLON.Vector3(
@@ -1415,19 +1446,18 @@
             } else if (rotY > 0.15) {
               pointLight.diffuse = BABYLON.Color3.Lerp(new BABYLON.Color3(1, 0.3, 0.3), new BABYLON.Color3(1, 0.08, 0.57), (rotY - 0.25) / 0.25);
               pointLight.specular = pointLight.diffuse;
-            } else if (rotY > 0.05) {
+            } else if (rotY > 0) {
               pointLight.diffuse = BABYLON.Color3.Lerp(new BABYLON.Color3(1, 0.08, 0.57), new BABYLON.Color3(0.1, 0.01, 0.44), rotY / 0.25);
               pointLight.specular = pointLight.diffuse;
             } else {
               pointLight.diffuse = BABYLON.Color3.Lerp(new BABYLON.Color3(0.1, 0.01, 0.44), new BABYLON.Color3(0.1, 0.1, 0.1), rotY / 0.25);
               pointLight.specular = pointLight.diffuse;
-
             }
 
             nightLight.intensity = Math.max(0.3, 0.5 - Math.abs(normalizedHeight+0.3));
 
             // Adjust point light intensity to blend with night light
-            pointLight.intensity = Math.min(10,Math.max(0, (2 * Math.abs(normalizedHeight) - 1)*10));
+            pointLight.intensity = Math.min(10,Math.max(0, (2 * Math.abs(normalizedHeight+0.05) - 1)*10));
 
 
         });
@@ -1443,6 +1473,9 @@
     window.addEventListener('resize', () => {
         engine.resize();
     });
+
+
+
   });
   </script>
 </body>
