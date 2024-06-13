@@ -1761,9 +1761,10 @@ class FractalBrownianMotion3 extends SimplexNoise3D {
 
 
     const canvas3d = document.getElementById('3dcanvas');
-    const engine = new BABYLON.Engine(canvas3d, { antialias: true });
+    const engine = new BABYLON.WebGPUEngine(canvas3d, { antialias: true });
 
     const createScene = async () => {
+        await engine.initAsync();
         const scene = new BABYLON.Scene(engine);
         scene.clearColor = new BABYLON.Color3(0, 0, 0); // Black background for the starry sky
 
