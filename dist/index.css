@@ -1,1 +1,1 @@
-#floatingDiv{position:absolute;width:100px;height:100px;background-color:red;text-align:center;vertical-align:middle;line-height:100px}
+span{position:absolute;top:10;z-index:0}canvas{position:absolute;z-index:1;top:10}

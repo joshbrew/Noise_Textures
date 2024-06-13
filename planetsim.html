@@ -98,9 +98,11 @@
             }
           }
 
-          random(x, y) {
-            const idx = (this.perm[(x & 255) + this.perm[y & 255]]) & 255;
-            return ((this.perm[idx] / 255) * 2 - 1);
+          random(x, y, z) {
+              let idx;
+              if(typeof z === 'number') idx = (this.perm[(x & 255) + this.perm[(y & 255) + this.perm[z & 255]]]) & 255;
+              else idx = (this.perm[(x & 255) + this.perm[y & 255]]) & 255;
+              return ((this.perm[idx] / 255) * 2 - 1);
           }
 
           seededRandom() {

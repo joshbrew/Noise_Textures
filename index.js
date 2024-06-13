@@ -3,7 +3,7 @@ import * as BABYLON from 'babylonjs'
 
 import { AtmosphericScatteringPostProcess } from './atmosphericScattering';
 
-
+import './index.css'
 
 
 
@@ -31,11 +31,11 @@ document.addEventListener('DOMContentLoaded', async function () {
     // const width = perlinCanvas.width;
     // const height = perlinCanvas.height;
 
-    const zoom = 50; // Adjust zoom for more zoomed-in noise pattern
-    const octaves = 6; // Number of octaves for the noise
-    const lacunarity = 2; // Lacunarity for the noise
-    const gain = 0.5; // Gain for the noise
-    const shift = 200; //domain shift
+    // const zoom = 50; // Adjust zoom for more zoomed-in noise pattern
+    // const octaves = 6; // Number of octaves for the noise
+    // const lacunarity = 2; // Lacunarity for the noise
+    // const gain = 0.5; // Gain for the noise
+    // const shift = 200; //domain shift
 
     // const perlinHeightmap = new Float32Array(width * height);
     // const perlinwormsHeightmap = new Float32Array(width * height);
@@ -241,7 +241,16 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         // Generate positions, normals, and uvs
 
-        let offset = noiseGen.seededRandom() * 0.5; //will add more unique tectonics
+        let offset = noiseGen.seededRandom() * 0.3; //will add more tectonic influence
+        let offset2 = noiseGen.seededRandom() * 0.1; //will add more tectonic influence
+        let sign = noiseGen.seededRandom() - 0.5;
+        let sign2 = noiseGen.seededRandom() - 0.5;
+        if(sign < 0) sign = -1;
+        else sign = 1;
+        offset *= sign;
+        if(sign2 < 0) sign2 = -1;
+        else sign2 = 1;
+        offset2 *= sign2;
 
         for (let lat = 0; lat <= segments; lat++) {
             const theta = lat * Math.PI / segments;
@@ -257,16 +266,18 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const z = Math.cos(theta);
 
                 // Add complex variations and offsets to noise coordinates with scaling
-                let noiseX = x + 2 + poleScaleLat * poleScaleLon * (offset * Math.sin(phi + theta) + 0.05 * Math.cos(2 * phi));
-                let noiseY = y + 2 + poleScaleLat * poleScaleLon * (offset * Math.cos(theta + phi) + 0.05 * Math.sin(2 * theta));
-                let noiseZ = z + 2 + poleScaleLat * poleScaleLon * (offset * Math.sin(2 * phi + theta) + 0.05 * Math.cos(2 * theta + phi));
+                let noiseX = x + 2 + poleScaleLat * poleScaleLon * (offset * Math.sin(phi + theta) + offset2 * Math.cos(2 * phi));
+                let noiseY = y + 2 + poleScaleLat * poleScaleLon * (offset * Math.cos(theta + phi) + offset2 * Math.sin(2 * theta));
+                let noiseZ = z + 2 + poleScaleLat * poleScaleLon * (offset * Math.sin(2 * phi + theta) + offset2 * Math.cos(2 * theta + phi));
                 // Increase variation near poles by adjusting the frequency of the noise
-                const frequency = 1 + 0.1 * (1 - poleScaleLat);  // Increase frequency near poles and symmetry line
+                //const frequency = 1 + 0.1 * (1 - poleScaleLat);  // Increase frequency near poles and symmetry line
 
-                const noiseValue = noiseGen.generateNoise(noiseX, noiseY, noiseZ, 1, 6, 2.0, 0.5, 0, 1) +
-                    fbm2.generateNoise(noiseX, noiseY, noiseZ, 1, 6, 2.0, 0.5, 0, 1) +
-                    ridged.generateNoise(noiseX, noiseY, noiseZ, 1, 6, 2.0, 0.5, 0, 1) +
-                    billow.generateNoise(noiseY, noiseX, noiseZ, 0.5, 6, 2.0, 0.5, 0, 1) * 1.2 - 0.2;
+                let zoomMul = 1.3; //this will basically remove high frequency detail as we zoom in, making lower divisions better looking
+
+                const noiseValue = noiseGen.generateNoise(noiseX, noiseY, noiseZ, zoomMul*0.8, 6, 2.0, 0.5, 0, 1) -
+                    fbm2.generateNoise(noiseX, noiseY, noiseZ, zoomMul*1, 8, 2, 0.5, 0, 1) +
+                    ridged.generateNoise(noiseX, noiseY, noiseZ, zoomMul*0.5, 6, 2.0, 0.5, 0, 1) +
+                    billow.generateNoise(noiseY, noiseX, noiseZ, zoomMul*0.5, 6, 2.0, 0.5, 0, 1) * 1.2 - 0.2;
 
                 const heightValue = noiseValue * 1.5; // Adjust the multiplier as needed
                 const nx = x * radius + x * heightValue;
