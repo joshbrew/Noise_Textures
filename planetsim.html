@@ -1832,9 +1832,9 @@ const createScene = async () => {
             const noiseValue = noiseGen.generateNoise(noiseX, noiseY, noiseZ, 1, 6, 2.0, 0.5, 0, 1) +
                  fbm2.generateNoise(noiseX, noiseY, noiseZ, 1, 6, 2.0, 0.5, 0, 1) +
                  ridged.generateNoise(noiseX, noiseY, noiseZ, 1, 6, 2.0, 0.5,0,1) +
-                 billow.generateNoise(noiseX, noiseY, noiseZ, 1, 6, 2.0, 0.5,0,1);
+                 billow.generateNoise(noiseY, noiseX, noiseZ, 0.5, 6, 2.0, 0.5,0,1)*1.2 - 0.2;
 
-            const heightValue = noiseValue * 2; // Adjust the multiplier as needed
+            const heightValue = noiseValue * 1.5; // Adjust the multiplier as needed
             const nx = x * radius + x * heightValue;
             const ny = y * radius + y * heightValue;
             const nz = z * radius + z * heightValue;
