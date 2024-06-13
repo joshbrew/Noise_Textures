@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         const sun = BABYLON.MeshBuilder.CreateSphere("sun", { diameter: 5 }, scene);
         sun.material = new BABYLON.StandardMaterial("sunMaterial", scene);
         sun.material.emissiveColor = new BABYLON.Color3(1, 1, 0); // Bright yellow
-
+        sun.material.freeze();
         // Enable shadows
         const shadowGenerator = new BABYLON.ShadowGenerator(4096, pointLight);
         shadowGenerator.usePercentageCloserFiltering = true;
@@ -333,7 +333,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                     const noiseValue = noiseValues[noiseIndex];
                     //const poleScaleLon = Math.sin(phi);
         
-        
                     const index3 = noiseIndex * 3;
                     const index4 = noiseIndex * 4;
                     const index2 = noiseIndex * 2;
@@ -369,14 +368,23 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
 
             // Generate indices
-            const indices = [];
+            const indices = new Float32Array(segments*segments*6);
             for (let lat = 0; lat < segments; lat++) {
                 for (let lon = 0; lon < segments; lon++) {
                     const first = (lat * (segments + 1)) + lon;
                     const second = first + segments + 1;
 
-                    indices.push(first, second, first + 1);
-                    indices.push(second, second + 1, first + 1);
+                    let index = 6*(lat*segments + lon);
+
+                    indices[index] = first;
+                    indices[index+1] = second;
+                    indices[index+2] = first+1;
+                    indices[index+3] = second;
+                    indices[index+4] = second+1;
+                    indices[index+5] = first+1;
+
+                    // indices.push(first, second, first + 1);
+                    // indices.push(second, second + 1, first + 1);
                 }
             }
 
@@ -395,8 +403,10 @@ document.addEventListener('DOMContentLoaded', async function () {
             planet.material = material;
     
             material.backFaceCulling = false;
+            material.freeze();
     
             planet.receiveShadows = true;
+            planet.freezeWorldMatrix();
             shadowGenerator.addShadowCaster(planet);
 
             return planet;
