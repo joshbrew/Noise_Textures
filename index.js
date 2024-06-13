@@ -204,7 +204,13 @@ document.addEventListener('DOMContentLoaded', async function () {
         const scene = new BABYLON.Scene(engine);
         scene.clearColor = new BABYLON.Color3(0, 0, 0); // Black background for the starry sky
 
-        const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2, 100, new BABYLON.Vector3(0, 0, 0), scene);
+
+        // Parameters for the sphere
+        const segments = 1000; //sphere will have s*s vertices
+        const radius = 50;
+
+
+        const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 4, radius*5, new BABYLON.Vector3(0, 0, 0), scene);
         camera.attachControl(canvas3d, true);
         const depthRenderer = scene.enableDepthRenderer(camera, false, true);
         
@@ -225,9 +231,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         const shadowGenerator = new BABYLON.ShadowGenerator(4096, pointLight);
         shadowGenerator.usePercentageCloserFiltering = true;
 
-        // Parameters for the sphere
-        const segments = 1000;
-        const radius = 50;
 
         // Generate Perlin noise
         const noiseGen = fbm; // Replace with your noise generator
