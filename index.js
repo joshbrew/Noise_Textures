@@ -6,6 +6,8 @@ import { AtmosphericScatteringPostProcess } from './atmosphericScattering';
 import './index.css'
 
 
+import worker from './noise.worker'
+
 
 document.addEventListener('DOMContentLoaded', async function () {
     // const perlinCanvas = document.getElementById('perlinCanvas');
@@ -50,11 +52,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     const perlin = new noise.PerlinNoise(12345); // Set a seed for reproducibility
     const perlinworms = new noise.PerlinWorms(12345); // Set a seed for reproducibility
     const hexworms = new noise.HexWorms(12345); // Set a seed for reproducibility
-    const billow = new noise.LanczosBillowNoise(12345); // Set a seed for reproducibility
     const invbillow = new noise.LanczosAntiBillowNoise(12345); // Set a seed for reproducibility
-    const ridged = new noise.RidgedMultifractalNoise(12345); // Set a seed for reproducibility
-    const fbm = new noise.FractalBrownianMotion(12345); // Set a seed for reproducibility
-    const fbm2 = new noise.FractalBrownianMotion2(12345); // Set a seed for reproducibility
     const fbm3 = new noise.FractalBrownianMotion3(12345); // Set a seed for reproducibility
 
     // Define a set of gradient colors
@@ -190,7 +188,13 @@ document.addEventListener('DOMContentLoaded', async function () {
     //   console.log('Ridged Heightmap:', ridgedHeightmap);
     //   console.log('FBM Heightmap:', fbmHeightmap);
 
+    const SEED = 12345 + 0.25*Math.random();
 
+
+    const billow = new noise.LanczosBillowNoise(SEED); // Set a seed for reproducibility
+    const ridged = new noise.RidgedMultifractalNoise(SEED); // Set a seed for reproducibility
+    const fbm = new noise.FractalBrownianMotion(SEED); // Set a seed for reproducibility
+    const fbm2 = new noise.FractalBrownianMotion2(SEED); // Set a seed for reproducibility
 
     const canvas3d = document.createElement('canvas');
     canvas3d.width = 800;
@@ -235,19 +239,35 @@ document.addEventListener('DOMContentLoaded', async function () {
         // Generate Perlin noise
         const noiseGen = fbm; // Replace with your noise generator
 
-        // Create custom mesh
-        const positions = [];
-        const normals = [];
-        const indices = [];
-        const colors = [];
-        const uvs = [];
+        // // Create custom mesh
+        // const positions = [];
+        // const normals = [];
+        // const indices = [];
+        // const colors = [];
+        // const uvs = [];
 
         // Generate positions, normals, and uvs
+
+        const numWorkers = navigator.hardwareConcurrency || 4;
+        const workers = [];
+        const segmentSize = Math.ceil(segments / numWorkers);
+
+        for (let i = 0; i < numWorkers; i++) {
+            workers[i] = new Worker(worker);
+            //todo add instantiation for arbitrary combos of noise functions
+            workers[i].postMessage({seed:SEED}); //update the permuations on the noise generators
+        }
 
         let offset = noiseGen.seededRandom() * 0.3; //will add more tectonic influence
         let offset2 = noiseGen.seededRandom() * 0.1; //will add more tectonic influence
         let sign = noiseGen.seededRandom() - 0.5;
         let sign2 = noiseGen.seededRandom() - 0.5;
+
+
+        let randomizer1 = Math.random() * 0.4 - 0.2;
+        let randomizer2 = Math.random() * 0.2 - 0.1;
+        let randomizer3 = Math.random() * 0.2 - 0.1;
+
         if(sign < 0) sign = -1;
         else sign = 1;
         offset *= sign;
@@ -255,76 +275,208 @@ document.addEventListener('DOMContentLoaded', async function () {
         else sign2 = 1;
         offset2 *= sign2;
 
-        for (let lat = 0; lat <= segments; lat++) {
-            const theta = lat * Math.PI / segments;
-            const poleScaleLat = Math.sin(theta);
 
-            for (let lon = 0; lon <= segments; lon++) {
-                const phi = lon * 2 * Math.PI / segments;
-                const poleScaleLon = Math.sin(phi);
-
-                // Spherical coordinates to Cartesian coordinates
-                const x = Math.sin(theta) * Math.cos(phi);
-                const y = Math.sin(theta) * Math.sin(phi);
-                const z = Math.cos(theta);
-
-                // Add complex variations and offsets to noise coordinates with scaling
-                let noiseX = x + 2 + poleScaleLat * poleScaleLon * (offset * Math.sin(phi + theta) + offset2 * Math.cos(2 * phi));
-                let noiseY = y + 2 + poleScaleLat * poleScaleLon * (offset * Math.cos(theta + phi) + offset2 * Math.sin(2 * theta));
-                let noiseZ = z + 2 + poleScaleLat * poleScaleLon * (offset * Math.sin(2 * phi + theta) + offset2 * Math.cos(2 * theta + phi));
-                // Increase variation near poles by adjusting the frequency of the noise
-                //const frequency = 1 + 0.1 * (1 - poleScaleLat);  // Increase frequency near poles and symmetry line
-
-                let zoomMul = 1.3; //this will basically remove high frequency detail as we zoom in, making lower divisions better looking
-
-                const noiseValue = noiseGen.generateNoise(noiseX, noiseY, noiseZ, zoomMul*0.8, 6, 2.0, 0.5, 0, 1) -
-                    fbm2.generateNoise(noiseX, noiseY, noiseZ, zoomMul*1, 8, 2, 0.5, 0, 1) +
-                    ridged.generateNoise(noiseX, noiseY, noiseZ, zoomMul*0.5, 6, 2.0, 0.5, 0, 1) +
-                    billow.generateNoise(noiseY, noiseX, noiseZ, zoomMul*0.5, 6, 2.0, 0.5, 0, 1) * 1.2 - 0.2;
-
-                const heightValue = noiseValue * 1.5; // Adjust the multiplier as needed
-                const nx = x * radius + x * heightValue;
-                const ny = y * radius + y * heightValue;
-                const nz = z * radius + z * heightValue;
-
-                positions.push(nx, ny, nz);
-                normals.push(x, y, z); // Normalized coordinates for the normals
-                const baseColor = !isNaN(noiseValue) ? getColor(noiseValue) : [1, 1, 1];
-                const [r, g, b] = baseColor;
-                colors.push(r / 255, g / 255, b / 255, 1);
-                uvs.push(lon / segments, lat / segments);
+        const generatePlanet = async () => {
+            const promises = [];
+            const numVertices = (segments + 1) * (segments + 1);
+            const totalNoiseValues = numVertices;
+            const noiseValues = new Float32Array(totalNoiseValues); // Preallocate noise values array
+            const coordinates = new Float32Array(totalNoiseValues * 3); // Preallocate coordinates array
+            
+            for (let i = 0; i < numWorkers; i++) {
+                    const startLat = i * segmentSize;
+                    let endLat = (i + 1) * segmentSize - 1;
+            
+                    if (endLat > segments) endLat = segments;
+            
+                    promises.push(new Promise((resolve) => {
+                        workers[i].onmessage = function (e) {
+                            const { noiseValues: workerNoiseValues, coordinates: workerCoordinates, startIndex } = e.data;
+                            noiseValues.set(workerNoiseValues, startIndex); // Copy worker's results into the main array
+                            coordinates.set(workerCoordinates, startIndex * 3); // Copy worker's coordinates into the main array
+                            resolve();
+                        };
+            
+                        workers[i].postMessage({
+                            latRange: { startLat, endLat },
+                            segments,
+                            radius,
+                            offset,
+                            offset2,
+                            randomizer1,
+                            randomizer2,
+                            randomizer3,
+                            noiseGen,
+                            fbm2,
+                            ridged,
+                            billow,
+                            startIndex: startLat * (segments + 1) // Calculate the start index for the worker's results
+                        });
+                    }));
             }
-        }
 
-        // Generate indices
-        for (let lat = 0; lat < segments; lat++) {
-            for (let lon = 0; lon < segments; lon++) {
-                const first = (lat * (segments + 1)) + lon;
-                const second = first + segments + 1;
+            await Promise.all(promises);
+            workers.forEach((w) => w.terminate());
 
-                indices.push(first, second, first + 1);
-                indices.push(second, second + 1, first + 1);
+            const positions = new Float32Array(numVertices * 3);
+            const normals = new Float32Array(numVertices * 3);
+            const colors = new Float32Array(numVertices * 4);
+            const uvs = new Float32Array(numVertices * 2);
+        
+        
+            for (let lat = 0; lat <= segments; lat++) {
+                //const theta = lat * Math.PI / segments;
+                //const poleScaleLat = Math.sin(theta);
+        
+                for (let lon = 0; lon <= segments; lon++) {
+                    const noiseIndex = lat * (segments + 1) + lon;
+                    const noiseValue = noiseValues[noiseIndex];
+                    //const poleScaleLon = Math.sin(phi);
+        
+        
+                    const index3 = noiseIndex * 3;
+                    const index4 = noiseIndex * 4;
+                    const index2 = noiseIndex * 2;
+        
+                    const x = coordinates[index3];
+                    const y = coordinates[index3 + 1];
+                    const z = coordinates[index3 + 2];
+
+                    const heightValue = noiseValue * 1.5;
+                    const nx = x * radius + x * heightValue;
+                    const ny = y * radius + y * heightValue;
+                    const nz = z * radius + z * heightValue;
+
+                    positions[index3] = nx;
+                    positions[index3 + 1] = ny;
+                    positions[index3 + 2] = nz;
+        
+                    normals[index3] = x;
+                    normals[index3 + 1] = y;
+                    normals[index3 + 2] = z;
+        
+                    const baseColor = !isNaN(noiseValue) ? getColor(noiseValue) : [1, 1, 1];
+                    const [r, g, b] = baseColor;
+                    colors[index4] = r/255;
+                    colors[index4 + 1] = g/255;
+                    colors[index4 + 2] = b/255;
+                    colors[index4 + 3] = 1; // Alpha channel
+        
+                    uvs[index2] = lon / segments;
+                    uvs[index2 + 1] = lat / segments;
+        
+                }
             }
-        }
 
-        const planet = new BABYLON.Mesh("custom", scene);
-        const vertexData = new BABYLON.VertexData();
-        vertexData.positions = positions;
-        vertexData.indices = indices;
-        vertexData.normals = normals; // Apply normals
-        vertexData.colors = colors;
-        vertexData.uvs = uvs;
-        vertexData.applyToMesh(planet);
+            // Generate indices
+            const indices = [];
+            for (let lat = 0; lat < segments; lat++) {
+                for (let lon = 0; lon < segments; lon++) {
+                    const first = (lat * (segments + 1)) + lon;
+                    const second = first + segments + 1;
 
-        const material = new BABYLON.StandardMaterial("material", scene);
-        material.vertexColorEnabled = true;
-        material.specularColor = new BABYLON.Color3(0.015, 0.015, 0.015);
-        planet.material = material;
+                    indices.push(first, second, first + 1);
+                    indices.push(second, second + 1, first + 1);
+                }
+            }
 
-        material.backFaceCulling = false;
+            const planet = new BABYLON.Mesh("custom", scene);
+            const vertexData = new BABYLON.VertexData();
+            vertexData.positions = positions;
+            vertexData.indices = indices;
+            vertexData.normals = normals;
+            vertexData.colors = colors;
+            vertexData.uvs = uvs;
+            vertexData.applyToMesh(planet);
 
-        planet.receiveShadows = true;
-        shadowGenerator.addShadowCaster(planet);
+            const material = new BABYLON.StandardMaterial("material", scene);
+            material.vertexColorEnabled = true;
+            material.specularColor = new BABYLON.Color3(0.015, 0.015, 0.015);
+            planet.material = material;
+    
+            material.backFaceCulling = false;
+    
+            planet.receiveShadows = true;
+            shadowGenerator.addShadowCaster(planet);
+
+            return planet;
+        };
+
+        console.log("Generating planet...");
+        console.time("generated planet");
+        const planet = await generatePlanet();
+        console.timeEnd("generated planet");
+
+        // for (let lat = 0; lat <= segments; lat++) {
+        //     const theta = lat * Math.PI / segments;
+        //     const poleScaleLat = Math.sin(theta);
+
+        //     for (let lon = 0; lon <= segments; lon++) {
+        //         const phi = lon * 2 * Math.PI / segments;
+        //         const poleScaleLon = Math.sin(phi);
+
+        //         // Spherical coordinates to Cartesian coordinates
+        //         const x = Math.sin(theta) * Math.cos(phi);
+        //         const y = Math.sin(theta) * Math.sin(phi);
+        //         const z = Math.cos(theta);
+
+        //         // Add complex variations and offsets to noise coordinates with scaling
+        //         let noiseX = x + 2 + poleScaleLat * poleScaleLon * (offset * Math.sin(phi + theta) + offset2 * Math.cos(2 * phi));
+        //         let noiseY = y + 2 + poleScaleLat * poleScaleLon * (offset * Math.cos(theta + phi) + offset2 * Math.sin(2 * theta));
+        //         let noiseZ = z + 2 + poleScaleLat * poleScaleLon * (offset * Math.sin(2 * phi + theta) + offset2 * Math.cos(2 * theta + phi));
+        //         // Increase variation near poles by adjusting the frequency of the noise
+        //         //const frequency = 1 + 0.1 * (1 - poleScaleLat);  // Increase frequency near poles and symmetry line
+
+        //         let zoomMul = 1.3; //this will basically remove high frequency detail as we zoom in, making lower divisions better looking
+
+        //         const noiseValue = noiseGen.generateNoise(noiseX, noiseY, noiseZ, zoomMul*0.8, 6, randomizer3+2.0, 0.5, 0, 1) -
+        //             fbm2.generateNoise(noiseX, noiseY, noiseZ, randomizer3+zoomMul*1, 8, 2, 0.5, 0, 1) +
+        //             ridged.generateNoise(noiseX, noiseY, noiseZ, randomizer1+zoomMul*0.5, 6, 2.0, 0.5, 0, 1) +
+        //             billow.generateNoise(noiseY, noiseX, noiseZ, randomizer2+zoomMul*0.5, 6, 2.0, 0.5, 0, 1) * 1.2 - 0.2;
+
+        //         const heightValue = noiseValue * 1.5; // Adjust the multiplier as needed
+        //         const nx = x * radius + x * heightValue;
+        //         const ny = y * radius + y * heightValue;
+        //         const nz = z * radius + z * heightValue;
+
+        //         positions.push(nx, ny, nz);
+        //         normals.push(x, y, z); // Normalized coordinates for the normals
+        //         const baseColor = !isNaN(noiseValue) ? getColor(noiseValue) : [1, 1, 1];
+        //         const [r, g, b] = baseColor;
+        //         colors.push(r / 255, g / 255, b / 255, 1);
+        //         uvs.push(lon / segments, lat / segments);
+        //     }
+        // }
+
+        // // Generate indices
+        // for (let lat = 0; lat < segments; lat++) {
+        //     for (let lon = 0; lon < segments; lon++) {
+        //         const first = (lat * (segments + 1)) + lon;
+        //         const second = first + segments + 1;
+
+        //         indices.push(first, second, first + 1);
+        //         indices.push(second, second + 1, first + 1);
+        //     }
+        // }
+
+        // const planet = new BABYLON.Mesh("custom", scene);
+        // const vertexData = new BABYLON.VertexData();
+        // vertexData.positions = positions;
+        // vertexData.indices = indices;
+        // vertexData.normals = normals; // Apply normals
+        // vertexData.colors = colors;
+        // vertexData.uvs = uvs;
+        // vertexData.applyToMesh(planet);
+
+        // const material = new BABYLON.StandardMaterial("material", scene);
+        // material.vertexColorEnabled = true;
+        // material.specularColor = new BABYLON.Color3(0.015, 0.015, 0.015);
+        // planet.material = material;
+
+        // material.backFaceCulling = false;
+
+        // planet.receiveShadows = true;
+        // shadowGenerator.addShadowCaster(planet);
 
              
         const atmosphere = new AtmosphericScatteringPostProcess(

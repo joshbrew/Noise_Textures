@@ -14,11 +14,11 @@ const config = {
         bundleHTML: false, //wrap the first entry point file as a plain js script in a boilerplate html file, frontend scripts can be run standalone like a .exe! Server serves this as start page if set to true.
         //bundleIIFE:false,   //create an iife build, this is compiled temporarily to create the types files and only saved with bundleIIFE:true
         //bundleCommonJS:false, //cjs format outputted as .cjs
-        minify: true,
+        minifyWhitespace: true,
         sourcemap: false,
         //plugins:[] //custom esbuild plugins? e.g. esbuild-sass-plugin for scss support
         //includeDefaultPlugins:true //true by default, includes the presets for the streaming imports, worker bundling, and auto npm install
-        //blobWorkers:true, //package workers as blobs or files? blobs are faster but inflate the main package size
+        blobWorkers:false, //package workers as blobs or files? blobs are faster but inflate the main package size
         //workerBundler:{minifyWhitespace:true} //bundler settings specific to the worker. e.g. apply platform:'node' when bundling node workers, 
         //globalThis:null //'mymodule'
         //globals:{'index.js':['Graph']}
