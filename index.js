@@ -357,10 +357,10 @@ document.addEventListener('DOMContentLoaded', async function () {
             let theta, phi;
 
             if (Math.random() < 0.75) {
-                theta = Math.random() * Math.PI * (1.5 + Math.random() * 0.5);
+                theta = Math.random() * 2 * Math.PI * 0.75 + 0.125 + Math.random() - Math.random();
 
-                const verticalOffset = gaussianRandom(0, Math.PI / 16);
-                const sharpClustering = gaussianRandom(0, Math.PI / 48);
+                const verticalOffset = gaussianRandom(0, Math.PI / 24);
+                const sharpClustering = gaussianRandom(0, Math.PI / 64);
 
                 phi = Math.PI / 2 + verticalOffset + sharpClustering;
             } else {
