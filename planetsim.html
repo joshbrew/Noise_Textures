@@ -575,14 +575,13 @@
 
 
     class PerlinNoise extends Noise {
-      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0, turbulence = false) {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0, freq=1, turbulence = false) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
 
         let sum = 0;
         let amp = 1.0;
-        let freq = 1.0;
 
         let angle = this.seedN * 2*Math.PI; //start at random angle;
         let angleIncr = Math.PI / 4;
@@ -591,7 +590,7 @@
 
         for (let i = 0; i < octaves; i++) {
             let noiseValue = this.noise(x * freq, y * freq, z * freq) * amp;
-            if (turbulence) { noiseValue = Math.abs(noiseValue); }
+            if (turbulence) { noiseValue = Math.abs(noiseValue); } //this just makes the billow effect
             sum += noiseValue;
             
             freq *= lacunarity;
@@ -619,7 +618,7 @@
     }
 
     class HexWorms extends CellularNoise {
-      noise(x, y, z) {
+      noise(x, y=0, z=0) {
         const steps = 5;
         const persistence = 0.5;
 
@@ -642,14 +641,13 @@
         return total;
       }
 
-      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0) {
+      generateNoise(x, y=0, z=0, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, freq=1) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
 
         let sum = 0;
         let amp = 1.0;
-        let freq = 1.0;
 
         for (let i = 0; i < octaves; i++) {
           sum += this.noise(x * freq, y * freq, z * freq) * amp;
@@ -667,7 +665,8 @@
     }
 
     class PerlinWorms extends Noise {
-      noise(x, y, z) {
+      noise(x, y=0, z=0) {
+
         const steps = 5;
         const persistence = 0.5;
 
@@ -689,17 +688,16 @@
         return total;
       }
 
-      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0) {
+      generateNoise(x, y=0, z=0, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, freq=1) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
 
         let sum = 0;
         let amp = 1.0;
-        let freq = 1.0;
 
         for (let i = 0; i < octaves; i++) {
-          sum += this.noise(x * freq, y * freq, z * freq) * amp;
+          sum += this.noise(x * freq, y * freq, z * freq, freq) * amp;
           freq *= lacunarity;
           amp *= gain;
 
@@ -714,7 +712,7 @@
     }
 
     class LanczosBillowNoise extends FastLanczosNoise {
-      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0) {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0, freq=1) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -722,7 +720,6 @@
         let sum = 0; 
         let maxAmp = 0;
         let amp = 1.0;
-        let freq = 1.0;
 
         let angle = this.seedN * 2*Math.PI; //start at random angle;
         const angleIncrement = Math.PI/4;
@@ -763,14 +760,13 @@
 
 
     class LanczosAntiBillowNoise extends FastLanczosNoise {
-      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0) {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0, freq=1) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
 
         let sum = 0;
         let amp = 1.0; let maxAmp = 0;
-        let freq = 1.0;
 
         let angle = this.seedN * 2*Math.PI; //start at random angle;
         const angleIncrement = Math.PI/4;
@@ -789,10 +785,11 @@
 
             const newX = x * cosAngle - y * sinAngle;
             const newY = x * sinAngle + y * cosAngle;
-            z = y * sinAngle + z * cosAngle;
+            const newZ = y * sinAngle + z * cosAngle;
 
             x = newX;
             y = newY;
+            z = newZ;
             angle += angleIncrement;
 
             // Apply shift to the coordinates
@@ -815,19 +812,17 @@
         return value * value;
       }
 
-      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0) {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, frequency=1) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
 
         let sum = 0;
         let amp = 1.0;
-        let freq = 1.0;
-
 
         for (let i = 0; i < octaves; i++) {
-          sum += this.noise(x * freq, y * freq, z * freq) * amp;
-          freq *= lacunarity;
+          sum += this.noise(x * frequency, y * frequency, z * frequency) * amp;
+          frequency *= lacunarity;
 
           amp *= gain;
 
@@ -845,23 +840,22 @@
 
     
     class BillowNoise extends Noise {
-      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0) {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0, frequency=1) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
 
         let sum = 0; 
         let amp = 1.0;
-        let freq = 1.0;
 
         let angle = this.seedN * 2*Math.PI; //start at random angle;
         const angleIncrement = Math.PI/4;
 
         for (let i = 0; i < octaves; i++) {
-            const noiseValue = this.noise(x * freq, y * freq, z * freq);
+            const noiseValue = this.noise(x * frequency, y * frequency, z * frequency);
             sum += (2 * Math.abs(noiseValue) - 1) * amp;
 
-            freq *= lacunarity;
+            frequency *= lacunarity;
             amp *= gain;
 
             // Apply rotation to the coordinates
@@ -870,10 +864,11 @@
 
             const newX = x * cosAngle - y * sinAngle;
             const newY = x * sinAngle + y * cosAngle;
-            z = y * sinAngle + z * cosAngle;
+            const newZ = y * sinAngle + z * cosAngle;
 
             x = newX;
             y = newY;
+            z = newZ;
             angle += angleIncrement;
 
             // Apply shift to the coordinates
@@ -890,23 +885,22 @@
 
 
     class AntiBillowNoise extends Noise {
-      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0) {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift=0, frequency=1) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
 
         let sum = 0;
         let amp = 1.0;
-        let freq = 1.0;
 
         let angle = this.seedN * 2*Math.PI; //start at random angle;
         const angleIncrement = Math.PI/4;
 
         for (let i = 0; i < octaves; i++) {
-            const noiseValue = this.noise(x * freq, y * freq, z * freq);
+            const noiseValue = this.noise(x * frequency, y * frequency, z * frequency);
             sum += (2 * Math.abs(noiseValue) - 1) * amp;
 
-            freq *= lacunarity;
+            frequency *= lacunarity;
             amp *= gain;
 
             // Apply rotation to the coordinates
@@ -915,10 +909,11 @@
 
             const newX = x * cosAngle - y * sinAngle;
             const newY = x * sinAngle + y * cosAngle;
-            z = y * sinAngle + z * cosAngle;
+            const newZ = y * sinAngle + z * cosAngle;
 
             x = newX;
             y = newY;
+            z = newZ;
             angle += angleIncrement;
 
             // Apply shift to the coordinates
@@ -976,14 +971,13 @@
     }
 
     class FractalBrownianMotion extends SimplexNoise {
-        fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+        fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency=1) {
             x /= zoom;
             y /= zoom;
             z /= zoom;
 
             let sum = 0;
             let amplitude = 1.0;
-            let frequency = 1.0;
             let maxValue = 0;
 
             for (let i = 0; i < octaves; i++) {
@@ -1001,26 +995,25 @@
             return sum / maxValue;
         }
 
-        generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+        generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency=1) {
             // Initial FBM pass
-            let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift);
+            let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, frequency);
 
             // Recursive FBM pass using the output of the initial FBM
-            let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift);
+            let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, frequency);
 
             return fbm2;
         }
       }
 
       class FractalBrownianMotion2 extends SimplexNoise {
-        fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+        fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency=1) {
             x /= zoom;
             y /= zoom;
             z /= zoom;
 
             let sum = 0;
             let amplitude = 1.0;
-            let frequency = 1.0;
             let maxValue = 0;
 
             for (let i = 0; i < octaves; i++) {
@@ -1038,29 +1031,28 @@
             return sum / maxValue;
         }
 
-        generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+        generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, freq=1) {
             // Initial FBM pass
-            let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift);
+            let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, freq);
 
             // Second FBM pass using the output of the initial FBM
-            let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift);
+            let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
 
             // Third FBM pass using the output of the second FBM
-            let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift);
+            let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
 
             return fbm3;
         }
     }
 
     class FractalBrownianMotion3 extends SimplexNoise {
-      fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+      fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency=1) {
           x /= zoom;
           y /= zoom;
           z /= zoom;
 
           let sum = 0;
           let amplitude = 1.0;
-          let frequency = 1.0;
           let maxValue = 0;
 
           for (let i = 0; i < octaves; i++) {
@@ -1078,15 +1070,15 @@
           return sum / maxValue;
       }
 
-      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100) {
+      generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, freq=1) {
           // Initial FBM pass
-          let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift);
+          let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, freq);
 
           // Second FBM pass using the output of the initial FBM
-          let fbm2 = this.fbm(x + fbm1 * zoom, y + fbm1 * zoom, z + fbm1 * zoom, zoom, octaves, lacunarity, gain, shift);
+          let fbm2 = this.fbm(x + fbm1 * zoom, y + fbm1 * zoom, z + fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
 
           // Third FBM pass using the output of the second FBM
-          let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift);
+          let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
 
           return fbm3;
       }
@@ -1312,12 +1304,15 @@ const createScene = async () => {
     const colors = [];
     const uvs = [];
 
+    
     // Generate positions, normals, and uvs
     for (let lat = 0; lat <= segments; lat++) {
         const theta = lat * Math.PI / segments;
-        const poleScale = Math.sin(theta); 
+        const poleScaleLat = Math.sin(theta); 
+
         for (let lon = 0; lon <= segments; lon++) {
             const phi = lon * 2 * Math.PI / segments;
+            const poleScaleLon = Math.sin(phi); 
 
             // Spherical coordinates to Cartesian coordinates
             const x = Math.sin(theta) * Math.cos(phi);
@@ -1325,15 +1320,16 @@ const createScene = async () => {
             const z = Math.cos(theta);
 
             // Add complex variations and offsets to noise coordinates with scaling
-            let noiseX = x + 2 + poleScale * (0.1 * Math.sin(phi + theta) + 0.75 * Math.cos(2 * phi));
-            let noiseY = y + 2 + poleScale * (0.1 * Math.cos(theta + phi) + 0.75 * Math.sin(2 * theta));
-            let noiseZ = z + 2 + poleScale * (0.1 * Math.sin(2 * phi + theta) + 0.75 * Math.cos(2 * theta + phi));
-            //this needs to be improved so that there is a wider variation in the stretched areas or use a different variation entirely to avoid symmetries
+            let noiseX = x + 2 + poleScaleLat * poleScaleLon * (0.41 * Math.sin(phi + theta) + 0.45 * Math.cos(2 * phi));
+            let noiseY = y + 2 + poleScaleLat * poleScaleLon * (0.41 * Math.cos(theta + phi) + 0.45 * Math.sin(2 * theta));
+            let noiseZ = z + 2 + poleScaleLat * poleScaleLon * (0.41 * Math.sin(2 * phi + theta) + 0.45 * Math.cos(2 * theta + phi));
+            // Increase variation near poles by adjusting the frequency of the noise
+            const frequency = 1 + 0.01 * (1 - poleScaleLat * poleScaleLon);  // Increase frequency near poles and symmetry line
 
-            const noiseValue = noiseGen.generateNoise(noiseX, noiseY, noiseZ, 5, 6, 2.0, 0.5, 0) +
-                fbm2.generateNoise(noiseX, noiseY, noiseZ, 5, 6, 2.0, 0.5, 0) +
-                ridged.generateNoise(noiseX, noiseY, noiseZ, 10, 6, 2.0, 0.5, 0) +
-                2*billow.generateNoise(noiseX, noiseY, noiseZ, 10, 6, 2.0, 0.5, 0) + 0.5;
+            const noiseValue = noiseGen.generateNoise(noiseX, noiseY, noiseZ, 5, 6, 2.0, 0.5, frequency, frequency) +
+                fbm2.generateNoise(noiseX, noiseY, noiseZ, 5, 6, 2.0, 0.5, frequency,frequency) +
+                ridged.generateNoise(noiseX, noiseY, noiseZ, 15, 6, 2.0, 0.5,frequency) +
+                billow.generateNoise(noiseX, noiseY, noiseZ, 15, 6, 2.0, 0.5,frequency);
 
             const heightValue = noiseValue * 5; // Adjust the multiplier as needed
             const nx = x * radius + x * heightValue;
@@ -1342,8 +1338,7 @@ const createScene = async () => {
 
             positions.push(nx, ny, nz);
             normals.push(x, y, z); // Normalized coordinates for the normals
-
-            const baseColor = getColor(noiseValue);
+            const baseColor = !isNaN(noiseValue) ? getColor(noiseValue) : [0,0,0];
             const [r, g, b] = baseColor;
             colors.push(r / 255, g / 255, b / 255, 1);
             uvs.push(lon / segments, lat / segments);
@@ -1434,7 +1429,7 @@ const createScene = async () => {
 
     // Create night light
     const nightLight = new BABYLON.HemisphericLight("nightLight", new BABYLON.Vector3(0, 1, 0), scene);
-    nightLight.intensity = 0.5;
+    nightLight.intensity = 1;
 
     // Animate the point light
     let prevTime = performance.now() * 0.000125;
