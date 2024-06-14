@@ -8,3 +8,10 @@ canvas {
     z-index: 1;
     top:10;
 }
+
+* {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: black;
+    color:white;
+    font-weight: bolder;
+}

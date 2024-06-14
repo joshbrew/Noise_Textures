@@ -65,7 +65,12 @@ if(typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope
             }
         }
 
-        self.postMessage({ noiseValues, coordinates, startIndex }, [noiseValues.buffer, coordinates.buffer]);
+        self.postMessage({ 
+            noiseValues, 
+            coordinates, 
+            startIndex,
+            fbm:true, fbm2:useFBM2, ridgedMultifractal:useRidged,billow:true
+        }, [noiseValues.buffer, coordinates.buffer]);
     };
 }
 

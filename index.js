@@ -21,7 +21,16 @@ document.addEventListener('DOMContentLoaded', async function () {
     infoTable.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
     infoTable.style.border = '1px solid black';
     infoTable.style.padding = '10px';
-    infoTable.style.top = '810px';
+    infoTable.style.left = '810px';
+    infoTable.style.top = '110px';
+
+    // Create the button
+    const button = document.createElement('button');
+    button.textContent = 'Re-render Mesh';
+    button.style.position = 'absolute';
+    button.style.left = '810px';
+    button.style.zIndex = '2';
+    document.body.appendChild(button);
 
     const canvas3d = document.createElement('canvas');
     canvas3d.width = 800;
@@ -56,6 +65,11 @@ document.addEventListener('DOMContentLoaded', async function () {
     let inited = false;
     let SEED, scene, planet, atmosphere, depthRenderer;
     let randomizer1, randomizer2, randomizer3;
+
+    let FBM = true;
+    let FBM2 = true;
+    let RidgedMultifractal = true;
+    let Billow = true
 
     const createScene = async () => {  
 
@@ -163,9 +177,20 @@ document.addEventListener('DOMContentLoaded', async function () {
 
                 promises.push(new Promise((resolve) => {
                     workers[i].onmessage = function (e) {
-                        const { noiseValues: workerNoiseValues, coordinates: workerCoordinates, startIndex } = e.data;
+                        const { 
+                            noiseValues: workerNoiseValues, 
+                            coordinates: workerCoordinates, 
+                            startIndex,
+                            fbm,fbm2,ridgedMultifractal,billow
+                        } = e.data;
                         noiseValues.set(workerNoiseValues, startIndex);
                         coordinates.set(workerCoordinates, startIndex * 3);
+
+                        FBM = fbm;
+                        FBM2 = fbm2;
+                        RidgedMultifractal = ridgedMultifractal;
+                        Billow = billow;
+
                         resolve();
                     };
 
@@ -293,10 +318,18 @@ document.addEventListener('DOMContentLoaded', async function () {
         const tableContent = `
             <tr><th>Parameter</th><th>Value</th></tr>
             <tr><td>Planet Type</td><td>: ${gradientNames[gradIdx]}</td></tr>
-            <tr><td>SEED</td><td>: ${SEED}</td></tr>
-            <tr><td>Randomizer 1</td><td>: ${randomizer1}</td></tr>
-            <tr><td>Randomizer 2</td><td>: ${randomizer2}</td></tr>
-            <tr><td>Randomizer 3</td><td>: ${randomizer3}</td></tr>
+            <tr><td>Noise Used</td><td> ------ </td></tr>
+            <tr><td>FBM</td><td> ${FBM} </td></tr>
+            <tr><td>FBM2</td><td> ${FBM2} </td></tr>
+            <tr><td>RidgedMF</td><td> ${RidgedMultifractal} </td></tr>
+            <tr><td>Billow</td><td> ${Billow} </td></tr>
+            <tr><td>Modifiers</td><td> ------ </td></tr>
+            <tr><td>SEED</td><td> ${SEED}</td></tr>
+            <tr><td>R1</td><td> ${randomizer1}</td></tr>
+            <tr><td>R2</td><td> ${randomizer2}</td></tr>
+            <tr><td>R3</td><td> ${randomizer3}</td></tr>
+            <tr><td>Tectonic R1</td><td> ${offset}</td></tr>
+            <tr><td>Tectonic R2</td><td> ${offset2}</td></tr>
         `;
         infoTable.innerHTML = tableContent;
 
@@ -389,13 +422,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         engine.resize();
     });
 
-   // Create the button
-   const button = document.createElement('button');
-   button.textContent = 'Re-render Mesh';
-   button.style.position = 'absolute';
-   button.style.left = `${window.innerWidth - 100}px`;
-   button.style.zIndex = '2';
-   document.body.appendChild(button);
    button.addEventListener('click', async () => {
        button.disabled = true;
        scene.dispose();
