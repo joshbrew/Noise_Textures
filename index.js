@@ -443,9 +443,9 @@ document.addEventListener('DOMContentLoaded', async function () {
             const dt = time - prevTime;
             prevTime = time;
 
-            let rotY = Math.sin(time);
+            let rotY = -Math.sin(time);
 
-            pcs.mesh.rotation.y -= dt;
+            pcs.mesh.rotation.y += dt;
 
             pointLight.position = new BABYLON.Vector3(
                 10 * radius * Math.cos(time),
