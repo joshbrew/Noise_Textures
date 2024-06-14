@@ -3,10 +3,19 @@ span {
     top:10;
     z-index: 0;
 }
+
+* {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: black;
+    color:white;
+    font-weight: bolder;
+}
+
 canvas {
     position:absolute;
     z-index: 1;
     top:10;
+    background-color: transparent;
 }
 
 button {
@@ -21,11 +30,4 @@ button:active {
 
 button:disabled {
     opacity:0.5;
-}
-
-* {
-    font-family: 'Courier New', Courier, monospace;
-    background-color: black;
-    color:white;
-    font-weight: bolder;
 }
