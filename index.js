@@ -464,6 +464,9 @@ document.addEventListener('DOMContentLoaded', async function () {
     };
 
     scene = await createScene();
+    scene.freezeActiveMeshes();
+    scene.freezeMaterials();
+    //scene.freezeWorldMatrix();
     engine.runRenderLoop(() => {
         scene.render();
     });
