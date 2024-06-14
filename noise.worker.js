@@ -9,18 +9,19 @@ if(typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope
     const fbm = new noise.FractalBrownianMotion(12345); // Set a seed for reproducibility
     const fbm2 = new noise.FractalBrownianMotion2(12345); // Set a seed for reproducibility
 
+    let useRidged = billow.seededRandom() - 0.5 > 0;
+    let useFBM2 = billow.seededRandom() - 0.5 > 0; //coin toss to use more noise
+
     //todo, make it so we can create any sets of noise functions and provide call params
     self.onmessage = function (e) {
         if(e.data.seed) {
-            billow.seedN = e.data.seed;
-            ridged.seedN = e.data.seed;
-            fbm.seedN = e.data.seed;
-            fbm2.seedN = e.data.seed;
+            billow.setSeed(e.data.seed);
+            ridged.setSeed(e.data.seed);
+            fbm.setSeed(e.data.seed);
+            fbm2.setSeed(e.data.seed);
 
-            billow.seed(e.data.seed);
-            ridged.seed(e.data.seed);
-            fbm.seed(e.data.seed);
-            fbm2.seed(e.data.seed);
+            useRidged = billow.seededRandom() - 0.5 > 0;
+            useFBM2 = billow.seededRandom() - 0.5 > 0;
 
             return;
         }
@@ -56,8 +57,8 @@ if(typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope
                 let zoomMul = 1.3;
 
                 const noiseValue = fbm.generateNoise(noiseX, noiseY, noiseZ, zoomMul * 0.8, 6, randomizer3 + 2.0, 0.5, 0, 1) -
-                    fbm2.generateNoise(noiseX, noiseY, noiseZ, randomizer3 + zoomMul * 1, 8, 2, 0.5, 0, 1) +
-                    ridged.generateNoise(noiseX, noiseY, noiseZ, randomizer1 + zoomMul * 0.5, 6, 2.0, 0.5, 0, 1) +
+                    (useFBM2 ? fbm2.generateNoise(noiseX, noiseY, noiseZ, randomizer3 + zoomMul * 1, 8, 2, 0.5, 0, 1) : 0) +
+                    (useRidged ? (ridged.generateNoise(noiseX, noiseY, noiseZ, randomizer1 + zoomMul * 0.5, 6, 2.0, 0.5, 0, 1)) : 0) +
                     billow.generateNoise(noiseY, noiseX, noiseZ, randomizer2 + zoomMul * 0.5, 6, 2.0, 0.5, 0, 1) * 1.2 - 0.2;
 
                 noiseValues[index++] = noiseValue;

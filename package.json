@@ -27,7 +27,8 @@
   "author": "",
   "license": "",
   "dependencies": {
-    "babylonjs": "^7.10.3"
+    "babylonjs": "^7.10.3",
+    "workercanvas": "^1.1.4"
   },
   "nodemonConfig": {
     "env": {

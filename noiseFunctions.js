@@ -21,6 +21,12 @@ class BaseNoise {
         }
     }
 
+    setSeed(seed) {
+        this.seedN = seed;
+        this.seed(seed);
+        this.resetSeed();
+    }
+
     random(x, y, z) {
         let idx;
         if(typeof z === 'number') idx = (this.perm[(x & 255) + this.perm[(y & 255) + this.perm[z & 255]]]) & 255;
