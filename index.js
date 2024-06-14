@@ -317,7 +317,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         const tableContent = `
             <tr><th>Parameter</th><th>Value</th></tr>
-            <tr><td>Planet Type</td><td>: ${gradientNames[gradIdx]}</td></tr>
+            <tr><td>Planet Type</td><td> ${gradientNames[gradIdx]}</td></tr>
             <tr><td>Noise Used</td><td> ------ </td></tr>
             <tr><td>FBM</td><td> ${FBM} </td></tr>
             <tr><td>FBM2</td><td> ${FBM2} </td></tr>
