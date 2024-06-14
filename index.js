@@ -12,6 +12,9 @@ let noiseGen = new noise.BaseNoise();
 document.addEventListener('DOMContentLoaded', async function () {
 
     
+    const segments = 1000; //sphere will have s*s vertices
+    const radius = 50;
+    
     // Create a table to display SEED, randomizer values, and gradient name
     const infoTable = document.createElement('table');
     infoTable.style.position = 'absolute';
@@ -108,9 +111,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         inited = true;
         scene = new BABYLON.Scene(engine);
         scene.clearColor = new BABYLON.Color3(0, 0, 0); // Black background for the starry sky
-
-        const segments = 1000; //sphere will have s*s vertices
-        const radius = 50;
 
         const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 4, radius * 5, new BABYLON.Vector3(0, 0, 0), scene);
         camera.attachControl(canvas3d, true);
@@ -214,91 +214,138 @@ document.addEventListener('DOMContentLoaded', async function () {
             workers.forEach((w) => w.terminate());
             console.timeEnd("generated vertices");
 
-            const positions = new Float32Array(numVertices * 3);
-            const normals = new Float32Array(numVertices * 3);
-            const colors = new Float32Array(numVertices * 4);
-            const uvs = new Float32Array(numVertices * 2);
+            const SPLIT_POSITION_COUNT = 8000000; // Number of positions per split
+            const VERTEX_SIZE = 3; // positions
+            const NORMAL_SIZE = 3; // normals
+            const UV_SIZE = 2; // uvs
+            const COLOR_SIZE = 4; // colors
+            const INDEX_SIZE = 6; // indices per triangle
 
-            const indices = new Float32Array(segments * segments * 6);
+            // Calculate the number of vertices per split
+            const verticesPerSplit = SPLIT_POSITION_COUNT / VERTEX_SIZE;
+            //const numVertices = (segments + 1) * (segments + 1);
+            const numSplits = Math.ceil(numVertices / verticesPerSplit);
 
-            for (let lat = 0; lat <= segments; lat++) {
-                for (let lon = 0; lon <= segments; lon++) {
-                    const noiseIndex = lat * (segments + 1) + lon;
-                    const noiseValue = noiseValues[noiseIndex];
+            // Function to create mesh for each partition
+            function createMesh(positions, normals, colors, uvs, indices, index) {
+                const planet = new BABYLON.Mesh("custom" + index, scene);
 
-                    const index3 = noiseIndex * 3;
-                    const index4 = noiseIndex * 4;
-                    const index2 = noiseIndex * 2;
+                const vertexData = new BABYLON.VertexData();
+                vertexData.positions = positions;
+                vertexData.indices = indices;
+                vertexData.normals = normals;
+                vertexData.colors = colors;
+                vertexData.uvs = uvs;
+                vertexData.applyToMesh(planet);
 
-                    const x = coordinates[index3];
-                    const y = coordinates[index3 + 1];
-                    const z = coordinates[index3 + 2];
+                const material = new BABYLON.StandardMaterial("material" + index, scene);
+                material.vertexColorEnabled = true;
+                material.specularColor = new BABYLON.Color3(0.015, 0.015, 0.015);
+                planet.material = material;
 
-                    const heightValue = noiseValue * 1.5;
-                    const nx = x * radius + x * heightValue;
-                    const ny = y * radius + y * heightValue;
-                    const nz = z * radius + z * heightValue;
+                material.backFaceCulling = false;
+                material.freeze();
 
-                    positions[index3] = nx;
-                    positions[index3 + 1] = ny;
-                    positions[index3 + 2] = nz;
-
-                    normals[index3] = x;
-                    normals[index3 + 1] = y;
-                    normals[index3 + 2] = z;
-
-                    const baseColor = !isNaN(noiseValue) ? getColor(noiseValue) : [1, 1, 1];
-                    const [r, g, b] = baseColor;
-                    colors[index4] = r / 255;
-                    colors[index4 + 1] = g / 255;
-                    colors[index4 + 2] = b / 255;
-                    colors[index4 + 3] = 1;
-
-                    uvs[index2] = lon / segments;
-                    uvs[index2 + 1] = lat / segments;
-
-                    const first = (lat * (segments + 1)) + lon;
-                    const second = first + segments + 1;
-
-                    let index = 6 * (lat * segments + lon);
-
-                    indices[index] = first;
-                    indices[index + 1] = second;
-                    indices[index + 2] = first + 1;
-                    indices[index + 3] = second;
-                    indices[index + 4] = second + 1;
-                    indices[index + 5] = first + 1;
-                }
+                planet.receiveShadows = true;
+                planet.freezeWorldMatrix();
+                shadowGenerator.addShadowCaster(planet);
             }
 
+            // Partition the vertices and indices
+            for (let i = 0; i < numSplits; i++) {
+                const startLat = i * Math.floor(verticesPerSplit / (segments + 1));
+                const endLat = Math.min((i + 1) * Math.floor(verticesPerSplit / (segments + 1)), segments);
 
-            planet = new BABYLON.Mesh("custom", scene);
-            
-            const vertexData = new BABYLON.VertexData();
-            vertexData.positions = positions;
-            vertexData.indices = indices;
-            vertexData.normals = normals;
-            vertexData.colors = colors;
-            vertexData.uvs = uvs;
-            vertexData.applyToMesh(planet);
+                // Preallocate the arrays for this partition
+                const numVertsInSegment = (endLat - startLat + 1) * (segments + 1);
+                const splitPositions = new Float32Array(numVertsInSegment * VERTEX_SIZE);
+                const splitNormals = new Float32Array(numVertsInSegment * NORMAL_SIZE);
+                const splitColors = new Float32Array(numVertsInSegment * COLOR_SIZE);
+                const splitUvs = new Float32Array(numVertsInSegment * UV_SIZE);
+                const splitIndices = new Uint32Array((endLat - startLat) * segments * INDEX_SIZE);
 
-            const material = new BABYLON.StandardMaterial("material", scene);
-            material.vertexColorEnabled = true;
-            material.specularColor = new BABYLON.Color3(0.015, 0.015, 0.015);
-            planet.material = material;
+                let vertexOffset = 0;
+                let indexOffset = 0;
 
-            material.backFaceCulling = false;
-            material.freeze();
+                for (let lat = startLat; lat <= endLat; lat++) {
+                    for (let lon = 0; lon <= segments; lon++) {
+                        const noiseIndex = lat * (segments + 1) + lon;
+                        const noiseValue = noiseValues[noiseIndex];
 
-            planet.receiveShadows = true;
-            planet.freezeWorldMatrix();
-            shadowGenerator.addShadowCaster(planet);
-            
+                        const index3 = vertexOffset * VERTEX_SIZE;
+                        const index4 = vertexOffset * COLOR_SIZE;
+                        const index2 = vertexOffset * UV_SIZE;
+
+                        const x = coordinates[noiseIndex * VERTEX_SIZE];
+                        const y = coordinates[noiseIndex * VERTEX_SIZE + 1];
+                        const z = coordinates[noiseIndex * VERTEX_SIZE + 2];
+
+                        const heightValue = noiseValue * 1.5;
+                        const nx = x * radius + x * heightValue;
+                        const ny = y * radius + y * heightValue;
+                        const nz = z * radius + z * heightValue;
+
+                        splitPositions[index3] = nx;
+                        splitPositions[index3 + 1] = ny;
+                        splitPositions[index3 + 2] = nz;
+
+                        splitNormals[index3] = x;
+                        splitNormals[index3 + 1] = y;
+                        splitNormals[index3 + 2] = z;
+
+                        const baseColor = !isNaN(noiseValue) ? getColor(noiseValue) : [1, 1, 1];
+                        const [r, g, b] = baseColor;
+                        splitColors[index4] = r / 255;
+                        splitColors[index4 + 1] = g / 255;
+                        splitColors[index4 + 2] = b / 255;
+                        splitColors[index4 + 3] = 1;
+
+                        splitUvs[index2] = lon / segments;
+                        splitUvs[index2 + 1] = lat / segments;
+
+                        vertexOffset++;
+                    }
+                }
+
+                // Adjust the indices for the current split
+                for (let lat = startLat; lat < endLat; lat++) {
+                    for (let lon = 0; lon < segments; lon++) {
+                        const first = (lat - startLat) * (segments + 1) + lon;
+                        const second = first + segments + 1;
+
+                        const index = indexOffset * INDEX_SIZE;
+
+                        splitIndices[index] = first;
+                        splitIndices[index + 1] = second;
+                        splitIndices[index + 2] = first + 1;
+                        splitIndices[index + 3] = second;
+                        splitIndices[index + 4] = second + 1;
+                        splitIndices[index + 5] = first + 1;
+
+                        indexOffset++;
+                    }
+                }
+
+                // Create the mesh for this partition
+                createMesh(splitPositions, splitNormals, splitColors, splitUvs, splitIndices, i);
+            }
+                                                
+
+            //if(segments < 2000) {
             depthRenderer = scene.enableDepthRenderer(camera, false, true);
+
+            
+            const atmospheresphere = new BABYLON.MeshBuilder.CreateSphere(
+                'planetref',{segments:32, radius}, scene
+            );
+
+            atmospheresphere.isVisible = false;
+            atmospheresphere.freezeWorldMatrix();
+            //atmospheresphere.position = planet.position;
 
             atmosphere = new AtmosphericScatteringPostProcess(
                 "atmospherePostProcess",
-                planet,
+                atmospheresphere,
                 radius,
                 radius + 8,
                 pointLight,
@@ -306,6 +353,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                 depthRenderer,
                 scene
             );
+            //}
+
+           
 
             return planet;
         };
