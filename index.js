@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 material.specularColor = new BABYLON.Color3(0.015, 0.015, 0.015);
                 planet.material = material;
 
-                material.backFaceCulling = false;
+                //material.backFaceCulling = false;
                 material.freeze();
 
                 planet.receiveShadows = true;
@@ -286,12 +286,12 @@ document.addEventListener('DOMContentLoaded', async function () {
                         const nz = z * radius + z * heightValue;
 
                         splitPositions[index3] = nx;
-                        splitPositions[index3 + 1] = ny;
-                        splitPositions[index3 + 2] = nz;
+                        splitPositions[index3 + 1] = nz; //z and y are flipped due to bab's left handed system
+                        splitPositions[index3 + 2] = ny;
 
                         splitNormals[index3] = x;
-                        splitNormals[index3 + 1] = y;
-                        splitNormals[index3 + 2] = z;
+                        splitNormals[index3 + 1] = z;
+                        splitNormals[index3 + 2] = y;
 
                         const baseColor = !isNaN(noiseValue) ? getColor(noiseValue) : [1, 1, 1];
                         const [r, g, b] = baseColor;
