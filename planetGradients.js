@@ -27,7 +27,7 @@ const gradientColorsUtah = [
     [117, 181, 130],     // sage green
     [20, 99, 56],     // pine green
     [255, 128, 0],  // Medium dark orange
-    [225, 225, 225],// Whitish
+    [225, 225, 225]// Whitish
 ];
 
 const gradientColorsVolcanic = [
@@ -57,7 +57,7 @@ const gradientColorsVolcanic = [
     [105, 105, 105],// Dim gray
     [119, 136, 153],// Light slate gray
     [112, 128, 144],// Slate gray
-    [169, 169, 169],// Light gray
+    [169, 169, 169]// Light gray
 ];
 
 const gradientColorsIce = [
@@ -87,7 +87,7 @@ const gradientColorsIce = [
     [245, 255, 250],// Mint cream
     [255, 248, 220],// Cornsilk
     [255, 239, 213],// Papaya whip
-    [225, 225, 225],// Misty rose
+    [225, 225, 225]// Misty rose
 ];
 
 const gradientColorsIce2 = [
@@ -117,7 +117,7 @@ const gradientColorsIce2 = [
     [123, 155, 155],// Mint cream
     [204, 210, 180],// Cornsilk
     [200, 195, 170],// Papaya whip
-    [225, 225, 225],// ice caps
+    [225, 225, 225]// ice caps
 ];
 
 const gradientColorsDesert = [
@@ -147,7 +147,7 @@ const gradientColorsDesert = [
     [102, 102, 76], // Medium dark sand
     [76, 76, 51],   // Dark sand
     [51, 51, 25],   // Very dark brown
-    [179, 128, 0],  // Gold
+    [204, 179, 153]// Very light sand
 ];
 
 const gradientColorsForest = [
@@ -180,7 +180,7 @@ const gradientColorsForest = [
     [128, 128, 102],// Medium sand
     [102, 102, 76], // Medium dark sand
     [76, 76, 51],   // Dark sand
-    [225, 225, 225],// ice caps
+    [225, 225, 225]// ice caps
 ];
 
 const gradientColorsOceanic = [
@@ -209,7 +209,7 @@ const gradientColorsOceanic = [
     [89, 89, 89],   // Dark gray
     [77, 77, 77],   // Darker gray
     [66, 66, 66],   // Very dark gray
-    [55, 55, 55],   // Almost black
+    [55, 55, 55]   // Almost black
 ];
 
 export {
