@@ -147,7 +147,7 @@ const gradientColorsDesert = [
     [102, 102, 76], // Medium dark sand
     [76, 76, 51],   // Dark sand
     [51, 51, 25],   // Very dark brown
-    [25, 25, 0],    // Very dark brown
+    [179, 128, 0],  // Gold
 ];
 
 const gradientColorsForest = [
