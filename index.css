@@ -9,6 +9,20 @@ canvas {
     top:10;
 }
 
+button {
+    border: 1px inset  white;
+}
+button:hover {
+    border: 1px inset  gray;
+}
+button:active {
+    border: 1px inset  blue;
+}
+
+button:disabled {
+    opacity:0.5;
+}
+
 * {
     font-family: 'Courier New', Courier, monospace;
     background-color: black;
