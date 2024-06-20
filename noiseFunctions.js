@@ -956,7 +956,6 @@ class PerlinNoise extends Noise {
         let amp = 1.0;
 
         let angle = this.seedN * 2 * Math.PI; //start at random angle;
-        let angleIncr = Math.PI / 4;
         const angleIncrement = Math.PI / 4;
 
 
@@ -974,14 +973,17 @@ class PerlinNoise extends Noise {
 
             const newX = x * cosAngle - y * sinAngle;
             const newY = x * sinAngle + y * cosAngle;
+            const newZ = y * sinAngle + z * cosAngle;
 
             x = newX;
             y = newY;
+            z = newZ;
             angle += angleIncrement;
 
             // Apply shift to the coordinates
             x += shift;
             y += shift;
+            z += shift;
         }
 
         if (turbulence) sum -= 1;
@@ -1480,11 +1482,10 @@ class FractalBrownianMotion3 extends SimplexNoise3D {
     }
 }
 
-//lots of noise functions
+//noise functions
 export {
+    //noise base classes (have the noise(x,y,z) function)
     BaseNoise,
-    Noise,
-    PerlinNoise,
     SimplexNoise,
     SimplexNoise3D,
     LanczosNoise,
@@ -1499,6 +1500,10 @@ export {
     CosineNoise,
     HermiteNoise,
     QuinticNoise,
+
+    //extensions (has the generateNoise() functions with nearly identical inputs)
+    Noise,
+    PerlinNoise,
     BillowNoise,
     AntiBillowNoise,
     LanczosBillowNoise,
