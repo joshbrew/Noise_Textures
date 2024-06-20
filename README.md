@@ -8,7 +8,8 @@ Quick heightmap/noise texture generation tests for Perlin Noise, Billow Noise, R
 <table>
   <tr>
     <td><img width="842" alt="339234544-422dca76-cd6f-4410-80b2-2aa03e2c29f0-min" src="https://github.com/joshbrew/Noise_Textures/assets/18196383/2a6bd0b6-f8e9-4413-96f2-07952beccdc1"></td>
-    <td><img width="635" alt="Capture-min (2)" src="https://github.com/joshbrew/Noise_Textures/assets/18196383/8e11c41c-4ff4-4dc0-a2f1-dfd9562427b7"></td>
+    <td><img width="499" alt="Capture6-min" src="https://github.com/joshbrew/Noise_Textures/assets/18196383/4db3773d-f86b-42ea-bc26-c35505b08a10">
+</td>
     <td><img width="652" alt="Capture-min (3)" src="https://github.com/joshbrew/Noise_Textures/assets/18196383/5e96d832-6e6a-44a6-bf6f-a809559cd721"></td>
   </tr>
 </table>
@@ -34,8 +35,8 @@ Quick heightmap/noise texture generation tests for Perlin Noise, Billow Noise, R
   </tr>
 </table>
 
-
-
-
+<img width="636" alt="Capture5-min" src="https://github.com/joshbrew/Noise_Textures/assets/18196383/1bbd1687-36fe-4569-8f13-0517a3b6bae4">
 
 ![img](https://github.com/joshbrew/Noise_Textures/assets/18196383/da18e2c5-54ca-41cb-af99-b8eff811ce72)
+
+
