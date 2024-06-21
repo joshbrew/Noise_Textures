@@ -1,6 +1,8 @@
 # Noise_Textures
 
-Quick heightmap/noise texture generation tests for Perlin Noise, Billow Noise, Ridged Multifractal Noise, and Fractal Brownian Motion (recursive perlin). Just open the noise.html file or the planetsim.html in browser to experiment, or run the npm project for a cleaner example codebase, or host the index.html so the built scripts get imported to see the final result.
+Quick heightmap/noise texture generation tests for Perlin Noise, Billow Noise, Ridged Multifractal Noise, and Fractal Brownian Motion (recursive perlin).
+
+Run `npm i -g tinybuild` then `tinybuild` to build/run the project
 
 ### [Planet Randomizer Example](https://planetsim.netlify.app) (takes several seconds to render!!)
 
