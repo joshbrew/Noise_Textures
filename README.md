@@ -2,7 +2,7 @@
 
 Quick heightmap/noise texture generation tests for Perlin Noise, Billow Noise, Ridged Multifractal Noise, and Fractal Brownian Motion (recursive perlin).
 
-Run `npm i -g tinybuild` then `tinybuild` to build/run the project
+Run `npm i -g tinybuild` then `tinybuild` to build/run the project. Babylonjs is using webgpu so use a chrome based browser, or android.
 
 ### [Planet Randomizer Example](https://planetsim.netlify.app) (takes several seconds to render!!)
 

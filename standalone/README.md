@@ -1,1 +1,1 @@
-You can open and run these html files
+You can open and run these html files in browser (chrome-based)
