@@ -391,12 +391,12 @@ document.addEventListener('DOMContentLoaded', async function () {
             <tr><td>RidgedMF</td><td> ${RidgedMultifractal} </td></tr>
             <tr><td>Billow</td><td> ${Billow} </td></tr>
             <tr><td>Modifiers</td><td> ------ </td></tr>
-            <tr><td>SEED</td><td> ${SEED}</td></tr>
-            <tr><td>R1</td><td> ${randomizer1}</td></tr>
-            <tr><td>R2</td><td> ${randomizer2}</td></tr>
-            <tr><td>R3</td><td> ${randomizer3}</td></tr>
-            <tr><td>Tectonic R1</td><td> ${offset}</td></tr>
-            <tr><td>Tectonic R2</td><td> ${offset2}</td></tr>
+            <tr><td>SEED</td><td> ${SEED.toFixed(3)}</td></tr>
+            <tr><td>R1</td><td> ${randomizer1.toFixed(3)}</td></tr>
+            <tr><td>R2</td><td> ${randomizer2.toFixed(3)}</td></tr>
+            <tr><td>R3</td><td> ${randomizer3.toFixed(3)}</td></tr>
+            <tr><td>Tectonic R1</td><td> ${offset.toFixed(3)}</td></tr>
+            <tr><td>Tectonic R2</td><td> ${offset2.toFixed(3)}</td></tr>
         `;
         infoTable.innerHTML = tableContent;
 
