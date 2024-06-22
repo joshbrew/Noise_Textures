@@ -1,31 +1,17 @@
+import * as noise from './noiseFunctions';
 
-import * as noise from './noiseFunctions'
-
-
-if(typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
-
-    const billow = new noise.LanczosBillowNoise(12345); // Set a seed for reproducibility
-    const ridged = new noise.RidgedMultifractalNoise(12345); // Set a seed for reproducibility
-    const fbm = new noise.FractalBrownianMotion(12345); // Set a seed for reproducibility
-    const fbm2 = new noise.FractalBrownianMotion2(12345); // Set a seed for reproducibility
-
-    let useRidged = billow.seededRandom() - 0.5 > 0;
-    let useFBM2 = billow.seededRandom() - 0.5 > 0; //coin toss to use more noise
-
-    //todo, make it so we can create any sets of noise functions and provide call params (see noise.worker.js)
+if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
     self.onmessage = function (e) {
-        if(e.data.seed) {
-            billow.setSeed(e.data.seed);
-            ridged.setSeed(e.data.seed);
-            fbm.setSeed(e.data.seed);
-            fbm2.setSeed(e.data.seed);
+        const { seed, noiseConfigs, latRange, segments, offset, offset2, randomizer1, randomizer2, randomizer3, startIndex } = e.data;
 
-            useRidged = billow.seededRandom() - 0.5 > 0;
-            useFBM2 = billow.seededRandom() - 0.5 > 0;
-
-            return;
+        // Initialize noise generators
+        const noiseGenerators = {};
+        for (let config of noiseConfigs) {
+            if (!noiseGenerators[config.type]) {
+                noiseGenerators[config.type] = new noise[config.type](seed);
+            }
         }
-        const { latRange, segments, offset, offset2, randomizer1, randomizer2, randomizer3, startIndex } = e.data;
+
         const { startLat, endLat } = latRange;
         const numValues = (endLat - startLat + 1) * (segments + 1);
         const noiseValues = new Float32Array(numValues);
@@ -40,7 +26,6 @@ if(typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope
                 const phi = lon * 2 * Math.PI / segments;
                 const poleScaleLon = Math.sin(phi);
 
-                //would be smarter to feed these to the worker instead but we are just doing sphere generators
                 const x = Math.sin(theta) * Math.cos(phi);
                 const y = Math.sin(theta) * Math.sin(phi);
                 const z = Math.cos(theta);
@@ -54,25 +39,30 @@ if(typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope
                 let noiseY = y + 2 + poleScaleLat * poleScaleLon * (offset * Math.cos(theta + phi) + offset2 * Math.sin(2 * theta));
                 let noiseZ = z + 2 + poleScaleLat * poleScaleLon * (offset * Math.sin(2 * phi + theta) + offset2 * Math.cos(2 * theta + phi));
 
-                let zoomMul = 1.3;
+                let finalValue = 0;
+                for (let config of noiseConfigs) {
+                    const generator = noiseGenerators[config.type];
+                    finalValue += generator.generateNoise(
+                        noiseX, noiseY, noiseZ,
+                        config.zoom || 1.0,
+                        config.octaves || 6,
+                        config.lacunarity || 2.0,
+                        config.gain || 0.5,
+                        config.shift || 100,
+                        config.frequency || 1
+                    );
+                }
 
-                const noiseValue = fbm.generateNoise(noiseX, noiseY, noiseZ, zoomMul * 0.8, 6, randomizer3 + 2.0, 0.5, offset, 1) -
-                    (useFBM2 ? fbm2.generateNoise(noiseX, noiseY, noiseZ, randomizer3 + zoomMul * 1, 8, 2, 0.5, offset, 1) : 0) +
-                    (useRidged ? (ridged.generateNoise(noiseX, noiseY, noiseZ, randomizer1 + zoomMul * 0.5, 6, 2.0, 0.5, offset, 1)) : 0) +
-                    billow.generateNoise(noiseY, noiseX, noiseZ, randomizer2 + zoomMul * 0.5, 6, 2.0, 0.5, offset, 1) * 1.2 - 0.2;
-
-                noiseValues[index++] = noiseValue;
+                noiseValues[index++] = finalValue;
             }
         }
 
-        self.postMessage({ 
-            noiseValues, 
-            coordinates, 
-            startIndex,
-            fbm:true, fbm2:useFBM2, ridgedMultifractal:useRidged,billow:true
+        self.postMessage({
+            noiseValues,
+            coordinates,
+            startIndex
         }, [noiseValues.buffer, coordinates.buffer]);
     };
 }
-
 
 export default self;

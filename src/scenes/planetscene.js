@@ -156,52 +156,61 @@ document.addEventListener('DOMContentLoaded', async function () {
         else sign2 = 1;
         offset2 *= sign2;
 
-        const generatePlanet = async () => {
+        const noiseConfigs = [
+            { type: 'FractalBrownianMotion', zoom: 1.3 * 0.8, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 2.0, frequency: 1, offset: offset },
+            { type: 'FractalBrownianMotion2', zoom: 1.3 * 1, octaves: 8, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 1.3, frequency: 1, offset: offset },
+            { type: 'RidgedMultifractalNoise', zoom: 1.3 * 0.5, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
+            { type: 'BillowNoise', zoom: 1.3 * 0.5, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer2 + 1.3 * 0.5, frequency: 1, offset: offset }
+        ];
 
+        //let useFBM = Math.random() > 0.5;
+        let useFBM2 = Math.random() > 0.5;
+        let useRidged = Math.random() > 0.5;
+        //let useBillow = Math.random() > 0.5;
+
+        //FBM = useFBM
+        FBM2 = useFBM2;
+        RidgedMultifractal = useRidged;
+        //Billow = useBillow;
+
+        if(!useFBM2) noiseConfigs.find((t,i) => {if(t?.type === 'FractalBrownianMotion2') noiseConfigs.splice(i,1);});
+        if(!useRidged) noiseConfigs.find((t,i) => {if(t?.type === 'RidgedMultifractalNoise') noiseConfigs.splice(i,1);});
+
+        const generatePlanetHeightmap = async (noiseConfigs, seed, segments) => {
             const numWorkers = navigator.hardwareConcurrency || 4;
             const workers = [];
             const segmentSize = Math.ceil(segments / numWorkers);
-    
+        
             for (let i = 0; i < numWorkers; i++) {
                 workers[i] = new Worker(planetworker);
-                workers[i].postMessage({ seed: SEED });
             }
-    
+        
             const promises = [];
             const numVertices = (segments + 1) * (segments + 1);
             const totalNoiseValues = numVertices;
             const noiseValues = new Float32Array(totalNoiseValues);
             const coordinates = new Float32Array(totalNoiseValues * 3);
-
+        
             for (let i = 0; i < numWorkers; i++) {
                 const startLat = i * segmentSize;
                 let endLat = (i + 1) * segmentSize - 1;
-
+        
                 if (endLat > segments) endLat = segments;
-
+        
                 promises.push(new Promise((resolve) => {
                     workers[i].onmessage = function (e) {
-                        const { 
-                            noiseValues: workerNoiseValues, 
-                            coordinates: workerCoordinates, 
-                            startIndex,
-                            fbm,fbm2,ridgedMultifractal,billow
-                        } = e.data;
+                        const { noiseValues: workerNoiseValues, coordinates: workerCoordinates, startIndex} = e.data;
                         noiseValues.set(workerNoiseValues, startIndex);
                         coordinates.set(workerCoordinates, startIndex * 3);
-
-                        FBM = fbm;
-                        FBM2 = fbm2;
-                        RidgedMultifractal = ridgedMultifractal;
-                        Billow = billow;
-
+                        workers[i].terminate();
                         resolve();
                     };
-
+        
                     workers[i].postMessage({
+                        seed,
+                        noiseConfigs,
                         latRange: { startLat, endLat },
                         segments,
-                        radius,
                         offset,
                         offset2,
                         randomizer1,
@@ -211,13 +220,16 @@ document.addEventListener('DOMContentLoaded', async function () {
                     });
                 }));
             }
-
-            console.log("Generating vertices...");
-            console.time("generated vertices");
+        
             await Promise.all(promises);
-            workers.forEach((w) => w.terminate());
-            console.timeEnd("generated vertices");
 
+            return { noiseValues, coordinates, numVertices };
+        };
+        
+
+        
+        const renderPlanet = (noiseValues, coordinates) => {
+            
             const SPLIT_POSITION_COUNT = 8000000; // Number of positions per split
             const VERTEX_SIZE = 3; // positions
             const NORMAL_SIZE = 3; // normals
@@ -362,11 +374,12 @@ document.addEventListener('DOMContentLoaded', async function () {
            
 
             return planet;
-        };
+        }
 
-       
+
         console.time("generated planet");
-        planet = await generatePlanet();
+        const { noiseValues, coordinates, numVertices } = await generatePlanetHeightmap(noiseConfigs, SEED, segments, radius);
+        planet = renderPlanet(noiseValues, coordinates);
         console.timeEnd("generated planet");
 
         const tableContent = `
