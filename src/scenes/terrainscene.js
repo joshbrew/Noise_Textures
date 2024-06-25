@@ -114,7 +114,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 4, width*2, new BABYLON.Vector3(0, 0, 0), scene);
         camera.attachControl(canvas3d, true);
 
-        const maxThreads = navigator.hardwareConcurrency || 4; // Use the maximum number of available threads, default to 4
         
         const promises = [];
         
@@ -131,49 +130,56 @@ document.addEventListener('DOMContentLoaded', async function () {
             { type: 'BillowNoise', zoom: 250, octaves: octaves, lacunarity: lacunarity, gain: gain, shift: shift }
         ];
 
-        const heightmap = new Float32Array(width * height);
 
         // Split height into chunks for each worker
-        const chunkSize = Math.ceil(height / maxThreads);
         
-        const runNoiseWorkers = async () => {
+        const runNoiseWorkers = async (width, height) => {
+            const map = new Float32Array(width * height); // This is our final buffer
+            const maxThreads = navigator.hardwareConcurrency || 4; // Use the maximum number of available threads, default to 4
+            const chunkSize = Math.ceil(height / maxThreads);
             const workers = [];
+            const promises = [];
+        
             for (let thread = 0; thread < maxThreads; thread++) {
                 const startY = thread * chunkSize;
                 const endY = Math.min((thread + 1) * chunkSize - 1, height - 1);
-            
+        
                 if (startY >= height) break;
-            
+        
                 const worker = new Worker(noiseworker);
                 workers.push(worker);
-            
+        
                 promises.push(new Promise((resolve) => {
                     worker.onmessage = function (e) {
                         const { noiseValues } = e.data;
+        
                         let index = 0;
                         for (let y = startY; y <= endY; y++) {
                             for (let x = 0; x < width; x++) {
                                 const heightValue = noiseValues[index] - 0.2;
-                                heightmap[y * width + x] = heightValue; // Slight height shift
+                                map[y * width + x] = heightValue; // Slight height shift
                                 index++;
                             }
                         }
-                        worker.terminate();
+        
+                        worker.terminate(); // Cleanup
                         resolve(true);
                     };
-            
-                    const xRange = { startX: 0, endX: width - 1 };
-                    const yRange = { startY, endY };
-            
+        
+                    const xRange = { start: 0, end: width - 1 };
+                    const yRange = { start: startY, end: endY };
+        
                     worker.postMessage({ seed, noiseConfigs, xRange, yRange, stepSize: 1 });
                 }));
             }
-            
+        
             await Promise.all(promises);
-        }
+        
+            return map;
+        };
 
 
-        await runNoiseWorkers();
+        const heightmap = await runNoiseWorkers(width,height);
 
 
         

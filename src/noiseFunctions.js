@@ -1,6 +1,7 @@
 class BaseNoise {
 
     constructor(seed = Date.now()) {
+        if(seed < 1000) seed *= 10000; //need a bigger number
         this.seedN = seed;
         this.seedK = seed;
         this.perm = new Uint8Array(512);
@@ -1485,7 +1486,10 @@ class FractalBrownianMotion3 extends SimplexNoise3D {
 //noise functions
 export {
     //noise base classes (have the noise(x,y,z) function)
-    BaseNoise,
+    BaseNoise, //the base class with some shared utilities for replicable seeding/permutations
+
+    //has noise(x,y,z) functions
+    Noise,
     SimplexNoise,
     SimplexNoise3D,
     LanczosNoise,
@@ -1502,7 +1506,6 @@ export {
     QuinticNoise,
 
     //extensions (has the generateNoise() functions with nearly identical inputs)
-    Noise,
     PerlinNoise,
     BillowNoise,
     AntiBillowNoise,

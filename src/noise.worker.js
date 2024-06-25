@@ -1,7 +1,6 @@
 import * as noise from './noiseFunctions';
 
 if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
-
     self.onmessage = function (e) {
         const { seed, noiseConfigs, xRange, yRange, zRange, stepSize } = e.data;
 
@@ -13,9 +12,9 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
             }
         }
 
-        const { startX, endX } = xRange;
-        const { startY, endY } = yRange || { startY: 0, endY: 0 };
-        const { startZ, endZ } = zRange || { startZ: 0, endZ: 0 };
+        const { start: startX, end: endX } = xRange;
+        const { start: startY, end: endY } = yRange || { start: 0, end: 0 };
+        const { start: startZ, end: endZ } = zRange || { start: 0, end: 0 };
 
         const xCount = Math.floor((endX - startX) / stepSize) + 1;
         const yCount = Math.floor((endY - startY) / stepSize) + 1;
