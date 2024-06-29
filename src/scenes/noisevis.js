@@ -9,7 +9,11 @@ const noiseGenerators = [
     'LanczosBillowNoise',
     'LanczosAntiBillowNoise',
     'RidgeNoise',
+    'AntiRidgeNoise',
     'RidgedMultifractalNoise',
+    'RidgedMultifractalNoise2',
+    'RidgedAntiMultifractalNoise',
+    'RidgedAntiMultifractalNoise2',
     'FractalBrownianMotion',
     'FractalBrownianMotion2',
     'FractalBrownianMotion3',
@@ -19,26 +23,57 @@ const noiseGenerators = [
 
 // Function to create a canvas and append it to the container
 const createCanvas = (size, title) => {
-    const container = document.body;
+    // Create a flex container if it doesn't exist
+    let container = document.querySelector('.canvas-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'canvas-container';
+        container.style.display = 'flex';
+        container.style.flexWrap = 'wrap';
+        container.style.gap = '10px'; // Optional: gap between canvases
+        document.body.appendChild(container);
+    }
+
+    // Create a wrapper for canvas and title
+    const canvasWrapper = document.createElement('div');
+    canvasWrapper.style.position = 'relative';
+    canvasWrapper.style.width = `${size}px`;
+    canvasWrapper.style.height = `${size}px`;
+    canvasWrapper.style.flexShrink = '0'; // Prevent the wrapper from shrinking
+
     const canvas = document.createElement('canvas');
-    canvas.style.position = 'relative';
     canvas.width = size;
     canvas.height = size;
-    container.appendChild(canvas);
+    canvas.style.display = 'block'; // To ensure the canvas takes the full width of its container
 
     const context = canvas.getContext('2d');
     context.fillStyle = 'black';
     context.fillRect(0, 0, size, size);
 
-    const titleElement = document.createElement('p');
-    titleElement.textContent = title;
-    container.appendChild(titleElement);
+    const titleElement = document.createElement('div');
+    titleElement.innerText = title;
+    titleElement.style.position = 'absolute';
+    titleElement.style.top = '0';
+    titleElement.style.left = '0';
+    titleElement.style.width = '100%';
+    titleElement.style.zIndex = '2';
+    titleElement.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    titleElement.style.color = 'white';
+    titleElement.style.margin = '0';
+    titleElement.style.padding = '5px';
+    titleElement.style.boxSizing = 'border-box';
+
+    canvasWrapper.appendChild(canvas);
+    canvasWrapper.appendChild(titleElement);
+    container.appendChild(canvasWrapper);
 
     return canvas;
 };
 
+
+
 // Function to run the noise worker for a given noise generator
-const runNoiseWorker = async (seed, noiseType, canvas) => {
+const runNoiseWorker = async (seed, canvas, noiseConfigs, stepSize) => {
     const size = canvas.width;
     const context = canvas.getContext('2d');
     const imageData = context.createImageData(size, size);
@@ -86,17 +121,7 @@ const runNoiseWorker = async (seed, noiseType, canvas) => {
             const xRange = { start: 0, end: size - 1 };
             const yRange = { start: startY, end: endY - 1 };
 
-            const noiseConfigs = [{
-                type: noiseType,
-                zoom: 50.0,
-                octaves: 8,
-                lacunarity: 2.0,
-                gain: 0.5,
-                shift: 100,
-                frequency: 1
-            }];
-
-            worker.postMessage({ seed, noiseConfigs, xRange, yRange, stepSize: 1 });
+            worker.postMessage({ seed, noiseConfigs, xRange, yRange, stepSize });
         }));
     }
 
@@ -105,16 +130,94 @@ const runNoiseWorker = async (seed, noiseType, canvas) => {
     context.putImageData(imageData, 0, 0);
 };
 
-// Main function to run all noise generators
-const visualizeNoiseGenerators = async () => {
+// Function to regenerate all canvases with updated parameters
+const generateCanvases = async () => {
 
-    const seed = Math.random() * 100000; //share seed
+    let container = document.querySelector('.canvas-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'canvas-container';
+        container.style.display = 'flex';
+        container.style.flexWrap = 'wrap';
+        container.style.gap = '10px'; // Optional: gap between canvases
+        document.body.appendChild(container);
+    }
+    // Get the updated parameters from the controls
+    const seed = parseFloat(document.querySelector('#seed').value);
+    const zoom = parseFloat(document.querySelector('#zoom').value);
+    const octaves = parseInt(document.querySelector('#octaves').value, 10);
+    const lacunarity = parseFloat(document.querySelector('#lacunarity').value);
+    const gain = parseFloat(document.querySelector('#gain').value);
+    const shift = parseFloat(document.querySelector('#shift').value);
+    const frequency = parseFloat(document.querySelector('#frequency').value);
+    //const stepSize = parseFloat(document.querySelector('#stepSize').value);
+
+    // Remove existing canvases
+    container.innerHTML = '';
 
     for (const noiseType of noiseGenerators) {
+        const noiseConfigs = [{
+            type:noiseType,
+            zoom,
+            octaves,
+            lacunarity,
+            gain,
+            shift,
+            frequency
+        }];
         const canvas = createCanvas(500, noiseType);
-        await runNoiseWorker(seed, noiseType, canvas);
+        await runNoiseWorker(seed, canvas, noiseConfigs, 1);
     }
 };
 
-// Run the visualization
-visualizeNoiseGenerators();
+// Function to create control inputs
+const createControls = () => {
+    const controlsContainer = document.createElement('div');
+    controlsContainer.className = 'controls-container';
+    controlsContainer.style.float = 'right';
+    controlsContainer.style.marginBottom = '20px';
+    document.body.appendChild(controlsContainer);
+
+    
+    controlsContainer.insertAdjacentHTML('afterbegin',`
+        <div style="font-size:10px;">Seed and settings will dramatically</br> alter noise quality.</div>
+    `)
+
+    const controls = [
+        { id: 'seed', label: 'Seed', type: 'number', value: 12345.678910 },
+        { id: 'zoom', label: 'Zoom', type: 'number', value: 50.0 },
+        { id: 'octaves', label: 'Octaves', type: 'number', value: 8 },
+        { id: 'lacunarity', label: 'Lacunarity', type: 'number', value: 2.0 },
+        { id: 'gain', label: 'Gain', type: 'number', value: 0.5 },
+        { id: 'shift', label: 'Shift', type: 'number', value: 0 },
+        { id: 'frequency', label: 'Frequency', type: 'number', value: 1 },
+        //{ id: 'stepSize', label: 'Step Size', type: 'number', value: 1 }
+    ];
+
+    controls.forEach(control => {
+        const controlWrapper = document.createElement('div');
+        controlWrapper.style.marginBottom = '10px';
+
+        const label = document.createElement('label');
+        label.htmlFor = control.id;
+        label.innerText = `${control.label}: `;
+        controlWrapper.appendChild(label);
+
+        const input = document.createElement('input');
+        input.id = control.id;
+        input.type = control.type;
+        input.value = control.value;
+        controlWrapper.appendChild(input);
+
+        controlsContainer.appendChild(controlWrapper);
+    });
+
+    const regenerateButton = document.createElement('button');
+    regenerateButton.innerText = 'Regenerate Canvases';
+    regenerateButton.onclick = generateCanvases;
+    controlsContainer.appendChild(regenerateButton);
+};
+
+// Create controls and run the initial visualization
+createControls();
+generateCanvases();

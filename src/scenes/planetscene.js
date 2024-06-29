@@ -157,24 +157,32 @@ document.addEventListener('DOMContentLoaded', async function () {
         offset2 *= sign2;
 
         const noiseConfigs = [
-            { type: 'FractalBrownianMotion', zoom: 1.3 * 0.8, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 2.0, frequency: 1, offset: offset },
+            { type: 'FractalBrownianMotion', scalar:1.5, zoom: 1.3 * 0.8, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 2.0, frequency: 1, offset: offset },
             { type: 'FractalBrownianMotion2', zoom: 1.3 * 1, octaves: 8, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 1.3, frequency: 1, offset: offset },
-            { type: 'RidgedMultifractalNoise', zoom: 1.3 * 0.5, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
+            { type: 'RidgedAntiMultifractalNoise', scalar:1.5, zoom: 1.3 * 0.5, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
             { type: 'BillowNoise', zoom: 1.3 * 0.5, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer2 + 1.3 * 0.5, frequency: 1, offset: offset }
         ];
 
-        //let useFBM = Math.random() > 0.5;
+        let useFBM = Math.random() > 0.5;
         let useFBM2 = Math.random() > 0.5;
         let useRidged = Math.random() > 0.5;
-        //let useBillow = Math.random() > 0.5;
+        let useBillow = Math.random() > 0.5;
 
-        //FBM = useFBM
+        if(!useFBM && !useFBM2 && !useRidged && !useBillow) {
+            useFBM = true; //default
+            useRidged = true;
+        }
+
+        FBM = useFBM
         FBM2 = useFBM2;
         RidgedMultifractal = useRidged;
-        //Billow = useBillow;
+        Billow = useBillow;
 
+
+        if(!useFBM) noiseConfigs.find((t,i) => {if(t?.type === 'FractalBrownianMotion') noiseConfigs.splice(i,1);});
         if(!useFBM2) noiseConfigs.find((t,i) => {if(t?.type === 'FractalBrownianMotion2') noiseConfigs.splice(i,1);});
-        if(!useRidged) noiseConfigs.find((t,i) => {if(t?.type === 'RidgedMultifractalNoise') noiseConfigs.splice(i,1);});
+        if(!useRidged) noiseConfigs.find((t,i) => {if(t?.type === 'RidgedAntiMultifractalNoise') noiseConfigs.splice(i,1);});
+        if(!useBillow) noiseConfigs.find((t,i) => {if(t?.type === 'BillowNoise') noiseConfigs.splice(i,1);});
 
         const generatePlanetHeightmap = async (noiseConfigs, seed, segments) => {
             const numWorkers = navigator.hardwareConcurrency || 4;

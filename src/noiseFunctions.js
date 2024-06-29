@@ -1204,40 +1204,6 @@ class LanczosAntiBillowNoise extends FastLanczosNoise3D {
     }
 }
 
-class RidgeNoise extends Noise {
-    noise(x, y, z) {
-        let value = super.noise(x, y, z);
-        value = 1 - Math.abs(value);
-        return value * value;
-    }
-
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1) {
-        x /= zoom;
-        y /= zoom;
-        z /= zoom;
-
-        let sum = 0;
-        let amp = 1.0;
-
-        for (let i = 0; i < octaves; i++) {
-            sum += this.noise(x * frequency, y * frequency, z * frequency) * amp;
-            frequency *= lacunarity;
-
-            amp *= gain;
-
-            // Apply shift to the coordinates
-            x += shift;
-            y += shift;
-            z += shift;
-        }
-
-        sum -= 1.5;
-
-        return sum;
-    }
-}
-
-
 class BillowNoise extends Noise {
     generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1) {
         x /= zoom;
@@ -1327,7 +1293,205 @@ class AntiBillowNoise extends Noise {
     }
 }
 
+
+
+class RidgeNoise extends Noise {
+    noise(x, y, z) {
+        let value = super.noise(x, y, z);
+        value = 1 - Math.abs(value);
+        return value * value;
+    }
+
+    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amp = 1.0;
+
+        for (let i = 0; i < octaves; i++) {
+            sum += this.noise(x * frequency, y * frequency, z * frequency) * amp;
+            frequency *= lacunarity;
+
+            amp *= gain;
+
+            // Apply shift to the coordinates
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        sum -= 1;
+
+        return -sum;
+    }
+}
+
+class AntiRidgeNoise extends Noise {
+    noise(x, y, z) {
+        let value = super.noise(x, y, z);
+        value = 1 - Math.abs(value);
+        return value * value;
+    }
+
+    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amp = 1.0;
+
+        for (let i = 0; i < octaves; i++) {
+            sum += this.noise(x * frequency, y * frequency, z * frequency) * amp;
+            frequency *= lacunarity;
+
+            amp *= gain;
+
+            // Apply shift to the coordinates
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        sum -= 1;
+
+        return sum;
+    }
+}
+
 class RidgedMultifractalNoise extends FastLanczosNoise3D {
+    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, exp1 = 2, exp2 = 1.0) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 1 - Math.abs(this.noise(x, y, z));
+        let amp = 1.0;
+
+        //let angle = this.seedN * 2 * Math.PI; // Start at random angle;
+        //let angleIncr = Math.PI / 6; // Adjust as needed
+
+        for (let i = 1; i < octaves; i++) {
+            x *= lacunarity;
+            y *= lacunarity;
+            z *= lacunarity;
+
+            amp *= gain;
+
+            // Add some variation on the fractal pattern with exponents
+            let noise = Math.abs(this.noise(x, y, z));
+            let noiseValue = 1 - Math.pow(noise, exp2);
+            noiseValue = Math.pow(noiseValue, exp1);
+
+            // Simulate downward spread by biasing angle
+            let downwardAngle = Math.PI / 2; // Straight down
+            x = x * Math.cos(downwardAngle) + x * Math.sin(downwardAngle);
+            y = y * Math.sin(downwardAngle) + y * Math.cos(downwardAngle);
+
+            sum -= noiseValue * amp;
+
+            //angle += //angleIncr;
+
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        return sum; // The negative makes it more ridgelike, positive more bubbly
+    }
+}
+
+//more spiraly 
+class RidgedMultifractalNoise2 extends FastLanczosNoise3D {
+    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.75, shift = 0, exp1 = 3, exp2 = 1.0) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 1 - Math.abs(this.noise(x, y, z));
+        let amp = 1.0;
+
+        let angle = this.seedN * 2 * Math.PI; //start at random angle;
+        let angleIncr = Math.PI / 4;
+        for (let i = 1; i < octaves; i++) {
+            x *= lacunarity;
+            y *= lacunarity;
+            z *= lacunarity;
+
+            amp *= gain;
+
+            //add some variation on the fractal pattern with exponents
+            let noise = Math.abs(this.noise(x, y, z));
+            let noiseValue = 1 - (Math.pow(noise, exp2));
+            noiseValue = Math.pow(noiseValue, exp1);
+
+            sum -= noiseValue * amp;
+
+            //adds some rotation to vary the textures more 
+            let lastX;
+            x = x * Math.cos(angle) + x * Math.sin(angle);
+            y = y * Math.sin(angle) + y * Math.cos(angle);
+            z = z * Math.sin(angle) + z * Math.cos(angle);
+            //z ?
+            angle += angleIncr;
+
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        return sum; //the negative makes it more ridgelike, positive more bubbly
+    }
+}
+
+
+
+class RidgedAntiMultifractalNoise extends FastLanczosNoise3D {
+    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, exp1 = 2, exp2 = 1.0) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 1 - Math.abs(this.noise(x, y, z));
+        let amp = 1.0;
+
+        //let angle = this.seedN * 2 * Math.PI; // Start at random angle;
+        //let angleIncr = Math.PI / 6; // Adjust as needed
+
+        for (let i = 1; i < octaves; i++) {
+            x *= lacunarity;
+            y *= lacunarity;
+            z *= lacunarity;
+
+            amp *= gain;
+
+            // Add some variation on the fractal pattern with exponents
+            let noise = Math.abs(this.noise(x, y, z));
+            let noiseValue = 1 - Math.pow(noise, exp2);
+            noiseValue = Math.pow(noiseValue, exp1);
+
+            // Simulate downward spread by biasing angle
+            let downwardAngle = Math.PI / 2; // Straight down
+            x = x * Math.cos(downwardAngle) + x * Math.sin(downwardAngle);
+            y = y * Math.sin(downwardAngle) + y * Math.cos(downwardAngle);
+
+            sum -= noiseValue * amp;
+
+            //angle += //angleIncr;
+
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        return -sum; // The negative makes it more ridgelike, positive more bubbly
+    }
+}
+
+//more spiraly 
+class RidgedAntiMultifractalNoise2 extends FastLanczosNoise3D {
     generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.75, shift = 0, exp1 = 3, exp2 = 1.0) {
         x /= zoom;
         y /= zoom;
@@ -1368,6 +1532,9 @@ class RidgedMultifractalNoise extends FastLanczosNoise3D {
         return -sum; //the negative makes it more ridgelike, positive more bubbly
     }
 }
+
+
+
 
 class FractalBrownianMotion extends SimplexNoise3D {
     fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
@@ -1483,6 +1650,13 @@ class FractalBrownianMotion3 extends SimplexNoise3D {
     }
 }
 
+
+
+
+
+
+
+
 //noise functions
 export {
     //noise base classes (have the noise(x,y,z) function)
@@ -1512,7 +1686,11 @@ export {
     LanczosBillowNoise,
     LanczosAntiBillowNoise,
     RidgeNoise,
+    AntiRidgeNoise,
     RidgedMultifractalNoise,
+    RidgedMultifractalNoise2,
+    RidgedAntiMultifractalNoise,
+    RidgedAntiMultifractalNoise2,
     FractalBrownianMotion,
     FractalBrownianMotion2,
     FractalBrownianMotion3,

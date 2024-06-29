@@ -42,7 +42,7 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                 let finalValue = 0;
                 for (let config of noiseConfigs) {
                     const generator = noiseGenerators[config.type];
-                    finalValue += generator.generateNoise(
+                    let noiseValue = generator.generateNoise(
                         noiseX, noiseY, noiseZ,
                         config.zoom || 1.0,
                         config.octaves || 6,
@@ -51,6 +51,8 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                         config.shift || 100,
                         config.frequency || 1
                     );
+                    if(config.scalar) noiseValue *= config.scalar;
+                    finalValue += noiseValue; 
                 }
 
                 noiseValues[index++] = finalValue;
