@@ -1342,7 +1342,6 @@ class AntiRidgeNoise extends Noise {
 
         let sum = 0;
         let amp = 1.0;
-
         for (let i = 0; i < octaves; i++) {
             sum += this.noise(x * frequency, y * frequency, z * frequency) * amp;
             frequency *= lacunarity;
@@ -1356,7 +1355,6 @@ class AntiRidgeNoise extends Noise {
         }
 
         sum -= 1;
-
         return sum;
     }
 }
@@ -1384,11 +1382,6 @@ class RidgedMultifractalNoise extends FastLanczosNoise3D {
             let noise = Math.abs(this.noise(x, y, z));
             let noiseValue = 1 - Math.pow(noise, exp2);
             noiseValue = Math.pow(noiseValue, exp1);
-
-            // Simulate downward spread by biasing angle
-            let downwardAngle = Math.PI / 2; // Straight down
-            x = x * Math.cos(downwardAngle) + x * Math.sin(downwardAngle);
-            y = y * Math.sin(downwardAngle) + y * Math.cos(downwardAngle);
 
             sum -= noiseValue * amp;
 
@@ -1447,6 +1440,48 @@ class RidgedMultifractalNoise2 extends FastLanczosNoise3D {
 }
 
 
+class RidgedMultifractalNoise3 extends FastLanczosNoise3D {
+    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, exp1 = 4, exp2 = 2.1) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amp = 1.0;
+
+        for (let i = 0; i < octaves; i++) {
+            let noise = this.noise(x, y, z);
+
+            // Map noise to range [0, 2]
+            noise = Math.max(0.0000001,(noise + 1)); // Now noise is in range [0, 2]
+
+            // Apply a spring-like curve to noise value
+            noise = 2*Math.pow(noise*0.5,exp2)-1;
+
+            // Adjust to get sharper peaks
+            noise = 1 - Math.abs(noise);
+
+            // Apply additional exponent to shape the noise
+            if(exp1) noise = 1 - (Math.pow(noise, exp1));
+
+            sum += noise * amp;
+
+            x *= lacunarity;
+            y *= lacunarity;
+            z *= lacunarity;
+
+            amp *= gain;
+
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        // Adjust the final sum to fit the desired range
+        return -(sum-1);
+    }
+}
+
 
 class RidgedAntiMultifractalNoise extends FastLanczosNoise3D {
     generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, exp1 = 2, exp2 = 1.0) {
@@ -1472,11 +1507,6 @@ class RidgedAntiMultifractalNoise extends FastLanczosNoise3D {
             let noiseValue = 1 - Math.pow(noise, exp2);
             noiseValue = Math.pow(noiseValue, exp1);
 
-            // Simulate downward spread by biasing angle
-            let downwardAngle = Math.PI / 2; // Straight down
-            x = x * Math.cos(downwardAngle) + x * Math.sin(downwardAngle);
-            y = y * Math.sin(downwardAngle) + y * Math.cos(downwardAngle);
-
             sum -= noiseValue * amp;
 
             //angle += //angleIncr;
@@ -1492,7 +1522,7 @@ class RidgedAntiMultifractalNoise extends FastLanczosNoise3D {
 
 //more spiraly 
 class RidgedAntiMultifractalNoise2 extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.75, shift = 0, exp1 = 3, exp2 = 1.0) {
+    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, exp1 = 3, exp2 = 1.0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1517,7 +1547,6 @@ class RidgedAntiMultifractalNoise2 extends FastLanczosNoise3D {
             sum -= noiseValue * amp;
 
             //adds some rotation to vary the textures more 
-            let lastX;
             x = x * Math.cos(angle) + x * Math.sin(angle);
             y = y * Math.sin(angle) + y * Math.cos(angle);
             z = z * Math.sin(angle) + z * Math.cos(angle);
@@ -1533,6 +1562,39 @@ class RidgedAntiMultifractalNoise2 extends FastLanczosNoise3D {
     }
 }
 
+class RidgedAntiMultifractalNoise3 extends FastLanczosNoise3D {
+    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, exp1 = 1.5, exp2 = 0.5) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amp = 1.0;
+
+        for (let i = 0; i < octaves; i++) {
+            // Calculate noise value
+            let noise = Math.abs(this.noise(x, y, z));
+            let noiseValue = 1 - Math.pow(noise, exp2);
+            noiseValue = Math.pow(noiseValue, exp1);
+
+            // Accumulate sum with amplitude
+            sum += noiseValue * amp;
+
+            // Increase frequency and decrease amplitude
+            x *= lacunarity;
+            y *= lacunarity;
+            z *= lacunarity;
+            amp *= gain;
+
+            // Move coordinates for variation
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        return sum - 1; // Positive sum for sharper ridges
+    }
+}
 
 
 
@@ -1689,8 +1751,10 @@ export {
     AntiRidgeNoise,
     RidgedMultifractalNoise,
     RidgedMultifractalNoise2,
+    RidgedMultifractalNoise3,
     RidgedAntiMultifractalNoise,
     RidgedAntiMultifractalNoise2,
+    RidgedAntiMultifractalNoise3,
     FractalBrownianMotion,
     FractalBrownianMotion2,
     FractalBrownianMotion3,
