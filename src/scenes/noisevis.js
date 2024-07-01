@@ -22,7 +22,15 @@ const noiseGenerators = [
     'FractalBrownianMotion2',
     'FractalBrownianMotion3',
     'PerlinWorms',
-    'HexWorms'
+    'HexWorms',
+    
+    'CellularBrownianMotion',
+    'CellularBrownianMotion2',
+    'CellularBrownianMotion3',
+    
+    'VoronoiBrownianMotion',
+    'VoronoiBrownianMotion2',
+    'VoronoiBrownianMotion3'
 ];
 
 // Function to create a canvas and append it to the container

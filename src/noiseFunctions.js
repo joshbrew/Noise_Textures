@@ -1585,7 +1585,6 @@ class RidgedAntiMultifractalNoise2 extends FastLanczosNoise3D {
             x = x * Math.cos(angle) + x * Math.sin(angle);
             y = y * Math.sin(angle) + y * Math.cos(angle);
             z = z * Math.sin(angle) + z * Math.cos(angle);
-            //z ?
             angle += angleIncr;
 
             x += shift;
@@ -1686,6 +1685,9 @@ class FractalBrownianMotion extends SimplexNoise3D {
         let amplitude = 1.0;
         let maxValue = 0;
 
+        // Use a random seed to initialize the angle
+        let angle = this.seedN * 2 * Math.PI;
+
         for (let i = 0; i < octaves; i++) {
             sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
             maxValue += amplitude;
@@ -1693,9 +1695,15 @@ class FractalBrownianMotion extends SimplexNoise3D {
             frequency *= lacunarity;
             amplitude *= gain;
 
-            x += shift;
-            y += shift;
-            z += shift;
+            // Calculate random increments using a rotation around a random angle
+            angle += Math.PI * 2 / octaves; // Increment angle
+            let offsetX = shift * Math.cos(angle);
+            let offsetY = shift * Math.sin(angle);
+            let offsetZ = shift * Math.sin(angle);
+
+            x += offsetX;
+            y += offsetY;
+            z += offsetZ;
         }
 
         return sum / maxValue;
@@ -1722,6 +1730,9 @@ class FractalBrownianMotion2 extends SimplexNoise3D {
         let amplitude = 1.0;
         let maxValue = 0;
 
+        // Use a random seed to initialize the angle
+        let angle = this.seedN * 2 * Math.PI;
+
         for (let i = 0; i < octaves; i++) {
             sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
             maxValue += amplitude;
@@ -1729,9 +1740,15 @@ class FractalBrownianMotion2 extends SimplexNoise3D {
             frequency *= lacunarity;
             amplitude *= gain;
 
-            x += shift;
-            y += shift;
-            z += shift;
+            // Calculate random increments using a rotation around a random angle
+            angle += Math.PI * 2 / octaves; // Increment angle
+            let offsetX = shift * Math.cos(angle);
+            let offsetY = shift * Math.sin(angle);
+            let offsetZ = shift * Math.sin(angle);
+
+            x += offsetX;
+            y += offsetY;
+            z += offsetZ;
         }
 
         return sum / maxValue;
@@ -1761,6 +1778,9 @@ class FractalBrownianMotion3 extends SimplexNoise3D {
         let amplitude = 1.0;
         let maxValue = 0;
 
+        // Use a random seed to initialize the angle
+        let angle = this.seedN * 2 * Math.PI;
+
         for (let i = 0; i < octaves; i++) {
             sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
             maxValue += amplitude;
@@ -1768,9 +1788,15 @@ class FractalBrownianMotion3 extends SimplexNoise3D {
             frequency *= lacunarity;
             amplitude *= gain;
 
-            x += shift;
-            y += shift;
-            //z += shift;
+            // Calculate random increments using a rotation around a random angle
+            angle += Math.PI * 2 / octaves; // Increment angle
+            let offsetX = shift * Math.cos(angle);
+            let offsetY = shift * Math.sin(angle);
+            let offsetZ = shift * Math.sin(angle);
+
+            x += offsetX;
+            y += offsetY;
+            z += offsetZ;
         }
 
         return sum / maxValue;
@@ -1789,6 +1815,292 @@ class FractalBrownianMotion3 extends SimplexNoise3D {
         return fbm3;
     }
 }
+
+
+class CellularBrownianMotion extends CellularNoise3D {
+    fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amplitude = 1.0;
+        let maxValue = 0;
+
+        // Use a random seed to initialize the angle
+        let angle = this.seedN * 2 * Math.PI;
+
+        for (let i = 0; i < octaves; i++) {
+            sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+            maxValue += amplitude;
+
+            frequency *= lacunarity;
+            amplitude *= gain;
+
+            // Calculate random increments using a rotation around a random angle
+            angle += Math.PI * 2 / octaves; // Increment angle
+            let offsetX = shift * Math.cos(angle);
+            let offsetY = shift * Math.sin(angle);
+            let offsetZ = shift * Math.sin(angle);
+
+            x += offsetX;
+            y += offsetY;
+            z += offsetZ;
+        }
+
+        return sum// / maxValue;
+    }
+        
+
+    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+        // Initial FBM pass
+        let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, frequency);
+
+        // Recursive FBM pass using the output of the initial FBM
+        let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, frequency);
+
+        return 1.5*fbm2-1;
+    }
+}
+
+class CellularBrownianMotion2 extends CellularNoise3D {
+    fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amplitude = 1.0;
+        let maxValue = 0;
+
+        // Use a random seed to initialize the angle
+        let angle = this.seedN * 2 * Math.PI;
+
+        for (let i = 0; i < octaves; i++) {
+            sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+            maxValue += amplitude;
+
+            frequency *= lacunarity;
+            amplitude *= gain;
+
+            // Calculate random increments using a rotation around a random angle
+            angle += Math.PI * 2 / octaves; // Increment angle
+            let offsetX = shift * Math.cos(angle);
+            let offsetY = shift * Math.sin(angle);
+            let offsetZ = shift * Math.sin(angle);
+
+            x += offsetX;
+            y += offsetY;
+            z += offsetZ;
+        }
+
+        return sum// / maxValue;
+    }
+
+    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, freq = 1) {
+        // Initial FBM pass
+        let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, freq);
+
+        // Second FBM pass using the output of the initial FBM
+        let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
+
+        // Third FBM pass using the output of the second FBM
+        let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
+
+        return 1.5*fbm3-1;
+    }
+}
+
+class CellularBrownianMotion3 extends CellularNoise3D {
+    fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amplitude = 1.0;
+        let maxValue = 0;
+
+        // Use a random seed to initialize the angle
+        let angle = this.seedN * 2 * Math.PI;
+
+        for (let i = 0; i < octaves; i++) {
+            sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+            maxValue += amplitude;
+
+            frequency *= lacunarity;
+            amplitude *= gain;
+
+            // Calculate random increments using a rotation around a random angle
+            angle += Math.PI * 2 / octaves; // Increment angle
+            let offsetX = shift * Math.cos(angle);
+            let offsetY = shift * Math.sin(angle);
+            let offsetZ = shift * Math.sin(angle);
+
+            x += offsetX;
+            y += offsetY;
+            z += offsetZ;
+        }
+
+        return sum// / maxValue;
+    }
+
+    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, freq = 1) {
+        // Initial FBM pass
+        let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, freq);
+
+        // Second FBM pass using the output of the initial FBM
+        let fbm2 = this.fbm(x + fbm1 * zoom, y + fbm1 * zoom, z + fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
+
+        // Third FBM pass using the output of the second FBM
+        let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
+
+        return 1.5*fbm3-1;
+    }
+}
+
+
+class VoronoiBrownianMotion extends VoronoiNoise3D {
+    fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amplitude = 1.0;
+        let maxValue = 0;
+
+        // Use a random seed to initialize the angle
+        let angle = this.seedN * 2 * Math.PI;
+
+        for (let i = 0; i < octaves; i++) {
+            sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+            maxValue += amplitude;
+
+            frequency *= lacunarity;
+            amplitude *= gain;
+
+            // Calculate random increments using a rotation around a random angle
+            angle += Math.PI * 2 / octaves; // Increment angle
+            let offsetX = shift * Math.cos(angle);
+            let offsetY = shift * Math.sin(angle);
+            let offsetZ = shift * Math.sin(angle);
+
+            x += offsetX;
+            y += offsetY;
+            z += offsetZ;
+        }
+
+        return sum-1// / maxValue;
+    }
+
+    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+        // Initial FBM pass
+        let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, frequency);
+
+        // Recursive FBM pass using the output of the initial FBM
+        let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, frequency);
+
+        return fbm2;
+    }
+}
+
+class VoronoiBrownianMotion2 extends VoronoiNoise3D {
+    fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amplitude = 1.0;
+        let maxValue = 0;
+
+        // Use a random seed to initialize the angle
+        let angle = this.seedN * 2 * Math.PI;
+
+        for (let i = 0; i < octaves; i++) {
+            sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+            maxValue += amplitude;
+
+            frequency *= lacunarity;
+            amplitude *= gain;
+
+            // Calculate random increments using a rotation around a random angle
+            angle += Math.PI * 2 / octaves; // Increment angle
+            let offsetX = shift * Math.cos(angle);
+            let offsetY = shift * Math.sin(angle);
+            let offsetZ = shift * Math.sin(angle);
+
+            x += offsetX;
+            y += offsetY;
+            z += offsetZ;
+        }
+
+        return sum-1// / maxValue;
+    }
+
+    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, freq = 1) {
+        // Initial FBM pass
+        let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, freq);
+
+        // Second FBM pass using the output of the initial FBM
+        let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
+
+        // Third FBM pass using the output of the second FBM
+        let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
+
+        return fbm3;
+    }
+}
+
+class VoronoiBrownianMotion3 extends VoronoiNoise3D {
+    fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amplitude = 1.0;
+        let maxValue = 0;
+
+        // Use a random seed to initialize the angle
+        let angle = this.seedN * 2 * Math.PI;
+
+        for (let i = 0; i < octaves; i++) {
+            sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+            maxValue += amplitude;
+
+            frequency *= lacunarity;
+            amplitude *= gain;
+
+            // Calculate random increments using a rotation around a random angle
+            angle += Math.PI * 2 / octaves; // Increment angle
+            let offsetX = shift * Math.cos(angle);
+            let offsetY = shift * Math.sin(angle);
+            let offsetZ = shift * Math.sin(angle);
+
+            x += offsetX;
+            y += offsetY;
+            z += offsetZ;
+        }
+
+        return sum-1// / maxValue;
+    }
+
+    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, freq = 1) {
+        // Initial FBM pass
+        let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, freq);
+
+        // Second FBM pass using the output of the initial FBM
+        let fbm2 = this.fbm(x + fbm1 * zoom, y + fbm1 * zoom, z + fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
+
+        // Third FBM pass using the output of the second FBM
+        let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
+
+        return fbm3;
+    }
+}
+
 
 
 
@@ -1839,5 +2151,13 @@ export {
     FractalBrownianMotion2,
     FractalBrownianMotion3,
     PerlinWorms,
-    HexWorms
+    HexWorms,
+
+    CellularBrownianMotion,
+    CellularBrownianMotion2,
+    CellularBrownianMotion3,
+
+    VoronoiBrownianMotion,
+    VoronoiBrownianMotion2,
+    VoronoiBrownianMotion3
 }
