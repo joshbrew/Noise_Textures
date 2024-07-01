@@ -2105,7 +2105,173 @@ class VoronoiBrownianMotion3 extends VoronoiNoise3D {
 }
 
 
-class VoronoiGradientNoise extends BaseNoise {
+
+
+class VoronoiTileNoise extends BaseNoise {
+    constructor(seed = Date.now()) {
+        super(seed);
+    }
+
+    random(x, y, z) {
+        const idx = (this.perm[(x & 255) + this.perm[(y & 255) + this.perm[z & 255]]]) & 255;
+        return this.perm[idx] / 255;
+    }
+
+    euclideanDist(px, py, pz, x, y, z) {
+        const dx = px - x;
+        const dy = py - y;
+        const dz = pz - z;
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    noise(x, y, z, edgeThreshold) {
+        let minDist = Infinity;
+        let secondMinDist = Infinity;
+
+        for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+                for (let k = -1; k <= 1; k++) {
+                    const xi = Math.floor(x) + i;
+                    const yi = Math.floor(y) + j;
+                    const zi = Math.floor(z) + k;
+
+                    const px = xi + this.random(xi, yi, zi);
+                    const py = yi + this.random(yi, zi, xi);
+                    const pz = zi + this.random(zi, xi, yi);
+
+                    const dist = this.euclideanDist(px, py, pz, x, y, z);
+
+                    if (dist < minDist) {
+                        secondMinDist = minDist;
+                        minDist = dist;
+                    } else if (dist < secondMinDist) {
+                        secondMinDist = dist;
+                    }
+                }
+            }
+        }
+
+        // Calculate the distance to the closest edge of the Voronoi cell
+        const edgeDist = secondMinDist - minDist;
+
+
+        // Calculate the edge detection value
+        const edgeGradient = edgeDist < edgeThreshold ? 0 : 1;
+
+        // Combine the gradients to create a smooth center gradient with a black outline
+        const combinedGradient = edgeDist * edgeGradient;
+
+        return combinedGradient;
+    }
+
+    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1, edgeThreshold=0.05) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let total = 0;
+        let amplitude = 1;
+
+        for (let i = 0; i < octaves; i++) {
+            total += this.noise(x * frequency, y * frequency, z * frequency, edgeThreshold) * amplitude;
+
+            amplitude *= gain;
+            frequency *= lacunarity;
+
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        return 2*total-1;  // Normalize the result
+    }
+}
+
+class VoronoiCircleGradientTileNoise extends BaseNoise {
+    constructor(seed = Date.now()) {
+        super(seed);
+    }
+
+    random(x, y, z) {
+        const idx = (this.perm[(x & 255) + this.perm[(y & 255) + this.perm[z & 255]]]) & 255;
+        return this.perm[idx] / 255;
+    }
+
+    euclideanDist(px, py, pz, x, y, z) {
+        const dx = px - x;
+        const dy = py - y;
+        const dz = pz - z;
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    noise(x, y, z, edgeThreshold) {
+        let minDist = Infinity;
+        let secondMinDist = Infinity;
+        let minVal = 0;
+
+        for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+                for (let k = -1; k <= 1; k++) {
+                    const xi = Math.floor(x) + i;
+                    const yi = Math.floor(y) + j;
+                    const zi = Math.floor(z) + k;
+
+                    const px = xi + this.random(xi, yi, zi);
+                    const py = yi + this.random(yi, zi, xi);
+                    const pz = zi + this.random(zi, xi, yi);
+
+                    const dist = this.euclideanDist(px, py, pz, x, y, z);
+
+                    if (dist < minDist) {
+                        secondMinDist = minDist;
+                        minDist = dist;
+                        minVal = this.random(xi, yi, zi);
+                    } else if (dist < secondMinDist) {
+                        secondMinDist = dist;
+                    }
+                }
+            }
+        }
+
+         // Calculate the distance to the closest edge of the Voronoi cell
+         const edgeDist = secondMinDist - minDist;
+
+         // Calculate the gradient from the center
+         const centerGradient = 1 - Math.min(minDist, 1);
+ 
+         // Calculate the edge detection value
+         const edgeGradient = edgeDist < edgeThreshold ? 0 : 1;
+ 
+         // Combine the gradients to create a smooth center gradient with a black outline
+         const combinedGradient = centerGradient * edgeGradient;
+ 
+         return combinedGradient;
+    }
+
+    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1, edgeThreshold=0.05) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let total = 0;
+        let amplitude = 1;
+
+        for (let i = 0; i < octaves; i++) {
+            total += this.noise(x * frequency, y * frequency, z * frequency, edgeThreshold) * amplitude;
+
+            amplitude *= gain;
+            frequency *= lacunarity;
+
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        return total-1;  // Normalize the result
+    }
+}
+
+class VoronoiCircleGradientTileNoise2 extends BaseNoise {
     constructor(seed = Date.now()) {
         super(seed);
     }
@@ -2195,8 +2361,7 @@ class VoronoiGradientNoise extends BaseNoise {
     }
 }
 
-
-class VoronoiTileNoise extends BaseNoise {
+class VoronoiFlatShadeTileNoise extends BaseNoise {
     constructor(seed = Date.now()) {
         super(seed);
     }
@@ -2216,6 +2381,7 @@ class VoronoiTileNoise extends BaseNoise {
     noise(x, y, z, edgeThreshold) {
         let minDist = Infinity;
         let secondMinDist = Infinity;
+        let minVal = 0;
 
         for (let i = -1; i <= 1; i++) {
             for (let j = -1; j <= 1; j++) {
@@ -2233,6 +2399,7 @@ class VoronoiTileNoise extends BaseNoise {
                     if (dist < minDist) {
                         secondMinDist = minDist;
                         minDist = dist;
+                        minVal = this.random(xi, yi, zi);
                     } else if (dist < secondMinDist) {
                         secondMinDist = dist;
                     }
@@ -2240,17 +2407,19 @@ class VoronoiTileNoise extends BaseNoise {
             }
         }
 
-        // Calculate the gradient from the center
-        const centerGradient = 1 - Math.min(minDist, 1);
+         // Calculate the distance to the closest edge of the Voronoi cell
+         const edgeDist = secondMinDist - minDist;
 
-        // Calculate the edge detection value
-        const edgeValue = secondMinDist - minDist;
-        const edgeGradient = edgeValue < edgeThreshold ? 0 : 1;
-
-        // Combine the gradients to create a smooth center gradient with a black outline
-        const combinedGradient = centerGradient * edgeGradient;
-
-        return combinedGradient;
+         // Calculate the gradient from the center
+         //const centerGradient = 1 - Math.min(minDist, 1);
+ 
+         // Calculate the edge detection value
+         const edgeGradient = edgeDist < edgeThreshold ? 0 : 1;
+ 
+         // Combine the gradients to create a smooth center gradient with a black outline
+         const combinedGradient = edgeGradient; //*centerGradient
+ 
+         return combinedGradient;
     }
 
     generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1, edgeThreshold=0.05) {
@@ -2272,7 +2441,7 @@ class VoronoiTileNoise extends BaseNoise {
             z += shift;
         }
 
-        return total - 1;
+        return total-1;  // Normalize the result
     }
 }
 
@@ -2287,23 +2456,18 @@ class VoronoiRipple3D extends BaseNoise {
         return this.perm[idx] / 255;
     }
 
-    // Helper function to generate triangular tessellation pattern
-    triDist(px, py, pz, x, y, z) {
-        // Calculate distance with a bias towards triangular regions
+    // Helper function to calculate Euclidean distance
+    euclideanDist(px, py, pz, x, y, z) {
         const dx = px - x;
         const dy = py - y;
         const dz = pz - z;
-        const s = dx + dy + dz;  // sum
-        const qx = 0.5 * (dx - dy);
-        const qy = 0.5 * (dz - dx);
-        const qz = 0.5 * (dy - dz);
-        return Math.sqrt(s * s + qx * qx + qy * qy + qz * qz);
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
-    noise(x, y, z) {
+    noise(x, y, z, t=0, rippleFreq=10, zoom=1) {
         let minDist = Infinity;
+        let secondMinDist = Infinity;
         let minVal = 0;
-        let closestPoint = { px: 0, py: 0, pz: 0 };
 
         for (let i = -1; i <= 1; i++) {
             for (let j = -1; j <= 1; j++) {
@@ -2316,61 +2480,216 @@ class VoronoiRipple3D extends BaseNoise {
                     const py = yi + this.random(yi, zi, xi);
                     const pz = zi + this.random(zi, xi, yi);
 
-                    const dist = this.triDist(px, py, pz, x, y, z);
+                    const dist = this.euclideanDist(px, py, pz, x, y, z);
 
                     if (dist < minDist) {
+                        secondMinDist = minDist;
                         minDist = dist;
                         minVal = this.random(xi, yi, zi);
-                        closestPoint = { px, py, pz };
+                    } else if (dist < secondMinDist) {
+                        secondMinDist = dist;
                     }
                 }
             }
         }
 
-        // Calculate the distance to the closest point
-        const centerDist = Math.sqrt(
-            (closestPoint.px - x) * (closestPoint.px - x) +
-            (closestPoint.py - y) * (closestPoint.py - y) +
-            (closestPoint.pz - z) * (closestPoint.pz - z)
-        );
+        // Calculate the distance to the closest edge of the Voronoi cell
+        const edgeDist = secondMinDist - minDist;
 
-        // Apply a high-frequency sine wave variation to the gradient function
-        const rippleFrequency = 10;  // Adjust this value to control the frequency
-        const gradient = Math.sin(centerDist * Math.PI * rippleFrequency);
+        // Apply a ripple effect that conforms to the shape of the Voronoi cell edges
+        const rippleEffect = Math.sin(Math.PI + edgeDist * Math.PI * rippleFreq + t);
 
-        return minVal * gradient;
+        // Combine the ripple effect with the Voronoi distance
+        return minVal * (1 + rippleEffect) * 0.5;
     }
-
     // Function to add fractal detail
-    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1, rt=0, rippleFreq=10) {
         let total = 0;
         let maxValue = 0;
         let amplitude = 1;
 
-        let angle = this.seedN * 2 * Math.PI;
-
         for (let i = 0; i < octaves; i++) {
-            total += this.noise(x * frequency / zoom, y * frequency / zoom, z * frequency / zoom) * amplitude;
+            total += this.noise(x * frequency / zoom, y * frequency / zoom, z * frequency / zoom, rt, rippleFreq) * amplitude;
 
             maxValue += amplitude;
             amplitude *= gain;
             frequency *= lacunarity;
 
-            angle += Math.PI * 2 / octaves; // Increment angle
-            let offsetX = shift * Math.cos(angle);
-            let offsetY = shift * Math.sin(angle);
-            let offsetZ = shift * Math.sin(angle);
+            // Applying a shifting offset to avoid repeating patterns
+            const angle = this.seedN * 2 * Math.PI;
+            const offsetX = shift * Math.cos(angle + i);
+            const offsetY = shift * Math.sin(angle + i);
+            const offsetZ = shift * Math.sin(angle + i);
 
             x += offsetX;
             y += offsetY;
             z += offsetZ;
-
-            x += shift;
-            y += shift;
-            z += shift;
         }
 
-        return total / maxValue;
+        return 2*total-1;
+    }
+}
+
+
+class VoronoiRipple3D2 extends BaseNoise {
+    constructor(seed = Date.now()) {
+        super(seed);
+    }
+
+    random(x, y, z) {
+        const idx = (this.perm[(x & 255) + this.perm[(y & 255) + this.perm[z & 255]]]) & 255;
+        return this.perm[idx] / 255;
+    }
+
+    // Helper function to calculate Euclidean distance
+    euclideanDist(px, py, pz, x, y, z) {
+        const dx = px - x;
+        const dy = py - y;
+        const dz = pz - z;
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    noise(x, y, z, t=0, rippleFreq=10, zoom=1) {
+        let minDist = Infinity;
+        let secondMinDist = Infinity;
+        let minVal = 0;
+
+        for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+                for (let k = -1; k <= 1; k++) {
+                    const xi = Math.floor(x) + i;
+                    const yi = Math.floor(y) + j;
+                    const zi = Math.floor(z) + k;
+
+                    const px = xi + this.random(xi, yi, zi);
+                    const py = yi + this.random(yi, zi, xi);
+                    const pz = zi + this.random(zi, xi, yi);
+
+                    const dist = this.euclideanDist(px, py, pz, x, y, z);
+
+                    if (dist < minDist) {
+                        secondMinDist = minDist;
+                        minDist = dist;
+                        minVal = this.random(xi, yi, zi);
+                    } else if (dist < secondMinDist) {
+                        secondMinDist = dist;
+                    }
+                }
+            }
+        }
+
+        // Calculate the distance to the closest edge of the Voronoi cell
+        const edgeDist = secondMinDist - minDist;
+
+        // Apply a ripple effect that conforms to the shape of the Voronoi cell edges
+        const rippleEffect = Math.sin(Math.PI + zoom*edgeDist * Math.PI * rippleFreq + t);
+
+        // Combine the ripple effect with the Voronoi distance
+        return minVal * (1 + rippleEffect) * 0.5;
+    }
+    // Function to add fractal detail
+    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1, rt=0, rippleFreq=10) {
+        let total = 0;
+        let maxValue = 0;
+        let amplitude = 1;
+
+        for (let i = 0; i < octaves; i++) {
+            total += this.noise(x * frequency / zoom, y * frequency / zoom, z * frequency / zoom, rt, rippleFreq, zoom) * amplitude;
+
+            maxValue += amplitude;
+            amplitude *= gain;
+            frequency *= lacunarity;
+
+            // Applying a shifting offset to avoid repeating patterns
+            const angle = this.seedN * 2 * Math.PI;
+            const offsetX = shift * Math.cos(angle + i);
+            const offsetY = shift * Math.sin(angle + i);
+            const offsetZ = shift * Math.sin(angle + i);
+
+            x += offsetX;
+            y += offsetY;
+            z += offsetZ;
+        }
+
+        return 2*total-1;
+    }
+}
+
+
+
+class VoronoiCircularRipple3D extends BaseNoise {
+    constructor(seed = Date.now()) {
+        super(seed);
+    }
+
+    random(x, y, z) {
+        const idx = (this.perm[(x & 255) + this.perm[(y & 255) + this.perm[z & 255]]]) & 255;
+        return this.perm[idx] / 255;
+    }
+
+    // Helper function to calculate Euclidean distance
+    euclideanDist(px, py, pz, x, y, z) {
+        const dx = px - x;
+        const dy = py - y;
+        const dz = pz - z;
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    noise(x, y, z, t=0, rippleFrequency=10) {
+        let minDist = Infinity;
+        let minVal = 0;
+
+        for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+                for (let k = -1; k <= 1; k++) {
+                    const xi = Math.floor(x) + i;
+                    const yi = Math.floor(y) + j;
+                    const zi = Math.floor(z) + k;
+
+                    const px = xi + this.random(xi, yi, zi);
+                    const py = yi + this.random(yi, zi, xi);
+                    const pz = zi + this.random(zi, xi, yi);
+
+                    const dist = this.euclideanDist(px, py, pz, x, y, z);
+
+                    if (dist < minDist) {
+                        minDist = dist;
+                        minVal = this.random(xi, yi, zi);
+                    }
+                }
+            }
+        }
+
+        // Apply the ripple effect based on Voronoi distance
+        const rippleEffect = Math.sin(Math.PI + minDist * Math.PI * rippleFrequency + t);
+
+        // Combine the ripple effect with the Voronoi distance
+        return minVal * (1 + rippleEffect) * 0.5;
+    }
+
+    // Function to add fractal detail
+    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1, t=0, rippleFreq = 10) {
+        let total = 0;
+        let amplitude = 1;
+
+        for (let i = 0; i < octaves; i++) {
+            total += this.noise(x * frequency / zoom, y * frequency / zoom, z * frequency / zoom, t, rippleFreq) * amplitude;
+
+            amplitude *= gain;
+            frequency *= lacunarity;
+
+            // Applying a shifting offset to avoid repeating patterns
+            const angle = this.seedN * 2 * Math.PI;
+            const offsetX = shift * Math.cos(angle + i);
+            const offsetY = shift * Math.sin(angle + i);
+            const offsetZ = shift * Math.sin(angle + i);
+
+            x += offsetX;
+            y += offsetY;
+            z += offsetZ;
+        }
+
+        return 2*total-1;
     }
 }
 
@@ -2378,6 +2697,25 @@ class FVoronoiRipple3D extends VoronoiRipple3D {
     constructor(seed = Date.now()) {    
         super(seed);
         this.gen = new VoronoiRipple3D(seed);
+    }
+
+    generateNoise = (x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) => {
+          // Initial FBM pass
+        let fbm1 = this.gen.generateNoise(x, y, z, zoom, octaves, lacunarity, gain, shift, frequency);
+
+        // Recursive FBM pass using the output of the initial FBM
+        let fbm2 = this.gen.generateNoise(fbm1, fbm1, fbm1, 1, octaves, lacunarity, gain, shift, frequency);
+ 
+        return 2*fbm2;
+    }
+
+}
+
+
+class FVoronoiCircularRipple3D extends VoronoiCircularRipple3D {
+    constructor(seed = Date.now()) {    
+        super(seed);
+        this.gen = new VoronoiCircularRipple3D(seed);
     }
 
     generateNoise = (x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) => {
@@ -2567,9 +2905,13 @@ export {
     VoronoiBrownianMotion2,
     VoronoiBrownianMotion3,
 
-    VoronoiGradientNoise,
     VoronoiTileNoise,
+    VoronoiFlatShadeTileNoise,
     VoronoiRipple3D,
+    VoronoiRipple3D2,
+    VoronoiCircularRipple3D,
+    VoronoiCircleGradientTileNoise,
+    VoronoiCircleGradientTileNoise2,
     FVoronoiRipple3D
 
 }
