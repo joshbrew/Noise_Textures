@@ -32,7 +32,8 @@ const noiseGenerators = [
     'VoronoiBrownianMotion2',
     'VoronoiBrownianMotion3',
 
-    'VoronoiGradient3D',
+    'VoronoiGradientNoise',
+    'VoronoiTileNoise',
     'VoronoiRipple3D',
     'FVoronoiRipple3D',
     'RipplePerlinNoise',

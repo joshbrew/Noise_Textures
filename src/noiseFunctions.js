@@ -2105,7 +2105,7 @@ class VoronoiBrownianMotion3 extends VoronoiNoise3D {
 }
 
 
-class VoronoiGradient3D extends BaseNoise {
+class VoronoiGradientNoise extends BaseNoise {
     constructor(seed = Date.now()) {
         super(seed);
     }
@@ -2115,17 +2115,11 @@ class VoronoiGradient3D extends BaseNoise {
         return this.perm[idx] / 255;
     }
 
-    // Helper function to generate triangular tessellation pattern
-    triDist(px, py, pz, x, y, z) {
-        // Calculate distance with a bias towards triangular regions
+    euclideanDist(px, py, pz, x, y, z) {
         const dx = px - x;
         const dy = py - y;
         const dz = pz - z;
-        const s = dx + dy + dz;  // sum
-        const qx = 0.5 * (dx - dy);
-        const qy = 0.5 * (dz - dx);
-        const qz = 0.5 * (dy - dz);
-        return Math.sqrt(s * s + qx * qx + qy * qy + qz * qz);
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
     noise(x, y, z) {
@@ -2144,7 +2138,7 @@ class VoronoiGradient3D extends BaseNoise {
                     const py = yi + this.random(yi, zi, xi);
                     const pz = zi + this.random(zi, xi, yi);
 
-                    const dist = this.triDist(px, py, pz, x, y, z);
+                    const dist = this.euclideanDist(px, py, pz, x, y, z);
 
                     if (dist < minDist) {
                         minDist = dist;
@@ -2197,9 +2191,91 @@ class VoronoiGradient3D extends BaseNoise {
             z += shift;
         }
 
-        return total / maxValue;
+        return total - 1;
     }
 }
+
+
+class VoronoiTileNoise extends BaseNoise {
+    constructor(seed = Date.now()) {
+        super(seed);
+    }
+
+    random(x, y, z) {
+        const idx = (this.perm[(x & 255) + this.perm[(y & 255) + this.perm[z & 255]]]) & 255;
+        return this.perm[idx] / 255;
+    }
+
+    euclideanDist(px, py, pz, x, y, z) {
+        const dx = px - x;
+        const dy = py - y;
+        const dz = pz - z;
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    noise(x, y, z, edgeThreshold) {
+        let minDist = Infinity;
+        let secondMinDist = Infinity;
+
+        for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+                for (let k = -1; k <= 1; k++) {
+                    const xi = Math.floor(x) + i;
+                    const yi = Math.floor(y) + j;
+                    const zi = Math.floor(z) + k;
+
+                    const px = xi + this.random(xi, yi, zi);
+                    const py = yi + this.random(yi, zi, xi);
+                    const pz = zi + this.random(zi, xi, yi);
+
+                    const dist = this.euclideanDist(px, py, pz, x, y, z);
+
+                    if (dist < minDist) {
+                        secondMinDist = minDist;
+                        minDist = dist;
+                    } else if (dist < secondMinDist) {
+                        secondMinDist = dist;
+                    }
+                }
+            }
+        }
+
+        // Calculate the gradient from the center
+        const centerGradient = 1 - Math.min(minDist, 1);
+
+        // Calculate the edge detection value
+        const edgeValue = secondMinDist - minDist;
+        const edgeGradient = edgeValue < edgeThreshold ? 0 : 1;
+
+        // Combine the gradients to create a smooth center gradient with a black outline
+        const combinedGradient = centerGradient * edgeGradient;
+
+        return combinedGradient;
+    }
+
+    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1, edgeThreshold=0.05) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let total = 0;
+        let amplitude = 1;
+
+        for (let i = 0; i < octaves; i++) {
+            total += this.noise(x * frequency, y * frequency, z * frequency, edgeThreshold) * amplitude;
+
+            amplitude *= gain;
+            frequency *= lacunarity;
+
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        return total - 1;
+    }
+}
+
 
 class VoronoiRipple3D extends BaseNoise {
     constructor(seed = Date.now()) {
@@ -2491,8 +2567,8 @@ export {
     VoronoiBrownianMotion2,
     VoronoiBrownianMotion3,
 
-
-    VoronoiGradient3D,
+    VoronoiGradientNoise,
+    VoronoiTileNoise,
     VoronoiRipple3D,
     FVoronoiRipple3D
 
