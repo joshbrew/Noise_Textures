@@ -31,3 +31,20 @@ button:active {
 button:disabled {
     opacity:0.5;
 }
+
+
+
+.render-options {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    background: white;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    z-index: 10;
+}
+.render-options label {
+    display: block;
+    margin-bottom: 5px;
+}

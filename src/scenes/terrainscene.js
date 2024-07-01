@@ -8,7 +8,12 @@ import erosionworker from '../erosion.worker';
 
 
 //just doing this to add an async context, 
-document.addEventListener('DOMContentLoaded', async function () {
+export async function terrainRender() {
+
+    const container = document.createElement('span');
+    container.style.height = '100%'; container.style.width = '100%';
+    container.style.position = 'absolute'
+    document.body.appendChild(container);
 
     // Create the button
     const button = document.createElement('button');
@@ -16,17 +21,16 @@ document.addEventListener('DOMContentLoaded', async function () {
     button.style.position = 'absolute';
     button.style.left = '810px';
     button.style.zIndex = '2';
-    document.body.appendChild(button);
+    container.appendChild(button);
 
     const canvas3d = document.createElement('canvas');
     canvas3d.width = 800;
     canvas3d.height = 800;
-    document.body.appendChild(canvas3d);
+    container.appendChild(canvas3d);
 
     const engine = new BABYLON.WebGPUEngine(canvas3d, { antialias: true });
-            
+    let inited = false;
 
-    
     const createFlatScene = async () => {
 
         // Define a set of gradient colors
@@ -84,7 +88,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         };
 
 
-        await engine.initAsync();
+        if(!inited) {await engine.initAsync(); inited = true;}
         const scene = new BABYLON.Scene(engine);
         scene.clearColor = new BABYLON.Color3(0, 0, 0); // Black background for the starry sky
 
@@ -117,7 +121,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         
         const promises = [];
         
-        const seed = 12345;
+        const seed = 12345 + Math.random()*123;
         const octaves = 8;
         const lacunarity = 2;
         const gain = 0.5;
@@ -456,16 +460,16 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         });
 
-        return scene;
+        return {scene, shadowGenerator};
     };
 
 
-    scene = await createFlatScene();//createFlatScene();//createPlanetaryScene(); 
+    let {scene, shadowGenerator} = await createFlatScene();//createFlatScene();//createPlanetaryScene(); 
     scene.freezeActiveMeshes();
     scene.freezeMaterials();
     //scene.freezeWorldMatrix();
     engine.runRenderLoop(() => {
-        scene.render();
+        if(scene) scene.render();
     });
 
     window.addEventListener('resize', () => {
@@ -474,10 +478,26 @@ document.addEventListener('DOMContentLoaded', async function () {
 
    button.addEventListener('click', async () => {
        button.disabled = true;
+       shadowGenerator.dispose();
        scene.dispose();
-       await createFlatScene();
+       ({scene, shadowGenerator} = await createFlatScene());
        button.disabled = false;
    });
 
+   return {
+        engine,
+        scene,
+        shadowGenerator,
+        container,
+        canvas:canvas3d,
+        button
+   }
 
-});
+};
+
+
+export async function clearTerrainRender(render) {
+    render.scene.dispose();
+    render.engine.dispose();
+    render.container.remove();
+}

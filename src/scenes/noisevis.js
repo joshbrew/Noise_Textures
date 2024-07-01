@@ -129,7 +129,8 @@ const runNoiseWorker = async (seed, canvas, noiseConfigs, stepSize) => {
 
     await Promise.all(promises);
 
-    context.putImageData(imageData, 0, 0);
+    try {context.putImageData(imageData, 0, 0); } catch(er){console.error(er);}
+
 };
 
 // Function to regenerate all canvases with updated parameters
@@ -137,7 +138,7 @@ const generateCanvases = async () => {
 
     let container = document.querySelector('.canvas-container');
     if (!container) {
-        container = document.createElement('div');
+        container = document.createElement('span');
         container.className = 'canvas-container';
         container.style.display = 'flex';
         container.style.flexWrap = 'wrap';
@@ -170,14 +171,19 @@ const generateCanvases = async () => {
         const canvas = createCanvas(500, noiseType);
         await runNoiseWorker(seed, canvas, noiseConfigs, 1);
     }
+
+
+    return container;
 };
 
 // Function to create control inputs
 const createControls = () => {
     const controlsContainer = document.createElement('div');
     controlsContainer.className = 'controls-container';
-    controlsContainer.style.float = 'right';
+    controlsContainer.style.position = 'absolute';
+    controlsContainer.style.right = '10px';
     controlsContainer.style.marginBottom = '20px';
+    controlsContainer.style.zIndex = '10';
     document.body.appendChild(controlsContainer);
 
     
@@ -216,10 +222,34 @@ const createControls = () => {
 
     const regenerateButton = document.createElement('button');
     regenerateButton.innerText = 'Regenerate Canvases';
-    regenerateButton.onclick = generateCanvases;
+    regenerateButton.onclick = async () => {
+        regenerateButton.disabled = true;
+        await generateCanvases();
+        regenerateButton.disabled = false;
+    };
     controlsContainer.appendChild(regenerateButton);
+
+    return {container:controlsContainer, regenerateButton};
 };
 
 // Create controls and run the initial visualization
-createControls();
-generateCanvases();
+
+export async function renderNoiseTextures() {
+    const controls = createControls();
+    controls.regenerateButton.disabled = true;
+    const canvasContainer = await generateCanvases();
+    controls.regenerateButton.disabled = false;
+
+    return {
+        controls,
+        canvasContainer
+    }
+}
+
+export async function clearNoiseTextureRender(render) {
+    render.controls.container.remove();
+    render.canvasContainer.remove();
+
+    return true;
+}
+

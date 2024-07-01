@@ -10,14 +10,18 @@ import planetworker from '../planet.worker';
 //import erosionworker from './erosion.worker';
 
 
-let noiseGen = new noise.BaseNoise();
 
-//just doing this to add an async context, 
-document.addEventListener('DOMContentLoaded', async function () {
+export async function planetRender() {
 
+    let noiseGen = new noise.BaseNoise();
     
     const segments = 1000; //sphere will have s*s vertices
     const radius = 50;
+
+    const container = document.createElement('span');
+    container.style.height = '100%'; container.style.width = '100%';
+    container.style.position = 'absolute'
+    document.body.appendChild(container);
     
     // Create a table to display SEED, randomizer values, and gradient name
     const infoTable = document.createElement('table');
@@ -37,13 +41,13 @@ document.addEventListener('DOMContentLoaded', async function () {
     button.style.position = 'absolute';
     button.style.left = '810px';
     button.style.zIndex = '2';
-    document.body.appendChild(button);
+    container.appendChild(button);
 
     const canvas3d = document.createElement('canvas');
     canvas3d.width = 800;
     canvas3d.height = 800;
-    document.body.appendChild(canvas3d);
-    document.body.appendChild(infoTable);
+    container.appendChild(canvas3d);
+    container.appendChild(infoTable);
 
     const engine = new BABYLON.WebGPUEngine(canvas3d, { antialias: true });
             
@@ -70,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     let gradIdx = 0;
 
     let inited = false;
-    let SEED, scene, planet, atmosphere, depthRenderer;
+    let SEED, scene, shadowGenerator, planet, atmosphere, depthRenderer;
     let randomizer1, randomizer2, randomizer3;
 
     let FBM = true;
@@ -129,7 +133,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         sun.material.emissiveColor = new BABYLON.Color3(1, 1, 0.5); // Bright yellow
         sun.material.freeze();
 
-        const shadowGenerator = new BABYLON.ShadowGenerator(4096, pointLight);
+        shadowGenerator = new BABYLON.ShadowGenerator(4096, pointLight);
         shadowGenerator.usePercentageCloserFiltering = true;
 
         var godrays = new BABYLON.VolumetricLightScatteringPostProcess(
@@ -156,11 +160,14 @@ document.addEventListener('DOMContentLoaded', async function () {
         else sign2 = 1;
         offset2 *= sign2;
 
+        const zoomFactor = 1.3;
+
         const noiseConfigs = [
-            { type: 'FractalBrownianMotion', scalar:1.5, zoom: 1.3 * 0.8, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 2.0, frequency: 1, offset: offset },
-            { type: 'FractalBrownianMotion2', zoom: 1.3 * 1, octaves: 8, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 1.3, frequency: 1, offset: offset },
-            { type: 'RidgedAntiMultifractalNoise', scalar:1.5, zoom: 1.3 * 0.5, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
-            { type: 'BillowNoise', zoom: 1.3 * 0.5, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer2 + 1.3 * 0.5, frequency: 1, offset: offset }
+            { type: 'FractalBrownianMotion', scalar:1.5, zoom: zoomFactor * 0.8, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 2.0, frequency: 1, offset: offset },
+            { type: 'FractalBrownianMotion2', zoom: zoomFactor * 1, octaves: 8, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 1.3, frequency: 1, offset: offset },
+            //{ type: 'RidgedAntiMultifractalNoise2', scalar:1.5, zoom: zoomFactor * 0.5, octaves: 6, lacunarity: 2.5, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
+            { type: 'RidgedAntiMultifractalNoise3', scalar:0.75, zoom: zoomFactor * 0.2, octaves: 6, lacunarity: 2.1, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
+            { type: 'LanczosBillowNoise', zoom: zoomFactor * 0.5, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer2 + 1.3 * 0.5, frequency: 1, offset: offset }
         ];
 
         let useFBM = Math.random() > 0.5;
@@ -181,7 +188,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         if(!useFBM) noiseConfigs.find((t,i) => {if(t?.type === 'FractalBrownianMotion') noiseConfigs.splice(i,1);});
         if(!useFBM2) noiseConfigs.find((t,i) => {if(t?.type === 'FractalBrownianMotion2') noiseConfigs.splice(i,1);});
-        if(!useRidged) noiseConfigs.find((t,i) => {if(t?.type === 'RidgedAntiMultifractalNoise') noiseConfigs.splice(i,1);});
+        if(!useRidged) noiseConfigs.find((t,i) => {if(t?.type === 'RidgedAntiMultifractalNoise3') noiseConfigs.splice(i,1);});
         if(!useBillow) noiseConfigs.find((t,i) => {if(t?.type === 'BillowNoise') noiseConfigs.splice(i,1);});
 
         const generatePlanetHeightmap = async (noiseConfigs, seed, segments) => {
@@ -485,10 +492,11 @@ document.addEventListener('DOMContentLoaded', async function () {
             );
         });
 
-        return scene;
+        return {scene, shadowGenerator, depthRenderer };
     };
 
-    scene = await createPlanetaryScene();
+    ({scene, shadowGenerator, depthRenderer} = await createPlanetaryScene());
+
     scene.freezeActiveMeshes();
     scene.freezeMaterials();
     //scene.freezeWorldMatrix();
@@ -500,12 +508,30 @@ document.addEventListener('DOMContentLoaded', async function () {
         engine.resize();
     });
 
-   button.addEventListener('click', async () => {
-       button.disabled = true;
-       scene.dispose();
-       await createPlanetaryScene();
-       button.disabled = false;
-   });
+    button.addEventListener('click', async () => {
+        button.disabled = true;
+        shadowGenerator.dispose();
+        shadowGenerator.dispose();
+        scene.dispose();
+        await createPlanetaryScene();
+        button.disabled = false;
+    });
 
 
-});
+   return {
+        engine,
+        scene,
+        container,
+        infoTable,
+        canvas:canvas3d,
+        button
+    };
+}
+
+export async function clearPlanetRender(render) {
+    render.scene.dispose();
+    render.engine.dispose();
+    render.container.remove();
+
+    //should be freed up now
+}
