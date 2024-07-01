@@ -1360,7 +1360,7 @@ class AntiRidgeNoise extends Noise {
 }
 
 class RidgedMultifractalNoise extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, exp1 = 2, exp2 = 1.0) {
+    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1, exp1 = 1, exp2 = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1380,10 +1380,10 @@ class RidgedMultifractalNoise extends FastLanczosNoise3D {
 
             // Add some variation on the fractal pattern with exponents
             let noise = Math.abs(this.noise(x, y, z));
-            let noiseValue = 1 - Math.pow(noise, exp2);
-            noiseValue = Math.pow(noiseValue, exp1);
+            if(exp2) noise = 1 - Math.pow(noise, exp2);
+            if(exp1) noise = Math.pow(noise, exp1);
 
-            sum -= noiseValue * amp;
+            sum -= noise * amp;
 
             //angle += //angleIncr;
 
@@ -1398,7 +1398,7 @@ class RidgedMultifractalNoise extends FastLanczosNoise3D {
 
 //more spiraly 
 class RidgedMultifractalNoise2 extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.75, shift = 0, exp1 = 3, exp2 = 1.0) {
+    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.75, shift = 0, frequency = 1, exp1 = 1, exp2 = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1417,10 +1417,10 @@ class RidgedMultifractalNoise2 extends FastLanczosNoise3D {
 
             //add some variation on the fractal pattern with exponents
             let noise = Math.abs(this.noise(x, y, z));
-            let noiseValue = 1 - (Math.pow(noise, exp2));
-            noiseValue = Math.pow(noiseValue, exp1);
+            if(exp2) noise = 1 - Math.pow(noise, exp2);
+            if(exp1) noise = Math.pow(noise, exp1);
 
-            sum -= noiseValue * amp;
+            sum -= noise * amp;
 
             //adds some rotation to vary the textures more 
             let lastX;
@@ -1441,7 +1441,7 @@ class RidgedMultifractalNoise2 extends FastLanczosNoise3D {
 
 
 class RidgedMultifractalNoise3 extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, exp1 = 4, exp2 = 2.1) {
+    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1, exp1 = 0, exp2 = 1.5) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1478,13 +1478,13 @@ class RidgedMultifractalNoise3 extends FastLanczosNoise3D {
         }
 
         // Adjust the final sum to fit the desired range
-        return -(sum-1);
+        return (sum-1);
     }
 }
 
 
 class RidgedMultifractalNoise4 extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, exp1 = 1.5, exp2 = 0.5) {
+    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1, exp1 = 1, exp2 = 0.5) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1495,11 +1495,10 @@ class RidgedMultifractalNoise4 extends FastLanczosNoise3D {
         for (let i = 0; i < octaves; i++) {
             // Calculate noise value
             let noise = Math.abs(this.noise(x, y, z));
-            let noiseValue = 1 - Math.pow(noise, exp2);
-            noiseValue = Math.pow(noiseValue, exp1);
+            if(exp2) noise = 1 - Math.pow(noise, exp2);
+            if(exp1) noise = Math.pow(noise, exp1);
 
-            // Accumulate sum with amplitude
-            sum += noiseValue * amp;
+            sum += noise * amp;
 
             // Increase frequency and decrease amplitude
             x *= lacunarity;
@@ -1520,7 +1519,7 @@ class RidgedMultifractalNoise4 extends FastLanczosNoise3D {
 
 
 class RidgedAntiMultifractalNoise extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, exp1 = 2, exp2 = 1.0) {
+    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1, exp1 = 1, exp2 = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1540,10 +1539,10 @@ class RidgedAntiMultifractalNoise extends FastLanczosNoise3D {
 
             // Add some variation on the fractal pattern with exponents
             let noise = Math.abs(this.noise(x, y, z));
-            let noiseValue = 1 - Math.pow(noise, exp2);
-            noiseValue = Math.pow(noiseValue, exp1);
+            if(exp2) noise = 1 - Math.pow(noise, exp2);
+            if(exp1) noise = Math.pow(noise, exp1);
 
-            sum -= noiseValue * amp;
+            sum -= noise * amp;
 
             //angle += //angleIncr;
 
@@ -1558,7 +1557,7 @@ class RidgedAntiMultifractalNoise extends FastLanczosNoise3D {
 
 //more spiraly 
 class RidgedAntiMultifractalNoise2 extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, exp1 = 3, exp2 = 1.0) {
+    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1, exp1 = 1, exp2 = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1577,10 +1576,10 @@ class RidgedAntiMultifractalNoise2 extends FastLanczosNoise3D {
 
             //add some variation on the fractal pattern with exponents
             let noise = Math.abs(this.noise(x, y, z));
-            let noiseValue = 1 - (Math.pow(noise, exp2));
-            noiseValue = Math.pow(noiseValue, exp1);
+            if(exp2) noise = 1 - Math.pow(noise, exp2);
+            if(exp1) noise = Math.pow(noise, exp1);
 
-            sum -= noiseValue * amp;
+            sum -= noise * amp;
 
             //adds some rotation to vary the textures more 
             x = x * Math.cos(angle) + x * Math.sin(angle);
@@ -1599,7 +1598,7 @@ class RidgedAntiMultifractalNoise2 extends FastLanczosNoise3D {
 }
 
 class RidgedAntiMultifractalNoise3 extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, exp1 = 4, exp2 = 2.1) {
+    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1, exp1 = 0, exp2 = 1.5) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1642,7 +1641,7 @@ class RidgedAntiMultifractalNoise3 extends FastLanczosNoise3D {
 
 
 class RidgedAntiMultifractalNoise4 extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, exp1 = 1.5, exp2 = 0.5) {
+    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1, exp1 = 1, exp2 = 0.5) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1653,11 +1652,10 @@ class RidgedAntiMultifractalNoise4 extends FastLanczosNoise3D {
         for (let i = 0; i < octaves; i++) {
             // Calculate noise value
             let noise = Math.abs(this.noise(x, y, z));
-            let noiseValue = 1 - Math.pow(noise, exp2);
-            noiseValue = Math.pow(noiseValue, exp1);
+            if(exp2) noise = 1 - Math.pow(noise, exp2);
+            if(exp1) noise = Math.pow(noise, exp1);
 
-            // Accumulate sum with amplitude
-            sum += noiseValue * amp;
+            sum += noise * amp;
 
             // Increase frequency and decrease amplitude
             x *= lacunarity;
