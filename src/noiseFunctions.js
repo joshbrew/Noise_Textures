@@ -1719,7 +1719,7 @@ class FractalBrownianMotion extends SimplexNoise3D {
         // Recursive FBM pass using the output of the initial FBM
         let fbm2 = this.fbm(fbm1, fbm1, fbm1, 1, octaves, lacunarity, gain, shift, frequency);
 
-        return fbm2;
+        return 2*fbm2;
     }
 }
 
@@ -1767,7 +1767,7 @@ class FractalBrownianMotion2 extends SimplexNoise3D {
         // Third FBM pass using the output of the second FBM
         let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
 
-        return fbm3;
+        return 2*fbm3;
     }
 }
 
@@ -1815,7 +1815,7 @@ class FractalBrownianMotion3 extends SimplexNoise3D {
         // Third FBM pass using the output of the second FBM
         let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
 
-        return fbm3;
+        return 2*fbm3;
     }
 }
 
