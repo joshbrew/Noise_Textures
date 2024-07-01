@@ -2910,7 +2910,7 @@ class FractalRipples extends FastLanczosNoise {
     }
 
     generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
-        let fbm1 = this.gen(x, y, z, 2000 * zoom, octaves, lacunarity, gain, shift, frequency);
+        let fbm1 = this.gen(x, y, z, 1000 * zoom, octaves, lacunarity, gain, shift, frequency);
         let fbm2 = this.gen(fbm1, fbm1, fbm1, zoom, octaves, lacunarity, gain, shift, frequency);
         return 2*fbm2;
     }
