@@ -108,7 +108,7 @@ function createRadioButtons() {
 
 const main = async () => {
 
-    await renderScene('noise');
+    await renderScene('planet');
     createRadioButtons();
 
 }
