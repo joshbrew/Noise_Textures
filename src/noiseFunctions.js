@@ -1635,7 +1635,7 @@ class RidgedAntiMultifractalNoise3 extends FastLanczosNoise3D {
         }
 
         // Adjust the final sum to fit the desired range
-        return (sum-1);
+        return -(sum-1);
     }
 }
 
