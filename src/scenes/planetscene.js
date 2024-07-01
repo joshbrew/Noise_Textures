@@ -166,7 +166,7 @@ export async function planetRender() {
             { type: 'FractalBrownianMotion', scalar:1.5, zoom: zoomFactor * 0.8, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 2.0, frequency: 1, offset: offset },
             { type: 'FractalBrownianMotion2', zoom: zoomFactor * 1, octaves: 8, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 1.3, frequency: 1, offset: offset },
             //{ type: 'RidgedAntiMultifractalNoise2', scalar:1.5, zoom: zoomFactor * 0.5, octaves: 6, lacunarity: 2.5, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
-            { type: 'RidgedAntiMultifractalNoise3', scalar:0.75, zoom: zoomFactor * 0.2, octaves: 6, lacunarity: 2.1, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
+            { type: 'RidgedMultifractalNoise4', scalar:0.75, zoom: zoomFactor * 0.2, octaves: 6, lacunarity: 2.1, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
             { type: 'LanczosBillowNoise', zoom: zoomFactor * 0.5, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer2 + 1.3 * 0.5, frequency: 1, offset: offset }
         ];
 
@@ -188,8 +188,8 @@ export async function planetRender() {
 
         if(!useFBM) noiseConfigs.find((t,i) => {if(t?.type === 'FractalBrownianMotion') noiseConfigs.splice(i,1);});
         if(!useFBM2) noiseConfigs.find((t,i) => {if(t?.type === 'FractalBrownianMotion2') noiseConfigs.splice(i,1);});
-        if(!useRidged) noiseConfigs.find((t,i) => {if(t?.type === 'RidgedAntiMultifractalNoise3') noiseConfigs.splice(i,1);});
-        if(!useBillow) noiseConfigs.find((t,i) => {if(t?.type === 'BillowNoise') noiseConfigs.splice(i,1);});
+        if(!useRidged) noiseConfigs.find((t,i) => {if(t?.type === 'RidgedMultifractalNoise4') noiseConfigs.splice(i,1);});
+        if(!useBillow) noiseConfigs.find((t,i) => {if(t?.type === 'LanczosBillowNoise') noiseConfigs.splice(i,1);});
 
         const generatePlanetHeightmap = async (noiseConfigs, seed, segments) => {
             const numWorkers = navigator.hardwareConcurrency || 4;
