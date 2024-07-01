@@ -78,7 +78,7 @@ class Noise extends BaseNoise {
         return (1 - t) * a + t * b;
     }
 
-    noise(x, y, z) {
+    noise(x, y=0, z=0) {
         let X = Math.floor(x) & 255;
         let Y = Math.floor(y) & 255;
         let Z = Math.floor(z) & 255;
@@ -213,7 +213,7 @@ class SimplexNoise3D extends BaseNoise {
         return g[0] * x + g[1] * y + g[2] * z;
     }
 
-    noise(xin, yin, zin) {
+    noise(xin, yin, zin=0) {
         const F3 = 1.0 / 3.0;
         const G3 = 1.0 / 6.0;
         let n0, n1, n2, n3; // Noise contributions from the four corners
@@ -653,6 +653,9 @@ class VoronoiNoise3D extends BaseNoise {
         return minVal;
     }
 }
+
+
+
 
 class CellularNoise extends BaseNoise {
     constructor(seed = Date.now()) {
@@ -1714,7 +1717,7 @@ class FractalBrownianMotion extends SimplexNoise3D {
         let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, frequency);
 
         // Recursive FBM pass using the output of the initial FBM
-        let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, frequency);
+        let fbm2 = this.fbm(fbm1, fbm1, fbm1, 1, octaves, lacunarity, gain, shift, frequency);
 
         return fbm2;
     }
@@ -2102,11 +2105,336 @@ class VoronoiBrownianMotion3 extends VoronoiNoise3D {
 }
 
 
+class VoronoiGradient3D extends BaseNoise {
+    constructor(seed = Date.now()) {
+        super(seed);
+    }
+
+    random(x, y, z) {
+        const idx = (this.perm[(x & 255) + this.perm[(y & 255) + this.perm[z & 255]]]) & 255;
+        return this.perm[idx] / 255;
+    }
+
+    // Helper function to generate triangular tessellation pattern
+    triDist(px, py, pz, x, y, z) {
+        // Calculate distance with a bias towards triangular regions
+        const dx = px - x;
+        const dy = py - y;
+        const dz = pz - z;
+        const s = dx + dy + dz;  // sum
+        const qx = 0.5 * (dx - dy);
+        const qy = 0.5 * (dz - dx);
+        const qz = 0.5 * (dy - dz);
+        return Math.sqrt(s * s + qx * qx + qy * qy + qz * qz);
+    }
+
+    noise(x, y, z) {
+        let minDist = Infinity;
+        let minVal = 0;
+        let closestPoint = { px: 0, py: 0, pz: 0 };
+
+        for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+                for (let k = -1; k <= 1; k++) {
+                    const xi = Math.floor(x) + i;
+                    const yi = Math.floor(y) + j;
+                    const zi = Math.floor(z) + k;
+
+                    const px = xi + this.random(xi, yi, zi);
+                    const py = yi + this.random(yi, zi, xi);
+                    const pz = zi + this.random(zi, xi, yi);
+
+                    const dist = this.triDist(px, py, pz, x, y, z);
+
+                    if (dist < minDist) {
+                        minDist = dist;
+                        minVal = this.random(xi, yi, zi);
+                        closestPoint = { px, py, pz };
+                    }
+                }
+            }
+        }
+
+        // Calculate the distance to the closest point
+        const centerDist = Math.sqrt(
+            (closestPoint.px - x) * (closestPoint.px - x) +
+            (closestPoint.py - y) * (closestPoint.py - y) +
+            (closestPoint.pz - z) * (closestPoint.pz - z)
+        );
+
+        // Apply a sine wave variation to the gradient function
+        const gradient = Math.sin(centerDist * Math.PI);
+
+        return minVal * gradient;
+    }
+
+    // Function to add fractal detail
+    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+        let total = 0;
+        let maxValue = 0;
+        let amplitude = 1;
+
+        let angle = this.seedN * 2 * Math.PI;
+
+        for (let i = 0; i < octaves; i++) {
+            total += this.noise(x * frequency / zoom, y * frequency / zoom, z * frequency / zoom) * amplitude;
+
+            maxValue += amplitude;
+            amplitude *= gain;
+            frequency *= lacunarity;
+
+            angle += Math.PI * 2 / octaves; // Increment angle
+            let offsetX = shift * Math.cos(angle);
+            let offsetY = shift * Math.sin(angle);
+            let offsetZ = shift * Math.sin(angle);
+
+            x += offsetX;
+            y += offsetY;
+            z += offsetZ;
+
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        return total / maxValue;
+    }
+}
+
+class VoronoiRipple3D extends BaseNoise {
+    constructor(seed = Date.now()) {
+        super(seed);
+    }
+
+    random(x, y, z) {
+        const idx = (this.perm[(x & 255) + this.perm[(y & 255) + this.perm[z & 255]]]) & 255;
+        return this.perm[idx] / 255;
+    }
+
+    // Helper function to generate triangular tessellation pattern
+    triDist(px, py, pz, x, y, z) {
+        // Calculate distance with a bias towards triangular regions
+        const dx = px - x;
+        const dy = py - y;
+        const dz = pz - z;
+        const s = dx + dy + dz;  // sum
+        const qx = 0.5 * (dx - dy);
+        const qy = 0.5 * (dz - dx);
+        const qz = 0.5 * (dy - dz);
+        return Math.sqrt(s * s + qx * qx + qy * qy + qz * qz);
+    }
+
+    noise(x, y, z) {
+        let minDist = Infinity;
+        let minVal = 0;
+        let closestPoint = { px: 0, py: 0, pz: 0 };
+
+        for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+                for (let k = -1; k <= 1; k++) {
+                    const xi = Math.floor(x) + i;
+                    const yi = Math.floor(y) + j;
+                    const zi = Math.floor(z) + k;
+
+                    const px = xi + this.random(xi, yi, zi);
+                    const py = yi + this.random(yi, zi, xi);
+                    const pz = zi + this.random(zi, xi, yi);
+
+                    const dist = this.triDist(px, py, pz, x, y, z);
+
+                    if (dist < minDist) {
+                        minDist = dist;
+                        minVal = this.random(xi, yi, zi);
+                        closestPoint = { px, py, pz };
+                    }
+                }
+            }
+        }
+
+        // Calculate the distance to the closest point
+        const centerDist = Math.sqrt(
+            (closestPoint.px - x) * (closestPoint.px - x) +
+            (closestPoint.py - y) * (closestPoint.py - y) +
+            (closestPoint.pz - z) * (closestPoint.pz - z)
+        );
+
+        // Apply a high-frequency sine wave variation to the gradient function
+        const rippleFrequency = 10;  // Adjust this value to control the frequency
+        const gradient = Math.sin(centerDist * Math.PI * rippleFrequency);
+
+        return minVal * gradient;
+    }
+
+    // Function to add fractal detail
+    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+        let total = 0;
+        let maxValue = 0;
+        let amplitude = 1;
+
+        let angle = this.seedN * 2 * Math.PI;
+
+        for (let i = 0; i < octaves; i++) {
+            total += this.noise(x * frequency / zoom, y * frequency / zoom, z * frequency / zoom) * amplitude;
+
+            maxValue += amplitude;
+            amplitude *= gain;
+            frequency *= lacunarity;
+
+            angle += Math.PI * 2 / octaves; // Increment angle
+            let offsetX = shift * Math.cos(angle);
+            let offsetY = shift * Math.sin(angle);
+            let offsetZ = shift * Math.sin(angle);
+
+            x += offsetX;
+            y += offsetY;
+            z += offsetZ;
+
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        return total / maxValue;
+    }
+}
+
+class FVoronoiRipple3D extends VoronoiRipple3D {
+    constructor(seed = Date.now()) {    
+        super(seed);
+        this.gen = new VoronoiRipple3D(seed);
+    }
+
+    generateNoise = (x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) => {
+          // Initial FBM pass
+        let fbm1 = this.gen.generateNoise(x, y, z, zoom, octaves, lacunarity, gain, shift, frequency);
+
+        // Recursive FBM pass using the output of the initial FBM
+        let fbm2 = this.gen.generateNoise(fbm1, fbm1, fbm1, 1, octaves, lacunarity, gain, shift, frequency);
+ 
+        return 2*fbm2;
+    }
+
+}
+
+class RipplePerlinNoise extends FastLanczosNoise {
+    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, freq = 1, turbulence = false, rippleFrequency = 4, neighborhoodSize = 1) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amp = 1.0;
+        let totalAmp = 0;
+        let angle = this.seedN * 2 * Math.PI;
+
+        for (let i = 0; i < octaves; i++) {
+            let noiseValue = this.noise(x * freq, y * freq, z * freq) * amp;
+            if (turbulence) {
+                noiseValue = Math.abs(noiseValue);
+            }
+
+            const ripple = this.calculateRippleEffect(x * freq, y * freq, z * freq, rippleFrequency, neighborhoodSize);
+            noiseValue *= ripple;
+
+            sum += noiseValue;
+            totalAmp += amp;
+
+            freq *= lacunarity;
+            amp *= gain;
+
+            angle += Math.PI * 2/octaves; // Increment angle
+            let offsetX = shift * Math.cos(angle);
+            let offsetY = shift * Math.sin(angle);
+            let offsetZ = shift * Math.sin(angle);
+
+            x += offsetX;
+            y += offsetY;
+            z += offsetZ;
+
+            x += shift;
+            y += shift;
+            z += shift;
+        }
+
+        if (turbulence) {
+            sum -= 1;
+        }
+        return octaves * sum;
+    }
+
+    calculateRippleEffect(x, y, z, rippleFrequency, neighborhoodSize) {
+        // Using the permutation array to determine static ripple coordinates within a local neighborhood
+        const staticPoints = this.getStaticRipplePoints(x, y, z, neighborhoodSize);
+
+        let rippleSum = 0;
+        for (const point of staticPoints) {
+            const distance = Math.sqrt(
+                (point[0] - x) * (point[0] - x) +
+                (point[1] - y) * (point[1] - y) +
+                (point[2] - z) * (point[2] - z)
+            );
+            rippleSum += Math.sin(distance * Math.PI * rippleFrequency);
+        }
+
+        return rippleSum / staticPoints.length;
+    }
+
+    getStaticRipplePoints(x, y, z, neighborhoodSize) {
+        // Generate static ripple points within a local neighborhood based on the permutation array and the coordinates
+        const points = [];
+
+        for (let dx = -neighborhoodSize; dx <= neighborhoodSize; dx++) {
+            for (let dy = -neighborhoodSize; dy <= neighborhoodSize; dy++) {
+                for (let dz = -neighborhoodSize; dz <= neighborhoodSize; dz++) {
+                    const px = this.continuousPermutation(x + dx);
+                    const py = this.continuousPermutation(y + dy);
+                    const pz = this.continuousPermutation(z + dz);
+                    points.push([px, py, pz]);
+                }
+            }
+        }
+
+        return points;
+    }
+
+    continuousPermutation(value) {
+        const perm = this.perm;
+        const intPart = Math.floor(value);
+        const fracPart = value - intPart;
+
+        const index1 = (intPart % 256 + 256) % 256;
+        const index2 = ((intPart + 1) % 256 + 256) % 256;
+
+        const permValue1 = perm[index1];
+        const permValue2 = perm[index2];
+
+        // Linear interpolation between two neighboring permutation values
+        return permValue1 + fracPart * (permValue2 - permValue1);
+    }
+}
 
 
+class FRipple3D extends RipplePerlinNoise {
+    constructor(seed = Date.now()) {    
+        super(seed);
+        this.gen = new RipplePerlinNoise(seed);
+    }
 
+    generateNoise = (x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) => {
+          // Initial FBM pass
+        let fbm1 = this.gen.generateNoise(x, y, z, zoom*2000, octaves, lacunarity, gain, shift, frequency);
 
+        // Second FBM pass using the output of the initial FBM
+        let fbm2 = this.gen.generateNoise((fbm1), (fbm1), (fbm1), 1, octaves, lacunarity, gain, shift, frequency);
 
+        // Third FBM pass using the output of the second FBM
+        //let fbm3 = this.gen.generateNoise(( fbm2), ( fbm2), ( fbm2), 1, octaves, lacunarity, gain, shift, frequency);
+        
+ 
+         return fbm2;
+    }
+
+}
 
 
 //noise functions
@@ -2133,6 +2461,8 @@ export {
 
     //extensions (has the generateNoise() functions with nearly identical inputs)
     PerlinNoise,
+    RipplePerlinNoise,
+    FRipple3D,
     BillowNoise,
     AntiBillowNoise,
     LanczosBillowNoise,
@@ -2159,5 +2489,14 @@ export {
 
     VoronoiBrownianMotion,
     VoronoiBrownianMotion2,
-    VoronoiBrownianMotion3
+    VoronoiBrownianMotion3,
+
+
+    VoronoiGradient3D,
+    VoronoiRipple3D,
+    FVoronoiRipple3D
+
 }
+
+
+

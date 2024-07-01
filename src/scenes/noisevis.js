@@ -30,7 +30,13 @@ const noiseGenerators = [
     
     'VoronoiBrownianMotion',
     'VoronoiBrownianMotion2',
-    'VoronoiBrownianMotion3'
+    'VoronoiBrownianMotion3',
+
+    'VoronoiGradient3D',
+    'VoronoiRipple3D',
+    'FVoronoiRipple3D',
+    'RipplePerlinNoise',
+    'FRipple3D'
 ];
 
 // Function to create a canvas and append it to the container
