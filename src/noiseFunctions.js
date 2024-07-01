@@ -2730,8 +2730,8 @@ class FVoronoiCircularRipple3D extends VoronoiCircularRipple3D {
 
 }
 
-class RipplePerlinNoise extends FastLanczosNoise {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, freq = 1, turbulence = false, rippleFrequency = 4, neighborhoodSize = 1) {
+class RippleNoise extends FastLanczosNoise {
+    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, freq = 1, turbulence = false, rippleFrequency = 12, neighborhoodSize = 1) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -2747,7 +2747,7 @@ class RipplePerlinNoise extends FastLanczosNoise {
                 noiseValue = Math.abs(noiseValue);
             }
 
-            const ripple = this.calculateRippleEffect(x * freq, y * freq, z * freq, rippleFrequency, neighborhoodSize);
+            const ripple = this.calculateRippleEffect(x * freq, y * freq, z * freq, rippleFrequency / zoom, neighborhoodSize);
             noiseValue *= ripple;
 
             sum += noiseValue;
@@ -2756,18 +2756,15 @@ class RipplePerlinNoise extends FastLanczosNoise {
             freq *= lacunarity;
             amp *= gain;
 
-            angle += Math.PI * 2/octaves; // Increment angle
-            let offsetX = shift * Math.cos(angle);
-            let offsetY = shift * Math.sin(angle);
-            let offsetZ = shift * Math.sin(angle);
+            angle += Math.PI * 2 / octaves; // Increment angle
+            let offsetX = shift * Math.cos(angle + Math.random() * Math.PI);
+            let offsetY = shift * Math.sin(angle + Math.random() * Math.PI);
+            let offsetZ = shift * Math.sin(angle + Math.random() * Math.PI);
 
+            // Update positions with varied shifts to avoid diagonal bias
             x += offsetX;
             y += offsetY;
             z += offsetZ;
-
-            x += shift;
-            y += shift;
-            z += shift;
         }
 
         if (turbulence) {
@@ -2827,27 +2824,96 @@ class RipplePerlinNoise extends FastLanczosNoise {
     }
 }
 
+class FractalRipples extends FastLanczosNoise {
+    gen(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, freq = 1, turbulence = false, rippleFrequency = 4, neighborhoodSize = 1) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
 
-class FRipple3D extends RipplePerlinNoise {
-    constructor(seed = Date.now()) {    
-        super(seed);
-        this.gen = new RipplePerlinNoise(seed);
+        let sum = 0;
+        let amp = 1.0;
+        let totalAmp = 0;
+        let angle = this.seedN * 2 * Math.PI;
+        const incr = Math.PI/4;
+
+        for (let i = 0; i < octaves; i++) {
+            let noiseValue = this.noise(x * freq, y * freq, z * freq) * amp;
+            if (turbulence) {
+                noiseValue = Math.abs(noiseValue);
+            }
+
+            const ripple = this.calculateRippleEffect(x * freq, y * freq, z * freq, rippleFrequency, neighborhoodSize);
+            noiseValue *= ripple;
+
+            sum += noiseValue;
+            totalAmp += amp;
+
+            freq *= lacunarity;
+            amp *= gain;
+
+            angle += Math.PI / 4; // Increment angle
+            let offsetX = shift * Math.cos(angle);
+            let offsetY = shift * Math.sin(angle);
+            let offsetZ = shift * Math.sin(angle);
+
+            // Update positions with varied shifts to avoid diagonal bias
+            x += offsetX;
+            y += offsetY;
+            z += offsetZ;
+        }
+
+        if (turbulence) {
+            sum -= 1;
+        }
+        return octaves * sum;
     }
 
-    generateNoise = (x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) => {
-          // Initial FBM pass
-        let fbm1 = this.gen.generateNoise(x, y, z, zoom*2000, octaves, lacunarity, gain, shift, frequency);
+    calculateRippleEffect(x, y, z, rippleFrequency, neighborhoodSize) {
+        const staticPoints = this.getStaticRipplePoints(x, y, z, neighborhoodSize);
+        let rippleSum = 0;
+        const twoPiRippleFreq = 2 * Math.PI * rippleFrequency;
 
-        // Second FBM pass using the output of the initial FBM
-        let fbm2 = this.gen.generateNoise((fbm1), (fbm1), (fbm1), 1, octaves, lacunarity, gain, shift, frequency);
+        for (const point of staticPoints) {
+            const dx = point[0] - x;
+            const dy = point[1] - y;
+            const dz = point[2] - z;
+            const distance = dx * dx + dy * dy + dz * dz; // Squared distance
+            rippleSum += Math.sin(Math.sqrt(distance) * twoPiRippleFreq); // Calculate ripple effect
+        }
 
-        // Third FBM pass using the output of the second FBM
-        //let fbm3 = this.gen.generateNoise(( fbm2), ( fbm2), ( fbm2), 1, octaves, lacunarity, gain, shift, frequency);
-        
- 
-         return fbm2;
+        return rippleSum / staticPoints.length;
     }
 
+    getStaticRipplePoints(x, y, z, neighborhoodSize) {
+        const points = [];
+        for (let dx = -neighborhoodSize; dx <= neighborhoodSize; dx++) {
+            for (let dy = -neighborhoodSize; dy <= neighborhoodSize; dy++) {
+                for (let dz = -neighborhoodSize; dz <= neighborhoodSize; dz++) {
+                    points.push([
+                        this.continuousPermutation(x + dx),
+                        this.continuousPermutation(y + dy),
+                        this.continuousPermutation(z + dz)
+                    ]);
+                }
+            }
+        }
+        return points;
+    }
+
+    continuousPermutation(value) {
+        const perm = this.perm;
+        const intPart = Math.floor(value);
+        const fracPart = value - intPart;
+        const index1 = (intPart % 256 + 256) % 256;
+        const index2 = ((intPart + 1) % 256 + 256) % 256;
+        return perm[index1] + fracPart * (perm[index2] - perm[index1]);
+    }
+
+    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+        let fbm1 = this.gen(x, y, z, 2000 * zoom, octaves, lacunarity, gain, shift, frequency);
+        let fbm2 = this.gen(fbm1, fbm1, fbm1, zoom, octaves, lacunarity, gain, shift, frequency);
+        return 2*fbm2;
+    }
 }
 
 
@@ -2875,25 +2941,29 @@ export {
 
     //extensions (has the generateNoise() functions with nearly identical inputs)
     PerlinNoise,
-    RipplePerlinNoise,
-    FRipple3D,
+    
     BillowNoise,
     AntiBillowNoise,
     LanczosBillowNoise,
     LanczosAntiBillowNoise,
+
     RidgeNoise,
     AntiRidgeNoise,
+
     RidgedMultifractalNoise,
     RidgedMultifractalNoise2,
     RidgedMultifractalNoise3,
     RidgedMultifractalNoise4,
+
     RidgedAntiMultifractalNoise,
     RidgedAntiMultifractalNoise2,
     RidgedAntiMultifractalNoise3,
     RidgedAntiMultifractalNoise4,
+
     FractalBrownianMotion,
     FractalBrownianMotion2,
     FractalBrownianMotion3,
+
     PerlinWorms,
     HexWorms,
 
@@ -2912,7 +2982,11 @@ export {
     VoronoiCircularRipple3D,
     VoronoiCircleGradientTileNoise,
     VoronoiCircleGradientTileNoise2,
-    FVoronoiRipple3D
+    FVoronoiRipple3D,
+    FVoronoiCircularRipple3D,
+    
+    RippleNoise,
+    FractalRipples
 
 }
 

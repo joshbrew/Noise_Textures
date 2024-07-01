@@ -3,6 +3,7 @@ import noiseworker from '../noise.worker';
 
 // List of noise generators to visualize
 const noiseGenerators = [
+    //Traditional noise types
     'PerlinNoise',
     'BillowNoise',
     'AntiBillowNoise',
@@ -10,19 +11,21 @@ const noiseGenerators = [
     'LanczosAntiBillowNoise',
     'RidgeNoise',
     'AntiRidgeNoise',
+
     'RidgedMultifractalNoise',
     'RidgedMultifractalNoise2',
     'RidgedMultifractalNoise3',
     'RidgedMultifractalNoise4',
+
     'RidgedAntiMultifractalNoise',
     'RidgedAntiMultifractalNoise2',
     'RidgedAntiMultifractalNoise3',
     'RidgedAntiMultifractalNoise4',
+
+    //fractal noise
     'FractalBrownianMotion',
     'FractalBrownianMotion2',
     'FractalBrownianMotion3',
-    'PerlinWorms',
-    'HexWorms',
     
     'CellularBrownianMotion',
     'CellularBrownianMotion2',
@@ -32,6 +35,11 @@ const noiseGenerators = [
     'VoronoiBrownianMotion2',
     'VoronoiBrownianMotion3',
 
+    //worms
+    'PerlinWorms',
+    'HexWorms',
+
+    //voronoi
     'VoronoiTileNoise',
     'VoronoiFlatShadeTileNoise',
     'VoronoiCircleGradientTileNoise',
@@ -40,9 +48,11 @@ const noiseGenerators = [
     'VoronoiRipple3D2',
     'VoronoiCircularRipple3D',
     'FVoronoiRipple3D',
+    'FVoronoiCircularRipple3D',
 
-    'RipplePerlinNoise',
-    'FRipple3D'
+    //ripple effect
+    'RippleNoise',
+    'FractalRipples'
 ];
 
 // Function to create a canvas and append it to the container
