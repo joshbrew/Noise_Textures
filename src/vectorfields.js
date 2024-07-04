@@ -294,8 +294,8 @@ class VectorField {
           vx += windDirection[0] * windMul;
           vy += windDirection[1] * windMul;
     
-          vx += (vector[0] + acceleration[0]) * vectorMul;
-          vy += (vector[1] + acceleration[1]) * vectorMul;
+          vx += (-vector[0] + acceleration[0]) * vectorMul;
+          vy += (-vector[1] + acceleration[1]) * vectorMul;
     
           const currentSpeed = Math.sqrt(vx * vx + vy * vy);
           if (currentSpeed > maxVelocity) {
@@ -548,7 +548,7 @@ class VectorField {
 
                   // Fill positions
                   positions[positionIndex++] = x - this.vectorField.sizeX / 2;
-                  positions[positionIndex++] = -heightValue * 20;
+                  positions[positionIndex++] = heightValue * 20;
                   positions[positionIndex++] = y - this.vectorField.sizeY / 2;
 
                   // Fill UVs
