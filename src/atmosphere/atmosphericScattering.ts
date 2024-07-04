@@ -1,16 +1,11 @@
 ///borrowed from https://github.com/BarthPaleologue/volumetric-atmospheric-scattering
 
 
-import { Camera } from "babylonjs";
-import { Light } from "babylonjs";
-import { Texture } from "babylonjs";
-import { Effect } from "babylonjs";
-import { Matrix } from "babylonjs";
-import { Mesh } from "babylonjs";
-import { TransformNode } from "babylonjs";
-import { PostProcess } from "babylonjs";
-import { Scene } from "babylonjs";
-import { DepthRenderer } from "babylonjs";
+import { 
+    Camera,Light,Texture,Effect,
+    Matrix,Mesh,TransformNode,
+    PostProcess,Scene,DepthRenderer 
+} from "babylonjs";
 
 //@ts-ignore
 import atmosphereFragment from "./glsl/atmosphericScattering.glsl";

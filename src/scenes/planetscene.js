@@ -80,7 +80,8 @@ export async function planetRender() {
     let FBM = true;
     let FBM2 = true;
     let RidgedMultifractal = true;
-    let Billow = true
+    let Billow = true;
+    let Voronoi = true;
 
     const createPlanetaryScene = async () => {  
 
@@ -165,8 +166,8 @@ export async function planetRender() {
         const noiseConfigs = [
             { type: 'FractalBrownianMotion', scalar:0.75, zoom: zoomFactor * 0.8, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 2.0, frequency: 1, offset: offset },
             { type: 'FractalBrownianMotion2', scalar:0.75, zoom: zoomFactor * 1, octaves: 8, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 1.3, frequency: 1, offset: offset },
-            //{ type: 'RidgedAntiMultifractalNoise2', scalar:1.5, zoom: zoomFactor * 0.5, octaves: 6, lacunarity: 2.5, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
-            { type: 'RidgedMultifractalNoise4', scalar:0.75, zoom: zoomFactor * 0.2, octaves: 6, lacunarity: 2.1, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
+            { type: 'VoronoiTileNoise', scalar:1, zoom: zoomFactor * 0.35, octaves: 2, lacunarity: 2, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
+            { type: 'RidgedMultifractalNoise4', scalar:0.85, zoom: zoomFactor * 0.2, octaves: 6, lacunarity: 2.1, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
             { type: 'LanczosBillowNoise', zoom: zoomFactor * 0.5, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer2 + 1.3 * 0.5, frequency: 1, offset: offset }
         ];
 
@@ -174,6 +175,7 @@ export async function planetRender() {
         let useFBM2 = Math.random() > 0.5;
         let useRidged = Math.random() > 0.5;
         let useBillow = Math.random() > 0.5;
+        let useVoronoi = Math.random() > 0.5;
 
         if(!useFBM && !useFBM2 && !useRidged && !useBillow) {
             useFBM = true; //default
@@ -184,10 +186,12 @@ export async function planetRender() {
         FBM2 = useFBM2;
         RidgedMultifractal = useRidged;
         Billow = useBillow;
+        Voronoi = useVoronoi;
 
 
         if(!useFBM) noiseConfigs.find((t,i) => {if(t?.type === 'FractalBrownianMotion') noiseConfigs.splice(i,1);});
         if(!useFBM2) noiseConfigs.find((t,i) => {if(t?.type === 'FractalBrownianMotion2') noiseConfigs.splice(i,1);});
+        if(!useVoronoi) noiseConfigs.find((t,i) => {if(t?.type === 'VoronoiTileNoise') noiseConfigs.splice(i,1);});
         if(!useRidged) noiseConfigs.find((t,i) => {if(t?.type === 'RidgedMultifractalNoise4') noiseConfigs.splice(i,1);});
         if(!useBillow) noiseConfigs.find((t,i) => {if(t?.type === 'LanczosBillowNoise') noiseConfigs.splice(i,1);});
 
@@ -207,10 +211,10 @@ export async function planetRender() {
             const coordinates = new Float32Array(totalNoiseValues * 3);
         
             for (let i = 0; i < numWorkers; i++) {
-                const startLat = i * segmentSize;
-                let endLat = (i + 1) * segmentSize - 1;
+                const start = i * segmentSize;
+                let end = (i + 1) * segmentSize - 1;
         
-                if (endLat > segments) endLat = segments;
+                if (end > segments) end = segments;
         
                 promises.push(new Promise((resolve) => {
                     workers[i].onmessage = function (e) {
@@ -221,17 +225,18 @@ export async function planetRender() {
                         resolve();
                     };
         
+
                     workers[i].postMessage({
                         seed,
                         noiseConfigs,
-                        latRange: { startLat, endLat },
+                        latRange: { start, end },
                         segments,
                         offset,
                         offset2,
                         randomizer1,
                         randomizer2,
                         randomizer3,
-                        startIndex: startLat * (segments + 1)
+                        startIndex: start * (segments + 1)
                     });
                 }));
             }
@@ -403,6 +408,7 @@ export async function planetRender() {
             <tr><td>Noise Used</td><td> ------ </td></tr>
             <tr><td>FBM</td><td> ${FBM} </td></tr>
             <tr><td>FBM2</td><td> ${FBM2} </td></tr>
+            <tr><td>Voronoi</td><td> ${Voronoi} </td></tr>
             <tr><td>RidgedMF</td><td> ${RidgedMultifractal} </td></tr>
             <tr><td>Billow</td><td> ${Billow} </td></tr>
             <tr><td>Modifiers</td><td> ------ </td></tr>
@@ -504,9 +510,11 @@ export async function planetRender() {
         scene.render();
     });
 
-    window.addEventListener('resize', () => {
+    engine.RESIZEEVENT = () => {
         engine.resize();
-    });
+    }
+
+    window.addEventListener('resize', engine.RESIZEEVENT);
 
     button.addEventListener('click', async () => {
         button.disabled = true;
@@ -530,6 +538,7 @@ export async function planetRender() {
 
 export async function clearPlanetRender(render) {
     render.scene.dispose();
+    window.removeEventListener('resize', render.engine.RESIZEEVENT);
     render.engine.dispose();
     render.container.remove();
 

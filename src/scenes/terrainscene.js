@@ -1,4 +1,19 @@
-import * as BABYLON from 'babylonjs';
+import {
+    Scene,
+    WebGPUEngine,
+    Color3,
+    PointLight,
+    StandardMaterial,
+    ShadowGenerator,
+    ArcRotateCamera,
+    Mesh,
+    PointsCloudSystem,
+    VertexData,
+    Vector3,
+    Color4,
+    HemisphericLight,
+    MeshBuilder
+} from 'babylonjs';
 
 
 import noiseworker from '../noise.worker';
@@ -28,7 +43,7 @@ export async function terrainRender() {
     canvas3d.height = 800;
     container.appendChild(canvas3d);
 
-    const engine = new BABYLON.WebGPUEngine(canvas3d, { antialias: true });
+    const engine = new WebGPUEngine(canvas3d, { antialias: true });
     let inited = false;
 
     const createFlatScene = async () => {
@@ -89,25 +104,25 @@ export async function terrainRender() {
 
 
         if(!inited) {await engine.initAsync(); inited = true;}
-        const scene = new BABYLON.Scene(engine);
-        scene.clearColor = new BABYLON.Color3(0, 0, 0); // Black background for the starry sky
+        const scene = new Scene(engine);
+        scene.clearColor = new Color3(0, 0, 0); // Black background for the starry sky
 
        
-        //const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+        //const light = new HemisphericLight("light", new Vector3(0, 1, 0), scene);
 
         // Create a rotating point light
-        const pointLight = new BABYLON.PointLight("pointLight", new BABYLON.Vector3(0, 50, 0), scene);
+        const pointLight = new PointLight("pointLight", new Vector3(0, 50, 0), scene);
         pointLight.intensity = 10;
-        pointLight.diffuse = new BABYLON.Color3(1, 1, 1);
-        pointLight.specular = new BABYLON.Color3(1, 1, 1);
+        pointLight.diffuse = new Color3(1, 1, 1);
+        pointLight.specular = new Color3(1, 1, 1);
 
         // Create a sphere to represent the sun
-        const sun = BABYLON.MeshBuilder.CreateSphere("sun", { diameter: 20 }, scene);
-        sun.material = new BABYLON.StandardMaterial("sunMaterial", scene);
-        sun.material.emissiveColor = new BABYLON.Color3(1, 1, 0); // Bright yellow
+        const sun = MeshBuilder.CreateSphere("sun", { diameter: 20 }, scene);
+        sun.material = new StandardMaterial("sunMaterial", scene);
+        sun.material.emissiveColor = new Color3(1, 1, 0); // Bright yellow
 
         // Enable shadows
-        const shadowGenerator = new BABYLON.ShadowGenerator(2048, pointLight);
+        const shadowGenerator = new ShadowGenerator(2048, pointLight);
         shadowGenerator.usePercentageCloserFiltering = true
 
         // Create a ground mesh
@@ -115,7 +130,7 @@ export async function terrainRender() {
         const height = 500;
     
 
-        const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 4, width*2, new BABYLON.Vector3(0, 0, 0), scene);
+        const camera = new ArcRotateCamera("camera", Math.PI / 2, Math.PI / 4, width*2, new Vector3(0, 0, 0), scene);
         camera.attachControl(canvas3d, true);
 
         
@@ -329,24 +344,24 @@ export async function terrainRender() {
             }
         }
 
-        const customMesh = new BABYLON.Mesh("custom", scene);
-        const vertexData = new BABYLON.VertexData();
+        const customMesh = new Mesh("custom", scene);
+        const vertexData = new VertexData();
         vertexData.positions = positions;
         vertexData.indices = indices;
         vertexData.colors = colors;
         vertexData.uvs = uvs;
         vertexData.applyToMesh(customMesh);
 
-        const material = new BABYLON.StandardMaterial("material", scene);
+        const material = new StandardMaterial("material", scene);
         material.vertexColorEnabled = true;
-        material.specularColor = new BABYLON.Color3(0.015, 0.015, 0.015);
+        material.specularColor = new Color3(0.015, 0.015, 0.015);
         customMesh.material = material;
 
         customMesh.receiveShadows = true;
         shadowGenerator.addShadowCaster(customMesh);
 
         // Create starry sky point cloud system
-        const pcs = new BABYLON.PointsCloudSystem("pcs", 1, scene);
+        const pcs = new PointsCloudSystem("pcs", 1, scene);
 
         const starDistance = width * 1.5; // Maximum distance from the center of the terrain
         const minStarDistance = width * 0.85; // Minimum distance from the center of the terrain
@@ -382,14 +397,14 @@ export async function terrainRender() {
             const distanceFactor = Math.pow(Math.random(), 0.4); // Increases density towards the center
             const radius = minStarDistance + distanceFactor * (starDistance - minStarDistance); // Ensures minimum radius
 
-            particle.position = new BABYLON.Vector3(
+            particle.position = new Vector3(
                 radius * Math.sin(phi) * Math.cos(theta),
                 radius * Math.sin(phi) * Math.sin(theta),
                 radius * Math.cos(phi)
             );
 
-            particle.color = new BABYLON.Color4(Math.random(), Math.random(), Math.random(), 1);
-            particle.pivot = BABYLON.Vector3.Zero();
+            particle.color = new Color4(Math.random(), Math.random(), Math.random(), 1);
+            particle.pivot = Vector3.Zero();
         };
 
         pcs.addPoints(numStars, starFunc);
@@ -402,7 +417,7 @@ export async function terrainRender() {
         });
 
         // Create night light
-        const nightLight = new BABYLON.HemisphericLight("nightLight", new BABYLON.Vector3(0, 1, 0), scene);
+        const nightLight = new HemisphericLight("nightLight", new Vector3(0, 1, 0), scene);
         nightLight.intensity = 0;
 
         // Animate the point light
@@ -427,7 +442,7 @@ export async function terrainRender() {
             }
 
             // Update point light position
-            pointLight.position = new BABYLON.Vector3(
+            pointLight.position = new Vector3(
                 width * Math.cos(time),
                 sunHeight,
                 0
@@ -436,19 +451,19 @@ export async function terrainRender() {
 
             // Sun color gradient based on height
             if (rotY > 0.5) {
-              pointLight.diffuse = BABYLON.Color3.Lerp(new BABYLON.Color3(1, 1, 1), new BABYLON.Color3(1, 0.65, 0.65), (rotY - 0.75) / 0.25);
+              pointLight.diffuse = Color3.Lerp(new Color3(1, 1, 1), new Color3(1, 0.65, 0.65), (rotY - 0.75) / 0.25);
               pointLight.specular = pointLight.diffuse;
             } else if (rotY > 0.25) {
-              pointLight.diffuse = BABYLON.Color3.Lerp(new BABYLON.Color3(1, 0.65, 0.65), new BABYLON.Color3(1, 0.3, 0.3), (rotY - 0.5) / 0.25);
+              pointLight.diffuse = Color3.Lerp(new Color3(1, 0.65, 0.65), new Color3(1, 0.3, 0.3), (rotY - 0.5) / 0.25);
               pointLight.specular = pointLight.diffuse;
             } else if (rotY > 0.15) {
-              pointLight.diffuse = BABYLON.Color3.Lerp(new BABYLON.Color3(1, 0.3, 0.3), new BABYLON.Color3(1, 0.08, 0.57), (rotY - 0.25) / 0.25);
+              pointLight.diffuse = Color3.Lerp(new Color3(1, 0.3, 0.3), new Color3(1, 0.08, 0.57), (rotY - 0.25) / 0.25);
               pointLight.specular = pointLight.diffuse;
             } else if (rotY > 0) {
-              pointLight.diffuse = BABYLON.Color3.Lerp(new BABYLON.Color3(1, 0.08, 0.57), new BABYLON.Color3(0.1, 0.01, 0.44), rotY / 0.25);
+              pointLight.diffuse = Color3.Lerp(new Color3(1, 0.08, 0.57), new Color3(0.1, 0.01, 0.44), rotY / 0.25);
               pointLight.specular = pointLight.diffuse;
             } else {
-              pointLight.diffuse = BABYLON.Color3.Lerp(new BABYLON.Color3(0.1, 0.01, 0.44), new BABYLON.Color3(0.1, 0.1, 0.1), rotY / 0.25);
+              pointLight.diffuse = Color3.Lerp(new Color3(0.1, 0.01, 0.44), new Color3(0.1, 0.1, 0.1), rotY / 0.25);
               pointLight.specular = pointLight.diffuse;
             }
 
@@ -472,9 +487,11 @@ export async function terrainRender() {
         if(scene) scene.render();
     });
 
-    window.addEventListener('resize', () => {
+    engine.RESIZEEVENT = () => {
         engine.resize();
-    });
+    }
+
+    window.addEventListener('resize', engine.RESIZEEVENT);
 
    button.addEventListener('click', async () => {
        button.disabled = true;
@@ -498,6 +515,7 @@ export async function terrainRender() {
 
 export async function clearTerrainRender(render) {
     render.scene.dispose();
+    window.removeEventListener('resize',render.engine.RESIZEEVENT);
     render.engine.dispose();
     render.container.remove();
 }
