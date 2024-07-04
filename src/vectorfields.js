@@ -199,6 +199,23 @@ class VectorField {
     };
         
     
+    rotateVector2D(vecx, vecy, angle) {
+      const cosA = Math.cos(angle);
+      const sinA = Math.sin(angle);
+    
+      return [
+        vecx * cosA - vecy * sinA,
+        vecx * sinA + vecy * cosA
+      ];
+    }
+
+    varyDirection2D(dx, dy, maxDegrees, noise) {
+      const maxRadians = maxDegrees * (Math.PI / 180); // Convert degrees to radians
+      const angle = ((noise.seededRandom() || Math.random()) * 2 - 1) * maxRadians; // Random angle within the specified range
+    
+      return this.rotateVector2D(dx, dy, angle);
+    }
+
     simulateParticles({
       windDirection = [1, 0],
       initialSpeedRange = [0.5, 1.5],
@@ -214,7 +231,10 @@ class VectorField {
       windMul = 0.2,
       vectorMul = 0.2,
       curlStrength = 0.1,
-      seed
+      seed,
+      clusteredVariance = false, //make particles drop in clusters 
+      clusterSize = 10, //if clustering the variance
+      clusterAngle = 30 //vary the cluster starting angle
     }) {
       const noise = new BaseNoise(seed);
       this.particles = new Float32Array(nParticles * 4); // [x, y, vx, vy] for each particle
@@ -239,14 +259,35 @@ class VectorField {
       const particleXY = Math.floor(Math.sqrt(particlesPerField));
     
       let particleIndex = 0;
+      let clusterCt = 0;
+      let clusterX, clusterY;
+      let clusterVX, clusterVY;
       for (let i = 0; i < startPositions.length; i++) {
         const [startX, startY] = startPositions[i];
         for (let j = 0; j < particlesPerField; j++) {
-          const x = startX + (randomDistribution ? noise.seededRandom() * variance : variance * (j % particleXY) / particleXY);
-          const y = startY + (randomDistribution ? noise.seededRandom() * variance : variance * (Math.floor(j / particleXY)) / particleXY);
+
+          let x,y,vx,vy;
           const speed = initialSpeedRange[0] + noise.seededRandom() * (initialSpeedRange[1] - initialSpeedRange[0]);
-          const vx = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[0]) * speed;
-          const vy = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[1]) * speed;
+
+          if(clusteredVariance) {
+            if(clusterCt >= clusterSize) clusterCt = 0;
+            if(clusterCt === 0) {
+              clusterX = startX + (randomDistribution ? noise.seededRandom() * variance : variance * (j % particleXY) / particleXY);
+              clusterY = startY + (randomDistribution ? noise.seededRandom() * variance : variance * (Math.floor(j / particleXY)) / particleXY);
+              const speed = initialSpeedRange[0] + noise.seededRandom() * (initialSpeedRange[1] - initialSpeedRange[0]);
+              clusterVX = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[0]) * speed;
+              clusterVY = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[1]) * speed;
+            }
+
+            x = clusterX; y = clusterY;
+            [vx,vy] = this.varyDirection2D(clusterVX,clusterVY,clusterAngle,noise);
+            clusterCt++;
+          } else {
+            x = startX + (randomDistribution ? noise.seededRandom() * variance : variance * (j % particleXY) / particleXY);
+            y = startY + (randomDistribution ? noise.seededRandom() * variance : variance * (Math.floor(j / particleXY)) / particleXY);
+            vx = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[0]) * speed;
+            vy = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[1]) * speed;
+          }
     
           this.particles[particleIndex * 4] = x;
           this.particles[particleIndex * 4 + 1] = y;
@@ -322,8 +363,37 @@ class VectorField {
       }
     }
 
+
+    rotateVector3D(vx,vy,vz, ux,uy,uz, angle) {
+      const cosA = Math.cos(angle);
+      const sinA = Math.sin(angle);
+    
+      return [
+        (cosA + (1 - cosA) * ux * ux) * vx + ((1 - cosA) * ux * uy - uz * sinA) * vy + ((1 - cosA) * ux * uz + uy * sinA) * vz,
+        ((1 - cosA) * uy * ux + uz * sinA) * vx + (cosA + (1 - cosA) * uy * uy) * vy + ((1 - cosA) * uy * uz - ux * sinA) * vz,
+        ((1 - cosA) * uz * ux - uy * sinA) * vx + ((1 - cosA) * uz * uy + ux * sinA) * vy + (cosA + (1 - cosA) * uz * uz) * vz
+      ];
+    }
+
+    varyDirection3D(vx,vy,vz, maxDegrees, noise) {
+      // Convert max degrees to radians
+      const maxRadians = maxDegrees * (Math.PI / 180);
+      // Generate a random angle within the specified range
+      const angle = ((noise.seededRandom() || Math.random()) - 0.5) * 2 * maxRadians;
+    
+      // Generate a random axis
+      let ux = (noise.seededRandom() || Math.random()); let uy = (noise.seededRandom() || Math.random()); let uz = (noise.seededRandom() || Math.random());
+      const magnitude = Math.sqrt(ux ** 2 + uy ** 2 + uz ** 2);
+    
+      // Rotate the direction vector around the random axis by the random angle
+      return this.rotateVector3D(vx,vy,vz,ux/magnitude,uy/magnitude,uz/magnitude, angle);
+    }
     
     simulateParticles3D({
+      seed,
+      windMul = 0.2,
+      vectorMul = 0.2,
+      curlStrength = 0.1,
       windDirection = [1, 0, 0],
       initialSpeedRange = [0.5, 1.5],
       maxVelocity = 0.5,
@@ -334,11 +404,10 @@ class VectorField {
       variance = 5,
       randomDistribution = true,
       randomInitialDirection = false,
-      nParticles = 100,
-      windMul = 0.2,
-      vectorMul = 0.2,
-      curlStrength = 0.1,
-      seed
+      clusteredVariance = false, //make particles drop in clusters 
+      clusterSize = 10, //if clustering the variance
+      clusterAngle = 30, //vary the cluster starting angle
+      nParticles = 100
     }) {
       const noise = new BaseNoise(seed);
       this.particles = new Float32Array(nParticles * 6); // [x, y, z, vx, vy, vz] for each particle
@@ -367,17 +436,45 @@ class VectorField {
       const particleXYZ = Math.cbrt(particlesPerField);
     
       let particleIndex = 0;
+      let clusterCt = 0;
+      let clusterX, clusterY, clusterZ;
+      let clusterVX, clusterVY, clusterVZ;
       for (let i = 0; i < startPositions.length; i++) {
         const [startX, startY, startZ] = startPositions[i];
+        
         for (let j = 0; j < particlesPerField; j++) {
-          const x = startX + (randomDistribution ? noise.seededRandom() * variance : variance * (j % particleXYZ) / particleXYZ);
-          const y = startY + (randomDistribution ? noise.seededRandom() * variance : variance * (Math.floor(j / particleXYZ) % particleXYZ) / particleXYZ);
-          const z = startZ + (randomDistribution ? noise.seededRandom() * variance : variance * Math.floor(j / (particleXYZ * particleXYZ)) / particleXYZ);
+          let x,y,z,vx,vy,vz;
           const speed = initialSpeedRange[0] + noise.seededRandom() * (initialSpeedRange[1] - initialSpeedRange[0]);
-          const vx = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[0]) * speed;
-          const vy = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[1]) * speed;
-          const vz = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[2]) * speed;
-    
+
+          if(clusteredVariance) {
+            if(clusterCt > clusterSize) clusterCt = 0;
+            if(clusterCt === 0) {
+              clusterX = startX + (randomDistribution ? noise.seededRandom() * variance : variance * (j % particleXYZ) / particleXYZ);
+              clusterY = startY + (randomDistribution ? noise.seededRandom() * variance : variance * (Math.floor(j / particleXYZ) % particleXYZ) / particleXYZ);
+              clusterZ = startZ + (randomDistribution ? noise.seededRandom() * variance : variance * Math.floor(j / (particleXYZ * particleXYZ)) / particleXYZ);
+              const speed = initialSpeedRange[0] + noise.seededRandom() * (initialSpeedRange[1] - initialSpeedRange[0]);
+              
+
+              clusterVX = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[0]) * speed;
+              clusterVY = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[1]) * speed;
+              clusterVZ = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[2]) * speed;
+
+            }
+
+            x = clusterX; y = clusterY; z = clusterZ;
+            [vx,vy,vz] = this.varyDirection3D(clusterVX,clusterVY,clusterVZ,clusterAngle,noise);
+
+            clusterCt++;
+          } else {
+            x = startX + (randomDistribution ? noise.seededRandom() * variance : variance * (j % particleXYZ) / particleXYZ);
+            y = startY + (randomDistribution ? noise.seededRandom() * variance : variance * (Math.floor(j / particleXYZ) % particleXYZ) / particleXYZ);
+            z = startZ + (randomDistribution ? noise.seededRandom() * variance : variance * Math.floor(j / (particleXYZ * particleXYZ)) / particleXYZ);
+            vx = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[0]) * speed;
+            vy = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[1]) * speed;
+            vz = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[2]) * speed;
+          }
+
+
           this.particles[particleIndex * 6] = x;
           this.particles[particleIndex * 6 + 1] = y;
           this.particles[particleIndex * 6 + 2] = z;
@@ -552,8 +649,8 @@ class VectorField {
                   positions[positionIndex++] = y - this.vectorField.sizeY / 2;
 
                   // Fill UVs
-                  uvs[uvIndex++] =(x) / this.vectorField.sizeX;
-                  uvs[uvIndex++] = (this.vectorField.sizeY - y) / this.vectorField.sizeY;
+                  uvs[uvIndex++] = (1+x)/ (this.vectorField.sizeX-1);
+                  uvs[uvIndex++] = (1+this.vectorField.sizeY - y) / (this.vectorField.sizeY-1);
 
                   // Fill indices
                   if (x < this.vectorField.sizeX - 1 && y < this.vectorField.sizeY - 1) {
@@ -758,20 +855,21 @@ export const VFieldRender = async () => {
   await pvectorFieldGen2D.generateFlowField(seed, noiseConfigs, stepSize, true);
   await pvectorFieldGen2D.visualizeVectorField2D(container2, {
     windDirection: [1, 1],
-    initialSpeedRange: [0.1, 0.2],
-    maxVelocity: 0.2,
-    minVelocity: 0.01, //terminate path
-    maxSteps: 200,
+    initialSpeedRange: [0.7, 1],
+    maxVelocity: 1,
+    minVelocity: 0.001, //terminate path
+    maxSteps: 20,
     randomTerminationProb: 0.01,
     startPositions: [[0, 0]],//, [0, 25], [25, 0], [5, 0], [0, 5], [0, 10], [10, 0], [15, 0], [0, 15]],
     variance: 100, //randomly seed over entire 50x50 grid from 0,0 position
     randomDistribution: true, //random or even distribution?
-    nParticles: 3000,
+    nParticles: 5000,
     vectorMul: 2,
-    windMul: 1,
-    curlStrength: 0.0,
+    windMul: 0,
+    curlStrength: 0.25,
     randomInitialDirection: false,
-    seed
+    seed,
+    clusteredVariance:true
   }, true);
 
   const vectorFieldGen3D = new VectorFieldGenerator(3, 30, 30, 30);
@@ -796,7 +894,8 @@ export const VFieldRender = async () => {
     windMul: 2,
     curlStrength: 0.25,
     randomInitialDirection: false,
-    seed
+    seed,
+    clusteredVariance:true
   });
 
 
