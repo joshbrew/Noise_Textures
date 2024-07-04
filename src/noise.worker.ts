@@ -17,6 +17,7 @@ interface NoiseConfig {
     xRange?: Range;
     yRange?: Range;
     zRange?: Range;
+    seed?: number;
 }
 
 interface MessageData {
@@ -42,7 +43,7 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
         const noiseGenerators: { [key: string]: any } = {};
         for (let config of noiseConfigs) {
             if (!noiseGenerators[config.type]) {
-                noiseGenerators[config.type] = new noise[config.type](seed);
+                noiseGenerators[config.type] = new noise[config.type](typeof config.seed === 'number' ? config.seed : seed);
             }
         }
 

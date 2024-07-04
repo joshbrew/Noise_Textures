@@ -1,15 +1,15 @@
 import * as BABYLON from 'babylonjs'
 import { BaseNoise } from './noiseFunctions';
 
-class VectorField {
-    constructor(dimensions=2, sizeX, sizeY, sizeZ = 1) {
+export class VectorField {
+    constructor(dimensions=2, sizeX, sizeY=1, sizeZ = 1) {
       if (dimensions !== 2 && dimensions !== 3) {
         throw new Error("Dimensions must be either 2 or 3.");
       }
   
       this.dimensions = dimensions;
       this.sizeX = sizeX;
-      this.sizeY = sizeY;
+      this.sizeY = dimensions > 1 ? sizeY : 1;
       this.sizeZ = dimensions === 3 ? sizeZ : 1;
   
       const fieldSize = sizeX * sizeY * sizeZ * this.dimensions;
@@ -17,7 +17,8 @@ class VectorField {
     }
   
     _getIndex(x, y, z = 0) {
-      return (x + this.sizeX * (y + this.sizeY * z)) * this.dimensions;
+      if(this.dimensions === 3) return (x + this.sizeX * (y + this.sizeY * z)) * 3;
+      else return (x + this.sizeX * y) * 2;
     }
   
     setVector(x, y, z, vector) {
@@ -84,7 +85,7 @@ class VectorField {
 
   import noiseWorker from './noise.worker'
 
-  class VectorFieldGenerator {
+  export class VectorFieldGenerator {
     constructor(dimensions, sizeX=1, sizeY=1, sizeZ = 1) {
       this.vectorField = new VectorField(dimensions, sizeX, sizeY, sizeZ);
       this.dimensions = dimensions;
@@ -217,6 +218,7 @@ class VectorField {
     }
 
     simulateParticles({
+      nParticles = 100,
       windDirection = [1, 0],
       initialSpeedRange = [0.5, 1.5],
       maxVelocity = 0.5,
@@ -227,14 +229,13 @@ class VectorField {
       variance = 5,
       randomDistribution = true,
       randomInitialDirection = false,
-      nParticles = 100,
       windMul = 0.2,
       vectorMul = 0.2,
-      curlStrength = 0.1,
-      seed,
-      clusteredVariance = false, //make particles drop in clusters 
-      clusterSize = 10, //if clustering the variance
-      clusterAngle = 30 //vary the cluster starting angle
+      curlStrength = 0.1, 
+      clusteredVariance = false, //make particles drop in 
+      clusters = nParticles/25,
+      clusterAngle = 30, //vary the cluster starting angle
+      seed = 10000+10000*Math.random() //deterministic results
     }) {
       const noise = new BaseNoise(seed);
       this.particles = new Float32Array(nParticles * 4); // [x, y, vx, vy] for each particle
@@ -262,6 +263,9 @@ class VectorField {
       let clusterCt = 0;
       let clusterX, clusterY;
       let clusterVX, clusterVY;
+      let clusterSize = 0; 
+      if(clusteredVariance) clusterSize = particlesPerField / (clusters*startPositions.length);
+
       for (let i = 0; i < startPositions.length; i++) {
         const [startX, startY] = startPositions[i];
         for (let j = 0; j < particlesPerField; j++) {
@@ -271,9 +275,25 @@ class VectorField {
 
           if(clusteredVariance) {
             if(clusterCt >= clusterSize) clusterCt = 0;
-            if(clusterCt === 0) {
-              clusterX = startX + (randomDistribution ? noise.seededRandom() * variance : variance * (j % particleXY) / particleXY);
-              clusterY = startY + (randomDistribution ? noise.seededRandom() * variance : variance * (Math.floor(j / particleXY)) / particleXY);
+            if (clusterCt === 0) {
+              if(!randomDistribution) {
+
+                // Calculate the number of clusters per row and column
+                const clustersPerRow = Math.ceil(Math.sqrt(clusters)); // Number of clusters per row
+                const clustersPerCol = Math.ceil(clusters / clustersPerRow)*(clusterSize); // Number of clusters per column
+            
+                // Calculate the grid position for the current cluster
+                const clusterRow = Math.floor(j / clustersPerRow);
+                const clusterCol = j % (clustersPerRow);
+            
+                // Calculate cluster positions based on grid size
+                clusterX = startX + (clusterCol * (variance / clustersPerRow) + (variance / clustersPerRow));
+                clusterY = startY + (clusterRow * (variance / clustersPerCol) + (variance / clustersPerCol));
+          
+              } else {
+                clusterX = startX + variance*noise.seededRandom();
+                clusterY = startY + variance*noise.seededRandom();
+              }
               const speed = initialSpeedRange[0] + noise.seededRandom() * (initialSpeedRange[1] - initialSpeedRange[0]);
               clusterVX = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[0]) * speed;
               clusterVY = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[1]) * speed;
@@ -390,7 +410,8 @@ class VectorField {
     }
     
     simulateParticles3D({
-      seed,
+      nParticles = 100,
+      seed = 10000+10000*Math.random(),
       windMul = 0.2,
       vectorMul = 0.2,
       curlStrength = 0.1,
@@ -405,9 +426,8 @@ class VectorField {
       randomDistribution = true,
       randomInitialDirection = false,
       clusteredVariance = false, //make particles drop in clusters 
-      clusterSize = 10, //if clustering the variance
+      clusters = nParticles/25, //if clustering the variance
       clusterAngle = 30, //vary the cluster starting angle
-      nParticles = 100
     }) {
       const noise = new BaseNoise(seed);
       this.particles = new Float32Array(nParticles * 6); // [x, y, z, vx, vy, vz] for each particle
@@ -439,6 +459,8 @@ class VectorField {
       let clusterCt = 0;
       let clusterX, clusterY, clusterZ;
       let clusterVX, clusterVY, clusterVZ;
+      let clusterSize = 0; 
+      if(clusteredVariance) clusterSize = particlesPerField / (clusters*startPositions.length);
       for (let i = 0; i < startPositions.length; i++) {
         const [startX, startY, startZ] = startPositions[i];
         
@@ -448,17 +470,33 @@ class VectorField {
 
           if(clusteredVariance) {
             if(clusterCt > clusterSize) clusterCt = 0;
-            if(clusterCt === 0) {
-              clusterX = startX + (randomDistribution ? noise.seededRandom() * variance : variance * (j % particleXYZ) / particleXYZ);
-              clusterY = startY + (randomDistribution ? noise.seededRandom() * variance : variance * (Math.floor(j / particleXYZ) % particleXYZ) / particleXYZ);
-              clusterZ = startZ + (randomDistribution ? noise.seededRandom() * variance : variance * Math.floor(j / (particleXYZ * particleXYZ)) / particleXYZ);
-              const speed = initialSpeedRange[0] + noise.seededRandom() * (initialSpeedRange[1] - initialSpeedRange[0]);
-              
+            if (clusterCt === 0) {
+              if (!randomDistribution) {
+                // Calculate the grid position for the current cluster
+                const clustersPerSide = Math.cbrt(clusters);
 
+                const clusterIndex = j/clusterSize;
+                
+                const clusterRow = Math.floor(clusterIndex / (clustersPerSide * clustersPerSide));
+                const clusterCol = Math.floor((clusterIndex % (clustersPerSide * clustersPerSide)) / clustersPerSide);
+                const clusterDepth = (clusterIndex % clustersPerSide);
+                
+                // Calculate cluster positions based on variance
+                clusterX = startX + (clusterCol * variance/clustersPerSide);
+                clusterY = startY + (clusterRow * variance/clustersPerSide);
+                clusterZ = startZ + (clusterDepth * variance/clustersPerSide);
+              } else {
+                // Calculate cluster positions based on variance
+                clusterX = startX + variance * noise.seededRandom();
+                clusterY = startY + variance * noise.seededRandom();
+                clusterZ = startZ + variance * noise.seededRandom();
+
+              }
+             
+              const speed = initialSpeedRange[0] + noise.seededRandom() * (initialSpeedRange[1] - initialSpeedRange[0]);
               clusterVX = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[0]) * speed;
               clusterVY = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[1]) * speed;
               clusterVZ = (randomInitialDirection ? (2 * noise.seededRandom() - 1) : windDirection[2]) * speed;
-
             }
 
             x = clusterX; y = clusterY; z = clusterZ;
@@ -568,16 +606,19 @@ class VectorField {
       if(noiseConfigs) await this.generateFlowField(seed, noiseConfigs, stepSize, getGradient);
 
       this.canvas2D = document.createElement('canvas');
-      this.canvas2D.width = 500;
-      this.canvas2D.height = 500;
+      this.canvas2D.width = 1000;
+      this.canvas2D.height = 1000;
+      
       this.canvas2D.style.backgroundColor = 'black';
+      this.canvas2D.style.width='500px';
+      this.canvas2D.style.height='500px';
       const ctx = this.canvas2D.getContext('2d');
       const width = this.canvas2D.width;
       const height = this.canvas2D.height;
 
       ctx.clearRect(0, 0, width, height);
-      ctx.fillStyle = 'black';
-      ctx.fillRect(0,0,this.canvas2D.width,this.canvas2D.height);
+      //ctx.fillStyle = 'black';
+      //ctx.fillRect(0,0,this.canvas2D.width,this.canvas2D.height);
 
       ctx.strokeStyle = 'white';
       if (particleParams) {
@@ -692,8 +733,8 @@ class VectorField {
 
           const material = new BABYLON.StandardMaterial("material", scene);
           material.diffuseTexture = texture;
-          material.diffuseColor = new BABYLON.Color3(0.5,0.5,0.5);
-          material.specularColor = new BABYLON.Color3(0.015, 0.015, 0.015);
+          //material.diffuseColor = new BABYLON.Color3(0.5,0.5,0.5);
+          material.specularColor = new BABYLON.Color3(0.15, 0.15, 0.15);
           customMesh.material = material;
 
           engine.runRenderLoop(() => {
@@ -810,102 +851,3 @@ class VectorField {
     
 }
     
-export const VFieldRender = async () => {
-  // Example usage
-
-  const cc = document.createElement('div');
-  const container = document.createElement('div');
-  const container2 = document.createElement('div');
-  const container3 = document.createElement('div');
-  const container4 = document.createElement('div');
-  document.body.appendChild(cc);
-  cc.appendChild(container);
-  cc.appendChild(container2);
-  cc.appendChild(container3);
-  cc.appendChild(container4);
-  container2.style.position = 'absolute';
-  container2.style.left = '510px';
-  container3.style.position = 'absolute';
-  container3.style.top = '500px';
-  container4.style.position = 'absolute';
-  container4.style.top = '500px';
-  container4.style.left = '500px';
-
-  
-  const noiseConfigs = [
-    {
-      type: 'VoronoiTileNoise',
-      zoom: 100.0,
-      octaves: 3,
-      lacunarity: 2.0,
-      gain: 0.5,
-      shift: 0,
-      frequency: 1,
-    },
-  ];
-
-  const stepSize = 1;
-  const seed = 12345.67891;///Math.floor(Math.random() * 10000);
-
-  const vectorFieldGen2D = new VectorFieldGenerator(2, 100, 100);
-  await vectorFieldGen2D.generateFlowField(seed, noiseConfigs, stepSize, true);
-  await vectorFieldGen2D.visualizeVectorField2D(container);
-
-  const pvectorFieldGen2D = new VectorFieldGenerator(2, 100, 100);
-  await pvectorFieldGen2D.generateFlowField(seed, noiseConfigs, stepSize, true);
-  await pvectorFieldGen2D.visualizeVectorField2D(container2, {
-    windDirection: [1, 1],
-    initialSpeedRange: [0.7, 1],
-    maxVelocity: 1,
-    minVelocity: 0.001, //terminate path
-    maxSteps: 20,
-    randomTerminationProb: 0.01,
-    startPositions: [[0, 0]],//, [0, 25], [25, 0], [5, 0], [0, 5], [0, 10], [10, 0], [15, 0], [0, 15]],
-    variance: 100, //randomly seed over entire 50x50 grid from 0,0 position
-    randomDistribution: true, //random or even distribution?
-    nParticles: 5000,
-    vectorMul: 2,
-    windMul: 0,
-    curlStrength: 0.25,
-    randomInitialDirection: false,
-    seed,
-    clusteredVariance:true
-  }, true);
-
-  const vectorFieldGen3D = new VectorFieldGenerator(3, 30, 30, 30);
-  await vectorFieldGen3D.generateFlowField(seed, noiseConfigs, stepSize, true);
-  await vectorFieldGen3D.visualizeVectorField3D(container3);
-
-  // Add particle visualization in 3D
-  const pvectorFieldGen3D = new VectorFieldGenerator(3, 30, 30, 30);
-  await pvectorFieldGen3D.generateFlowField(seed, noiseConfigs, stepSize, true);
-  await pvectorFieldGen3D.visualizeVectorField3D(container4, {
-    windDirection: [1, 1, 1],
-    initialSpeedRange: [0.1, 0.2, 0.2],
-    maxVelocity: 0.2,
-    minVelocity: 0.01, //terminate path
-    maxSteps: 100,
-    randomTerminationProb: 0.01,
-    startPositions: [[0, 0, 0]],
-    variance: 30, //randomly seed over entire 20x20x20 grid from 0,0,0 position
-    randomDistribution: true, //random or even distribution?
-    nParticles: 1500,
-    vectorMul: 0.5,
-    windMul: 2,
-    curlStrength: 0.25,
-    randomInitialDirection: false,
-    seed,
-    clusteredVariance:true
-  });
-
-
-  return {vectorFieldGen2D, vectorFieldGen3D, pvectorFieldGen2D, pvectorFieldGen3D, container: cc};
-}
-
-export const cleanupVFieldRender = async (scene) => {
-    scene.vectorFieldGen2D.cleanup();
-    scene.pvectorFieldGen2D.cleanup();
-    scene.vectorFieldGen3D.cleanup();
-    scene.pvectorFieldGen3D.cleanup();
-    scene.container.remove();
-}

@@ -12,7 +12,7 @@ import {planetRender, clearPlanetRender} from './src/scenes/planetscene'
 //with WIP erosion sim
 import { terrainRender, clearTerrainRender } from './src/scenes/terrainscene' 
 
-import { VFieldRender, cleanupVFieldRender } from './src/vectorfields';
+import { VFieldRender, cleanupVFieldRender } from './src/scenes/vectorfieldvis';
 
 
 let currentRender = null;
@@ -145,7 +145,7 @@ function createRadioButtons(defaultScene) {
 
 const main = async () => {
 
-    const defaultScene = 'planet'; //'noise' 'planet' 'terrain' 'vf'
+    const defaultScene = 'vf'; //'noise' 'planet' 'terrain' 'vf'
 
     await renderScene(defaultScene);
     createRadioButtons(defaultScene);
