@@ -199,101 +199,13 @@ export async function terrainRender() {
 
 
         const heightmap = await runNoiseWorkers(width,height);
-
-
         
-        
-
-        function initializeData(heightmap, width, height) {
-            const data = {
-                terrainHeight: heightmap,
-                waterHeight: new Float32Array(width * height),
-                sediment: new Float32Array(width * height),
-                outflowFlux: new Float32Array(width * height * 4), // 4 directions
-                velocity: new Float32Array(width * height * 2), // 2 components
-            };
-            return data;
-        }
-        
-        function setupWorkers(numWorkers, data, width, height) {
-            const workers = [];
-            const ports = [];
-        
-            for (let i = 0; i < numWorkers; i++) {
-                for (let j = i + 1; j < numWorkers; j++) {
-                    const chan = new MessageChannel();
-                    ports.push({ port1: chan.port1, port2: chan.port2, worker1: i, worker2: j });
-                }
-            }
-        
-            for (let i = 0; i < numWorkers; i++) {
-                const workerPorts = ports.filter(p => p.worker1 === i || p.worker2 === i).map(p => p.worker1 === i ? p.port1 : p.port2);
-                const worker = new Worker(erosionworker);
-        
-                const buffers = {
-                    terrainHeight: data.terrainHeight.slice(0),
-                    waterHeight: data.waterHeight.slice(0),
-                    sediment: data.sediment.slice(0),
-                    outflowFlux: data.outflowFlux.slice(0),
-                    velocity: data.velocity.slice(0)
-                }
-        
-                worker.postMessage({
-                    buffers,
-                    width: width,
-                    height: height,
-                    numIterations: 100, // Example number of iterations
-                    ports: workerPorts,
-                    numWorkers,
-                    stepSize:0.1,
-                    quadSize: 10, //meters^2
-                    heightScale: 10000, //meters
-                    workerId: i,
-                    startY: Math.floor(height / numWorkers) * i,
-                    endY: i === numWorkers - 1 ? height : Math.floor(height / numWorkers) * (i + 1)
-                }, [...workerPorts, ...Object.values(buffers).map(b => b.buffer)]);
-                workers.push(worker);
-            }
-            return workers;
-        }
-        
-        function handleWorkerMessages(workers) {
-            return new Promise((res) => {
-                workers.forEach(worker => {
-                    worker.onmessage = (e) => {
-                        if (e.data.progress !== undefined) {
-                            console.log(`Progress: ${Math.round(e.data.progress * 100)}%`);
-                        } else if (e.data.finalHeightmap) {
-        
-                            //console.log('Final heightmap received:', e.data.finalHeightmap);
-        
-                            workers.forEach((w) => {
-                                w.terminate();
-                            });
-                            
-                            res(e.data.finalHeightmap);
-                        }
-                    };
-                });
-            });
-        }
-  
         let minValue = Infinity;
         for (let i = 0; i < heightmap.length; i++) {
             if (heightmap[i] < minValue) {
                 minValue = heightmap[i];
             }
         }
-
-        const offset = Math.abs(minValue); // Find the absolute value of the minimum to use as offset
-        const adjustedHeightmap = heightmap.map(value => value + offset); // Adjust the heightmap
-
-        const data = initializeData(adjustedHeightmap, width, height);
-        const numWorkers = 4;
-        //const workers = setupWorkers(numWorkers, data, width, height);
-        //const erosionMap = await handleWorkerMessages(workers, width, height);
-
-        //const finalHeightmap = erosionMap.map(value => value - offset); // Revert the offset
 
         // Preallocate arrays for the custom mesh
         const positions = new Float32Array(width * height * 3);

@@ -166,8 +166,8 @@ export async function planetRender() {
         const noiseConfigs = [
             { type: 'FractalBrownianMotion', scalar:0.75, zoom: zoomFactor * 0.8, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 2.0, frequency: 1, offset: offset },
             { type: 'FractalBrownianMotion2', scalar:0.75, zoom: zoomFactor * 1, octaves: 8, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 1.3, frequency: 1, offset: offset },
-            { type: 'VoronoiTileNoise', scalar:1, zoom: zoomFactor * 0.35, octaves: 2, lacunarity: 2, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
-            { type: 'RidgedMultifractalNoise4', scalar:0.85, zoom: zoomFactor * 0.2, octaves: 6, lacunarity: 2.1, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
+            { type: 'VoronoiTileNoise', scalar:0.9, zoom: zoomFactor * 0.35, octaves: 2, lacunarity: 2, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
+            { type: 'RidgedMultifractalNoise4', zoom: zoomFactor * 0.2, octaves: 6, lacunarity: 2.1, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
             { type: 'LanczosBillowNoise', zoom: zoomFactor * 0.5, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer2 + 1.3 * 0.5, frequency: 1, offset: offset }
         ];
 
