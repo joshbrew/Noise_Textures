@@ -39,7 +39,6 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
         const { seed, noiseConfigs, xRange, yRange, zRange, stepSize, getGradient, get2dPitch } = e.data;
         //console.log(e.data);
 
-        const epsilon = 0.0001;
 
         // Initialize noise generators
         const noiseGenerators: { [key: string]: any } = {};
@@ -66,11 +65,17 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
         let index = 0;
         let gradIndex = 0;
         if (zRange) { // 3D case
+
+            const espilonX = 1/xCount; 
+            const epsilonY = 1/yCount;
+            const epsilonZ = 1/zCount;
+
             for (let z = startZ; z <= endZ; z += stepSize) {
                 for (let y = startY; y <= endY; y += stepSize) {
                     for (let x = startX; x <= endX; x += stepSize) {
                         let finalValue = 0;
                         let finalDx = 0, finalDy = 0, finalDz = 0;
+                        
                         for (let config of noiseConfigs) {
                             if ((!config.xRange || (x >= config.xRange.start && x <= config.xRange.end)) &&
                                 (!config.yRange || (y >= config.yRange.start && y <= config.yRange.end)) &&
@@ -93,12 +98,12 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                                 finalValue += noiseValue;
 
                                 if (getGradient) {
-                                    const dx = (generator.generateNoise(x + epsilon, y, z, zoom, octaves, lacunarity, gain, shift, frequency) -
-                                                generator.generateNoise(x - epsilon, y, z, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilon);
-                                    const dy = (generator.generateNoise(x, y + epsilon, z, zoom, octaves, lacunarity, gain, shift, frequency) -
-                                                generator.generateNoise(x, y - epsilon, z, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilon);
-                                    const dz = (generator.generateNoise(x, y, z + epsilon, zoom, octaves, lacunarity, gain, shift, frequency) -
-                                                generator.generateNoise(x, y, z - epsilon, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilon);
+                                    const dx = (generator.generateNoise(x + espilonX, y, z, zoom, octaves, lacunarity, gain, shift, frequency) -
+                                                generator.generateNoise(x - espilonX, y, z, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * espilonX);
+                                    const dy = (generator.generateNoise(x, y + epsilonY, z, zoom, octaves, lacunarity, gain, shift, frequency) -
+                                                generator.generateNoise(x, y - epsilonY, z, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilonY);
+                                    const dz = (generator.generateNoise(x, y, z + epsilonZ, zoom, octaves, lacunarity, gain, shift, frequency) -
+                                                generator.generateNoise(x, y, z - epsilonZ, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilonZ);
                                     
                                     const _mag = 1/(Math.sqrt(dx*dx+dy*dy*dz*dz) || 1); //normalize
                                     //const _mag = 1/(2*zoom*epsilon);
@@ -119,6 +124,10 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                 }
             }
         } else if (yRange) { // 2D case
+            
+            const espilonX = 1/xCount; 
+            const epsilonY = 1/yCount;
+
             for (let y = startY; y <= endY; y += stepSize) {
                 for (let x = startX; x <= endX; x += stepSize) {
                     let finalValue = 0;
@@ -145,10 +154,10 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
 
                             if (getGradient) {
                                 const zoom = config.zoom || 1.0;
-                                const dx = (generator.generateNoise(x + epsilon, y, 0, zoom, octaves, lacunarity, gain, shift, frequency) -
-                                            generator.generateNoise(x - epsilon, y, 0, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilon);
-                                const dy = (generator.generateNoise(x, y + epsilon, 0, zoom, octaves, lacunarity, gain, shift, frequency) -
-                                            generator.generateNoise(x, y - epsilon, 0, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilon);
+                                const dx = (generator.generateNoise(x + espilonX, y, 0, zoom, octaves, lacunarity, gain, shift, frequency) -
+                                            generator.generateNoise(x - espilonX, y, 0, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * espilonX);
+                                const dy = (generator.generateNoise(x, y + epsilonY, 0, zoom, octaves, lacunarity, gain, shift, frequency) -
+                                            generator.generateNoise(x, y - epsilonY, 0, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilonY);
                                 
                                 if(get2dPitch && pitch) {
                                     const noiseValue2 = generator.generateNoise(x+dx, y+dy, 0, zoom, octaves, lacunarity, gain, shift, frequency);
@@ -182,6 +191,8 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                 }
             }
         } else { // 1D case
+
+            const espilonX = 1/xCount; 
             for (let x = startX; x <= endX; x += stepSize) {
                 let finalValue = 0;
                 let finalDx = 0;
@@ -206,10 +217,10 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
 
                         if (getGradient) {
                             const zoom = config.zoom || 1.0
-                            const dx = (generator.generateNoise(x + epsilon, 0, 0, zoom, octaves, lacunarity, gain, shift, frequency) -
-                                        generator.generateNoise(x - epsilon, 0, 0, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilon);
+                            const dx = (generator.generateNoise(x + espilonX, 0, 0, zoom, octaves, lacunarity, gain, shift, frequency) -
+                                        generator.generateNoise(x - espilonX, 0, 0, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * espilonX);
 
-                            finalDx += dx/(2*zoom*epsilon);
+                            finalDx += dx/espilonX;
                         }
                     }
                 }

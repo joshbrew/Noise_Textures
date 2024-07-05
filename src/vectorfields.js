@@ -738,8 +738,8 @@ export class VectorField {
                   positions2[positionIndex-1] = positions[positionIndex-1];
 
                   // Fill UVs
-                  uvs[uvIndex++] = (1 + x) / (this.vectorField.sizeX - 1);
-                  uvs[uvIndex++] = (1 + this.vectorField.sizeY - y) / (this.vectorField.sizeY - 1);
+                  uvs[uvIndex++] = x / (this.vectorField.sizeX - 1);
+                  uvs[uvIndex++] = (this.vectorField.sizeY - 1 - y) / (this.vectorField.sizeY - 1);
 
                   // Calculate angle and assign color based on height and angle
                   const mag = Math.sqrt(vector[1]*vector[1]+vector[0]*vector[0]);
