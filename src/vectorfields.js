@@ -243,7 +243,8 @@ export class VectorField {
       clusteredVariance = false, //make particles drop in 
       clusters = nParticles/25,
       clusterAngle = 30, //vary the cluster starting angle
-      seed = 10000+10000*Math.random() //deterministic results
+      seed = 10000+10000*Math.random(), //deterministic results
+      usePitch2d = false
     }) {
       const noise = new BaseNoise(seed);
       this.particles = new Float32Array(nParticles * 4); // [x, y, vx, vy] for each particle
@@ -363,8 +364,11 @@ export class VectorField {
           vx += windDirection[0] * windMul;
           vy += windDirection[1] * windMul;
     
-          vx += (-vector[0] + acceleration[0]) * vectorMul;
-          vy += (-vector[1] + acceleration[1]) * vectorMul;
+          const pitch = usePitch2d ? this.pitchMap[clampedX+this.vectorField.sizeX*clampedY] : 0;
+          const slopeModifier = pitch !== 0 ? pitch*2 / Math.PI : 1; //subtact pi before multiplying by 2 to reverse slope
+
+          vx += (-slopeModifier*vector[0] + acceleration[0]) * vectorMul;
+          vy += (-slopeModifier*vector[1] + acceleration[1]) * vectorMul;
     
           const currentSpeed = Math.sqrt(vx * vx + vy * vy);
           if (currentSpeed > maxVelocity) {
@@ -375,11 +379,8 @@ export class VectorField {
           x += vx;
           y += vy;
     
-          const slopeModifier = (this.pitchMap[clampedX+this.vectorField.sizeX*clampedY])*2 / Math.PI; //subtact pi before multiplying by 2 to reverse slope
-
-
-          vx *= slopeModifier*0.95;
-          vy *= slopeModifier*0.95;
+          vx *= 0.95;
+          vy *= 0.95;
     
           if (x < 0 || x >= this.vectorField.sizeX || y < 0 || y >= this.vectorField.sizeY) {
             continue; // Terminate if out of bounds
