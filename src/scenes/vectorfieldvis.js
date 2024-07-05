@@ -24,32 +24,42 @@ export const VFieldRender = async () => {
     
     const noiseConfigs1 = [
       {
-        type: 'VoronoiTileNoise',
+        type: 'RidgedMultifractalNoise3',
         zoom: 200.0,
-        octaves: 1,
-        lacunarity: 2.0,
-        gain: 0.5,
-        shift: 0,
-        frequency: 1,
-        transform: 1,
-        scalar:2
-      },
-      {
-        type: 'VoronoiTileNoise',
-        zoom: 100.0,
-        scalar:0.5,
         octaves: 2,
         lacunarity: 2.0,
         gain: 0.5,
         shift: 0,
+        frequency: 1,
+        transform: 0.75,
+        scalar:2
+      },
+      {
+        type: 'FractalBrownianMotion2',
+        zoom: 100.0,
+        scalar:0.1,
+        octaves: 4,
+        lacunarity: 2.0,
+        gain: 0.5,
+        shift: 0,
+        frequency: 1
+      },
+      {
+        type: 'LanczosBillowNoise',
+        zoom: 200.0,
+        scalar:1,
+        octaves: 2,
+        lacunarity: 2.0,
+        gain: 0.5,
+        shift: 190,
         frequency: 1
       }
     ];
   
     const stepSize = 1;
-    const seed = 12345.67891;///Math.floor(Math.random() * 10000);
+    const seed = Math.random()*10000+12345.67891;//seeds make terrain and particle results deterministic
   
-    const vf2dGridSize = 400;
+    const vf2dGridSize = 800;
   
     const vectorFieldGen2D = new VectorFieldGenerator(2, vf2dGridSize, vf2dGridSize);
     await vectorFieldGen2D.generateFlowField(seed, noiseConfigs1, stepSize, true);
@@ -58,24 +68,27 @@ export const VFieldRender = async () => {
     const pvectorFieldGen2D = new VectorFieldGenerator(2, vf2dGridSize, vf2dGridSize);
     await pvectorFieldGen2D.generateFlowField(seed, noiseConfigs1, stepSize, true);
     await pvectorFieldGen2D.visualizeVectorField2D(container2, {
-      nParticles: 5000,
+      nParticles: 10000,
+      clusteredVariance:true,
+      clusters: 500,
       windDirection: [1, 1],
       initialSpeedRange: [0.7, 1],
       maxVelocity: 1,
       minVelocity: 0.001, //terminate path
-      maxSteps: 100,
+      maxSteps: 200,
       randomTerminationProb: 0.01,
       startPositions: [[0, 0]],//, [0, 25], [25, 0], [5, 0], [0, 5], [0, 10], [10, 0], [15, 0], [0, 15]],
       variance: vf2dGridSize, //randomly seed over entire 50x50 grid from 0,0 position
       randomDistribution: true, //random or even distribution?
       vectorMul: 3,
       windMul: 0.5,
-      curlStrength: 0.25,
+      curlStrength: 0.15,
       randomInitialDirection: false,
       seed,
-      clusteredVariance:true,
-      clusters: 500,
-      use2dPitch:true
+      use2dPitch:true,
+      erosion:true,
+      erosionLimit:0.2,
+      erosionPerStep:0.005
     }, true);
   
   

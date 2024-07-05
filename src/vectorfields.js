@@ -247,8 +247,9 @@ export class VectorField {
       clusterAngle = 30, //vary the cluster starting angle
       seed = 10000+10000*Math.random(), //deterministic results
       usePitch2d = false,
-      erode=true, //decrement the heightmap?
-      erosionLimit=0.1 //max offset the water trails can create?
+      erosion=true, //decrement the heightmap?
+      erosionLimit=0.1, //max offset the water trails can create?
+      erosionPerStep=0.0075
     }) {
       const noise = new BaseNoise(seed);
       this.particles = new Float32Array(nParticles * 4); // [x, y, vx, vy] for each particle
@@ -334,7 +335,7 @@ export class VectorField {
       const acceleration = new Float32Array(2);
       const curl = new Float32Array(2);
 
-      let heightMapCpy = erode ? new Float32Array(this.heightMap) : null;
+      let heightMapCpy = erosion ? new Float32Array(this.heightMap) : null;
     
       for (let step = 0; step < maxSteps; step++) {
         for (let i = 0; i < nParticles; i++) {
@@ -353,8 +354,8 @@ export class VectorField {
           const heightMapIdx = clampedX+this.vectorField.sizeX*clampedY;
           const vector = this.vectorField.getVector(clampedX, clampedY);
 
-          if(erode) {
-            heightMapCpy[heightMapIdx] -= 0.01; 
+          if(erosion) {
+            heightMapCpy[heightMapIdx] -= erosionPerStep; 
             
             //keep lower bounds 
             if(heightMapCpy[heightMapIdx] < this.heightMap[heightMapIdx] - erosionLimit) 
@@ -411,7 +412,7 @@ export class VectorField {
         }
       }
 
-      if(erode) {
+      if(erosion) {
         this.heightMap.set(heightMapCpy);
       }
     }
@@ -639,8 +640,8 @@ export class VectorField {
       if(noiseConfigs) await this.generateFlowField(seed, noiseConfigs, stepSize, getGradient, get2dPitch);
 
       this.canvas2D = document.createElement('canvas');
-      this.canvas2D.width = 1000;
-      this.canvas2D.height = 1000;
+      this.canvas2D.width = 4000;
+      this.canvas2D.height = 4000;
       
       this.canvas2D.style.backgroundColor = 'black';
       this.canvas2D.style.width='500px';
