@@ -29,13 +29,14 @@ interface MessageData {
     zRange?: Range;
     stepSize: number;
     getGradient?: boolean;
+    get2dPitch?: boolean;
 }
 
 declare var WorkerGlobalScope;
 
 if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
     self.onmessage = function (e: MessageEvent<MessageData>) {
-        const { seed, noiseConfigs, xRange, yRange, zRange, stepSize, getGradient } = e.data;
+        const { seed, noiseConfigs, xRange, yRange, zRange, stepSize, getGradient, get2dPitch } = e.data;
         //console.log(e.data);
 
         const epsilon = 0.0001;
@@ -59,6 +60,8 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
         const numValues = xCount * yCount * zCount;
         const noiseValues = new Float32Array(numValues);
         const gradientValues = getGradient ? new Float32Array(zRange ? numValues * 3 : yRange ? numValues * 2 : numValues) : null;
+
+        const pitch = get2dPitch ? new Float32Array(numValues) : null; //this will be slope angle created by the triangle made by dx,dy, and noise (height)
 
         let index = 0;
         let gradIndex = 0;
@@ -108,9 +111,9 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                         }
                         noiseValues[index++] = finalValue;
                         if (gradientValues) {
-                            gradientValues[gradIndex++] = finalDx;
-                            gradientValues[gradIndex++] = finalDy;
-                            gradientValues[gradIndex++] = finalDz;
+                            gradientValues[gradIndex++] = finalDx/noiseConfigs.length;
+                            gradientValues[gradIndex++] = finalDy/noiseConfigs.length;
+                            gradientValues[gradIndex++] = finalDz/noiseConfigs.length;
                         }
                     }
                 }
@@ -119,7 +122,7 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
             for (let y = startY; y <= endY; y += stepSize) {
                 for (let x = startX; x <= endX; x += stepSize) {
                     let finalValue = 0;
-                    let finalDx = 0, finalDy = 0;
+                    let finalDx = 0, finalDy = 0, finalPhi = 0;
                     for (let config of noiseConfigs) {
                         if ((!config.xRange || (x >= config.xRange.start && x <= config.xRange.end)) &&
                             (!config.yRange || (y >= config.yRange.start && y <= config.yRange.end))) {
@@ -147,6 +150,17 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                                 const dy = (generator.generateNoise(x, y + epsilon, 0, zoom, octaves, lacunarity, gain, shift, frequency) -
                                             generator.generateNoise(x, y - epsilon, 0, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilon);
                                 
+                                if(get2dPitch && pitch) {
+                                    const noiseValue2 = generator.generateNoise(x+dx, y+dy, 0, zoom, octaves, lacunarity, gain, shift, frequency);
+                                    const dz = noiseValue - noiseValue2; //this is calculating phi for a 2d slope not a 3d noise coordinate
+                                    const magnitude = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    
+                                    // Calculate the polar angle phi
+                                    const phi = Math.acos(dz / magnitude);
+                                    finalPhi += phi;
+                                }
+
+
                                 const _mag = 1/(Math.sqrt(dx*dx+dy*dy) || 1); //normalize
                                 //const _mag = 1/(2*zoom*epsilon);
                                 finalDx += dx*_mag;
@@ -157,8 +171,13 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                     }
                     noiseValues[index++] = finalValue;
                     if (gradientValues) {
-                        gradientValues[gradIndex++] = finalDx;
-                        gradientValues[gradIndex++] = finalDy;
+                        const _l = 1/noiseConfigs.length;
+                        gradientValues[gradIndex++] = finalDx*_l;
+                        gradientValues[gradIndex++] = finalDy*_l;
+
+                        if(get2dPitch && pitch) {
+                            pitch[gradIndex*0.5] = finalPhi*_l; 
+                        }
                     }
                 }
             }
@@ -196,15 +215,27 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                 }
                 noiseValues[index++] = finalValue;
                 if (gradientValues) {
-                    gradientValues[gradIndex++] = finalDx;
+                    gradientValues[gradIndex++] = finalDx/noiseConfigs.length;
                 }
             }
         }
 
         const result: any = { noiseValues };
-        if (gradientValues) result.gradientValues = gradientValues;
+        const transfer = [noiseValues.buffer];
+        if (gradientValues) {
+            result.gradientValues = gradientValues;
+            transfer.push(gradientValues.buffer);
+            
+            if (pitch) {
+                result.pitch = pitch;
+                transfer.push(pitch.buffer);
+            }
+        }
 
-        (self as any).postMessage(result, gradientValues ? [noiseValues.buffer, gradientValues.buffer] : [noiseValues.buffer]);
+        (self as any).postMessage(
+            result, 
+            transfer
+        );
     };
 }
 

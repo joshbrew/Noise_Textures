@@ -95,13 +95,14 @@ export class VectorField {
       this.particles = [];
       this.particleTrails = [];
       this.heightMap = new Float32Array(sizeX * sizeY * sizeZ);
+      if(dimensions === 2) this.pitchMap = new Float32Array(sizeX * sizeY); //will keep slope pitch angles for 2d vector field maps relative to the noise generators used
     }
 
     getHeightmapIndex(x,y,z=0) {
       return x + y * this.vectorField.sizeX + z * this.vectorField.sizeX * this.vectorField.sizeY;
     }
   
-    async generateFlowField(seed, noiseConfigs, stepSize, getGradient = true) {
+    async generateFlowField(seed, noiseConfigs, stepSize, getGradient = true, get2dPitch = this.dimensions===2) {
       const sizeX = this.vectorField.sizeX;
       const sizeY = this.vectorField.sizeY;
       const sizeZ = this.vectorField.sizeZ;
@@ -110,25 +111,30 @@ export class VectorField {
       const yRange = { start: 0, end: sizeY - 1 };
       const zRange = this.dimensions === 3 ? { start: 0, end: sizeZ - 1 } : undefined;
   
-      await this.runNoiseWorker(seed, noiseConfigs, xRange, yRange, zRange, stepSize, getGradient)
+      await this.runNoiseWorker(seed, noiseConfigs, xRange, yRange, zRange, stepSize, getGradient, get2dPitch)
         .then((result) => {
-          const { noiseValues, gradientValues } = result;
+          const { noiseValues, gradientValues, pitchValues } = result;
 
           this.heightMap.set(noiseValues);
 
           if (gradientValues) {
-              this.vectorField.setVectors(gradientValues);
+            this.vectorField.setVectors(gradientValues);
+          }
+          if(pitchValues) {
+            this.pitchMap.set(pitchValues);
           }
       });
     }
   
-    runNoiseWorker = async (seed, noiseConfigs, xRange, yRange, zRange, stepSize, getGradient, maxThreads = navigator.hardwareConcurrency || 4) => {
+    runNoiseWorker = async (seed, noiseConfigs, xRange, yRange, zRange, stepSize, getGradient, get2dPitch, maxThreads = navigator.hardwareConcurrency || 4) => {
         const sizeX = xRange.end - xRange.start + 1;
         const sizeY = yRange.end - yRange.start + 1;
         const sizeZ = zRange ? (zRange.end - zRange.start + 1) : 1;
         const numValues = sizeX * sizeY * sizeZ;
         const noiseValues = new Float32Array(numValues);
+
         const gradientValues = getGradient ? new Float32Array(zRange ? numValues * 3 : numValues * 2) : null;
+        const pitchValues = get2dPitch ? new Float32Array(numValues) : null;
     
         const chunkSize = Math.ceil(sizeY / maxThreads);
         const workers = [];
@@ -145,7 +151,7 @@ export class VectorField {
     
             promises.push(new Promise((resolve) => {
                 worker.onmessage = function (e) {
-                    const { noiseValues: threadNoiseValues, gradientValues: threadGradientValues } = e.data;
+                    const { noiseValues: threadNoiseValues, gradientValues: threadGradientValues, pitch:threadPitchValues } = e.data;
     
                     let index = 0;
                     for (let y = startY; y < endY; y++) {
@@ -171,6 +177,9 @@ export class VectorField {
                                 if (getGradient && gradientValues) {
                                     gradientValues[globalIndex * 2] = threadGradientValues[index * 2];
                                     gradientValues[globalIndex * 2 + 1] = threadGradientValues[index * 2 + 1];
+                                    if(threadPitchValues) {
+                                      pitchValues[globalIndex] = threadPitchValues[index];
+                                    }
                                 }
                                 index++;
                             }
@@ -188,13 +197,14 @@ export class VectorField {
                     yRange: { start: startY, end: endY - 1 }, 
                     zRange, 
                     stepSize, 
-                    getGradient 
+                    getGradient,
+                    get2dPitch
                 });
             }));
         }
         await Promise.all(promises);
     
-        return { noiseValues, gradientValues };
+        return { noiseValues, gradientValues, pitchValues };
     };
         
     
@@ -215,7 +225,7 @@ export class VectorField {
       return this.rotateVector2D(dx, dy, angle);
     }
 
-    simulateParticles({
+    simulateParticles2d({
       nParticles = 100,
       windDirection = [1, 0],
       initialSpeedRange = [0.5, 1.5],
@@ -365,8 +375,11 @@ export class VectorField {
           x += vx;
           y += vy;
     
-          vx *= 0.95;
-          vy *= 0.95;
+          const slopeModifier = (this.pitchMap[clampedX+this.vectorField.sizeX*clampedY])*2 / Math.PI; //subtact pi before multiplying by 2 to reverse slope
+
+
+          vx *= slopeModifier*0.95;
+          vy *= slopeModifier*0.95;
     
           if (x < 0 || x >= this.vectorField.sizeX || y < 0 || y >= this.vectorField.sizeY) {
             continue; // Terminate if out of bounds
@@ -599,9 +612,9 @@ export class VectorField {
       }
     }
 
-     visualizeVectorField2D = async (parentElement, particleParams = undefined, texturedHeightmap=false, noiseConfigs, seed=10000+10000*Math.random(), stepSize=1, getGradient = true) => {
+     visualizeVectorField2D = async (parentElement, particleParams = undefined, texturedHeightmap=false, noiseConfigs, seed=10000+10000*Math.random(), stepSize=1, getGradient = true, get2dPitch=true) => {
       this.cleanup();
-      if(noiseConfigs) await this.generateFlowField(seed, noiseConfigs, stepSize, getGradient);
+      if(noiseConfigs) await this.generateFlowField(seed, noiseConfigs, stepSize, getGradient, get2dPitch);
 
       this.canvas2D = document.createElement('canvas');
       this.canvas2D.width = 1000;
@@ -618,7 +631,7 @@ export class VectorField {
       ctx.strokeStyle = 'white';
 
       if (particleParams) {
-        this.simulateParticles(particleParams);
+        this.simulateParticles2d(particleParams);
 
         const scaleX = width / this.vectorField.sizeX;
         const scaleY = height / this.vectorField.sizeY;
