@@ -67,7 +67,7 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
         let gradIndex = 0;
         if (zRange) { // 3D case
 
-            const espilonX = 1/xCount; 
+            const epsilonX = 1/xCount; 
             const epsilonY = 1/yCount;
             const epsilonZ = 1/zCount;
 
@@ -99,8 +99,8 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                                 finalValue += noiseValue;
 
                                 if (getGradient) {
-                                    const dx = (generator.generateNoise(x + espilonX, y, z, zoom, octaves, lacunarity, gain, shift, frequency) -
-                                                generator.generateNoise(x - espilonX, y, z, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * espilonX);
+                                    const dx = (generator.generateNoise(x + epsilonX, y, z, zoom, octaves, lacunarity, gain, shift, frequency) -
+                                                generator.generateNoise(x - epsilonX, y, z, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilonX);
                                     const dy = (generator.generateNoise(x, y + epsilonY, z, zoom, octaves, lacunarity, gain, shift, frequency) -
                                                 generator.generateNoise(x, y - epsilonY, z, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilonY);
                                     const dz = (generator.generateNoise(x, y, z + epsilonZ, zoom, octaves, lacunarity, gain, shift, frequency) -
@@ -127,7 +127,7 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
             }
         } else if (yRange) { // 2D case
             
-            const espilonX = 1/xCount; 
+            const epsilonX = 1/xCount; 
             const epsilonY = 1/yCount;
 
             for (let y = startY; y <= endY; y += stepSize) {
@@ -158,52 +158,46 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                             //todo: gravity modifier
                             if (getGradient) {
                                 const zoom = config.zoom || 1.0;
-                                const dx = (generator.generateNoise(x + espilonX, y, 0, zoom, octaves, lacunarity, gain, shift, frequency) -
-                                            generator.generateNoise(x - espilonX, y, 0, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * espilonX);
+                                const dx = (generator.generateNoise(x + epsilonX, y, 0, zoom, octaves, lacunarity, gain, shift, frequency) -
+                                            generator.generateNoise(x - epsilonX, y, 0, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilonX);
                                 const dy = (generator.generateNoise(x, y + epsilonY, 0, zoom, octaves, lacunarity, gain, shift, frequency) -
                                             generator.generateNoise(x, y - epsilonY, 0, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilonY);
                                 
-                                if(get2dPitch && pitch) {
-                                    let noiseValue2 = generator.generateNoise(x+dx, y+dy, 0, zoom, octaves, lacunarity, gain, shift, frequency);
+                                if (get2dPitch && pitch) {
+                                    let noiseValue2 = generator.generateNoise(x + epsilonX, y + epsilonY, 0, zoom, octaves, lacunarity, gain, shift, frequency);
                                     
                                     if (config.transform) noiseValue2 += config.transform;
                                     if (config.scalar) noiseValue2 *= config.scalar;
-                                    const dz = noiseValue2-noiseValue; //this is calculating phi for a 2d slope not a 3d noise coordinate
-                                    const magnitude = Math.sqrt((dx * dx + dy * dy + dz * dz)||1);
-                                    totalpitchMag += magnitude;
+                                    const dz = noiseValue2 - noiseValue; // this is calculating phi for a 2d slope not a 3d noise coordinate
+                                    
                                     // Calculate the polar angle phi
-                                    const phi = Math.acos(dz / magnitude);
-                                    finalPhi += phi; //to rescale to get a better relative magnitude between all gradient functions summed
-                                
+                                    const phi = Math.acos(dz);
+                                    finalPhi += phi; 
                                 }
-
-
-                                const mag = (Math.sqrt(dx*dx+dy*dy) || 1); //normalize
+            
+                                const mag = (Math.sqrt(dx * dx + dy * dy) || 1); // normalize
                                 totalMag += mag;
-                                //const _mag = 1/(2*zoom*epsilon);
                                 finalDx += dx;
                                 finalDy += dy;
-
                             }
                         }
                     }
                     noiseValues[index++] = finalValue;
                     if (gradientValues) {
                         const _l = 1 / noiseConfigs.length;
-                        let adjustedDx = finalDx * _l / totalMag;
-                        let adjustedDy = finalDy * _l / totalMag;
-                        let scaledPhi = finalPhi * _l;
+                        let adjustedDx = finalDx * _l;
+                        let adjustedDy = finalDy * _l;
 
                         //use2dPitchGravity
-                        if (get2dPitch && pitch) {
-                            const downWard = Math.sin(scaledPhi);
-                            adjustedDx *= downWard;
-                            adjustedDy *= downWard;
-                            const magdx = Math.sqrt(adjustedDx*adjustedDx+adjustedDy*adjustedDy);
-                            adjustedDx /= magdx;
-                            adjustedDy /= magdx;
+                        if (get2dPitch && pitch) { 
+                            let scaledPhi = finalPhi * _l;
+                            adjustedDx *= scaledPhi;
+                            adjustedDy *= scaledPhi;
                             pitch[gradIndex * 0.5] = scaledPhi;
                         }
+
+                        adjustedDx /= totalMag;
+                        adjustedDy /= totalMag;
 
                         gradientValues[gradIndex++] = adjustedDx;
                         gradientValues[gradIndex++] = adjustedDy;
