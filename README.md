@@ -4,7 +4,7 @@ Quick heightmap/noise texture generation tests for Perlin Noise, Billow Noise, R
 
 Run `npm i -g tinybuild` then `tinybuild` to build/run the project. Babylonjs is using webgpu so use a chrome based browser, or android.
 
-### [Planet Randomizer Example](https://planetsim.netlify.app) (takes several seconds to render!!)
+### [Noise, Planets, Terrain, and Vector Field samples](https://planetsim.netlify.app) (takes several seconds to render!!)
 
 Eventually I'll roll this all into one as a fun terrain or texture mixing tool but there's a lot of optimizing to do inbetween slamming features in.
 
