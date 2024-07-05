@@ -68,8 +68,8 @@ export const VFieldRender = async () => {
       startPositions: [[0, 0]],//, [0, 25], [25, 0], [5, 0], [0, 5], [0, 10], [10, 0], [15, 0], [0, 15]],
       variance: vf2dGridSize, //randomly seed over entire 50x50 grid from 0,0 position
       randomDistribution: true, //random or even distribution?
-      vectorMul: 2,
-      windMul: 0.75,
+      vectorMul: 1,
+      windMul: 0.5,
       curlStrength: 0.25,
       randomInitialDirection: false,
       seed,
