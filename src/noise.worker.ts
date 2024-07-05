@@ -167,7 +167,7 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                                     const magnitude = Math.sqrt(dx * dx + dy * dy + dz * dz);
                                     totalpitchMag += magnitude;
                                     // Calculate the polar angle phi
-                                    const phi = Math.acos(Math.abs(dz) / magnitude);
+                                    const phi = Math.acos(dz / magnitude);
                                     finalPhi += phi; //to rescale back to get a better relative magnitude between all gradient functions summed
                                 }
 
