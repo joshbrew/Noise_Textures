@@ -25,6 +25,11 @@ Run `npm i -g tinybuild` then `tinybuild` to build/run the project. Babylonjs is
       <img width="466" alt="Capture" src="https://github.com/joshbrew/Noise_Textures/assets/18196383/b99793fd-1cc4-4774-9e10-bb86255448f3">
     </td>
   </tr>
+    <tr>  
+    <td colSpan="2">
+      <img width="1128" alt="Capture-min (5)" src="https://github.com/joshbrew/Noise_Textures/assets/18196383/be878f68-624f-45f9-9132-a105c9821cb3">
+    </td>
+    </tr>
 </table>
 
 <table>
@@ -37,8 +42,16 @@ Run `npm i -g tinybuild` then `tinybuild` to build/run the project. Babylonjs is
   </tr>
 </table>
 
-<img width="636" alt="Capture5-min" src="https://github.com/joshbrew/Noise_Textures/assets/18196383/1bbd1687-36fe-4569-8f13-0517a3b6bae4">
 
-![img](https://github.com/joshbrew/Noise_Textures/assets/18196383/da18e2c5-54ca-41cb-af99-b8eff811ce72)
+<table>
+  <tr>
+    <td>
+      <img width="636" alt="Capture5-min" src="https://github.com/joshbrew/Noise_Textures/assets/18196383/1bbd1687-36fe-4569-8f13-0517a3b6bae4">
+    </td>
+    <td>
+      <img width="466" alt="Capture" src="https://github.com/joshbrew/Noise_Textures/assets/18196383/da18e2c5-54ca-41cb-af99-b8eff811ce72">
+    </td>
+  </tr>
+</table>
 
 
