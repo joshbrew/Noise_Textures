@@ -749,7 +749,7 @@ export class VectorField {
                   
                   let r,g,b,a;
                   let r2,g2,b2,a2;
-                  if (heightValue > 0.25 && angle > Math.PI / 2.3) {
+                  if (heightValue > 1 && angle > Math.PI / 2.3) {
                     //high elevation and lower angle
                     
                     r=1; g=1; b=1; a=1;

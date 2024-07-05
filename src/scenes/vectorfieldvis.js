@@ -101,12 +101,12 @@ export const VFieldRender = async () => {
       initialSpeedRange: [0.7, 1],
       maxVelocity: 1,
       minVelocity: 0.001, //terminate path
-      maxSteps: 1000,
+      maxSteps: 300,
       randomTerminationProb: 0.01,
       startPositions: [[0, 0]],//, [0, 25], [25, 0], [5, 0], [0, 5], [0, 10], [10, 0], [15, 0], [0, 15]],
       variance: vf2dGridSize, //randomly seed over entire 50x50 grid from 0,0 position
       randomDistribution: true, //random or even distribution?
-      vectorMul: 3,
+      vectorMul: 5,
       windMul: 0.25,
       curlStrength: 0.25,
       randomInitialDirection: false,
