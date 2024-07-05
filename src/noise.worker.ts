@@ -75,7 +75,7 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                     for (let x = startX; x <= endX; x += stepSize) {
                         let finalValue = 0;
                         let finalDx = 0, finalDy = 0, finalDz = 0;
-                        
+                        let totalMag = 0;
                         for (let config of noiseConfigs) {
                             if ((!config.xRange || (x >= config.xRange.start && x <= config.xRange.end)) &&
                                 (!config.yRange || (y >= config.yRange.start && y <= config.yRange.end)) &&
@@ -105,20 +105,21 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                                     const dz = (generator.generateNoise(x, y, z + epsilonZ, zoom, octaves, lacunarity, gain, shift, frequency) -
                                                 generator.generateNoise(x, y, z - epsilonZ, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilonZ);
                                     
-                                    const _mag = 1/(Math.sqrt(dx*dx+dy*dy*dz*dz) || 1); //normalize
+                                    const mag = 1/(Math.sqrt(dx*dx+dy*dy*dz*dz) || 1); //normalize
                                     //const _mag = 1/(2*zoom*epsilon);
-                                    
-                                    finalDx += dx*_mag;
-                                    finalDy += dy*_mag;
-                                    finalDz += dz*_mag;
+                                    totalMag += mag;
+                                    finalDx += dx;
+                                    finalDy += dy;
+                                    finalDz += dz;
                                 }
                             }
                         }
                         noiseValues[index++] = finalValue;
                         if (gradientValues) {
-                            gradientValues[gradIndex++] = finalDx/noiseConfigs.length;
-                            gradientValues[gradIndex++] = finalDy/noiseConfigs.length;
-                            gradientValues[gradIndex++] = finalDz/noiseConfigs.length;
+                            const _l = noiseConfigs.length*totalMag;
+                            gradientValues[gradIndex++] = finalDx*_l;
+                            gradientValues[gradIndex++] = finalDy*_l;
+                            gradientValues[gradIndex++] = finalDz*_l;
                         }
                     }
                 }
@@ -132,6 +133,7 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                 for (let x = startX; x <= endX; x += stepSize) {
                     let finalValue = 0;
                     let finalDx = 0, finalDy = 0, finalPhi = 0;
+                    let totalpitchMag = 0; let totalMag = 0;
                     for (let config of noiseConfigs) {
                         if ((!config.xRange || (x >= config.xRange.start && x <= config.xRange.end)) &&
                             (!config.yRange || (y >= config.yRange.start && y <= config.yRange.end))) {
@@ -163,17 +165,18 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                                     const noiseValue2 = generator.generateNoise(x+dx, y+dy, 0, zoom, octaves, lacunarity, gain, shift, frequency);
                                     const dz = noiseValue - noiseValue2; //this is calculating phi for a 2d slope not a 3d noise coordinate
                                     const magnitude = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    
+                                    totalpitchMag += magnitude;
                                     // Calculate the polar angle phi
                                     const phi = Math.acos(dz / magnitude);
-                                    finalPhi += phi;
+                                    finalPhi += phi; //to rescale back to get a better relative magnitude between all gradient functions summed
                                 }
 
 
-                                const _mag = 1/(Math.sqrt(dx*dx+dy*dy) || 1); //normalize
+                                const mag = (Math.sqrt(dx*dx+dy*dy) || 1); //normalize
+                                totalMag += mag;
                                 //const _mag = 1/(2*zoom*epsilon);
-                                finalDx += dx*_mag;
-                                finalDy += dy*_mag;
+                                finalDx += dx;
+                                finalDy += dy;
 
                             }
                         }
@@ -181,18 +184,18 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                     noiseValues[index++] = finalValue;
                     if (gradientValues) {
                         const _l = 1/noiseConfigs.length;
-                        gradientValues[gradIndex++] = finalDx*_l;
-                        gradientValues[gradIndex++] = finalDy*_l;
+                        gradientValues[gradIndex++] = finalDx*_l/totalMag;
+                        gradientValues[gradIndex++] = finalDy*_l/totalMag;
 
                         if(get2dPitch && pitch) {
-                            pitch[gradIndex*0.5] = finalPhi*_l; 
+                            pitch[gradIndex*0.5] = finalPhi*_l/totalpitchMag; 
                         }
                     }
                 }
             }
         } else { // 1D case
 
-            const espilonX = 1/xCount; 
+            const epsilonX = 1/xCount; 
             for (let x = startX; x <= endX; x += stepSize) {
                 let finalValue = 0;
                 let finalDx = 0;
@@ -217,16 +220,16 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
 
                         if (getGradient) {
                             const zoom = config.zoom || 1.0
-                            const dx = (generator.generateNoise(x + espilonX, 0, 0, zoom, octaves, lacunarity, gain, shift, frequency) -
-                                        generator.generateNoise(x - espilonX, 0, 0, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * espilonX);
+                            const dx = (generator.generateNoise(x + epsilonX, 0, 0, zoom, octaves, lacunarity, gain, shift, frequency) -
+                                        generator.generateNoise(x - epsilonX, 0, 0, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilonX);
 
-                            finalDx += dx/espilonX;
+                            finalDx += dx;
                         }
                     }
                 }
                 noiseValues[index++] = finalValue;
                 if (gradientValues) {
-                    gradientValues[gradIndex++] = finalDx/noiseConfigs.length;
+                    gradientValues[gradIndex++] = finalDx/(epsilonX*noiseConfigs.length);
                 }
             }
         }

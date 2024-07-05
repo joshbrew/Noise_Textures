@@ -21,7 +21,7 @@ export const VFieldRender = async () => {
     container4.style.top = '510px';
     container4.style.left = '500px';
   
-    
+    //more natural
     const noiseConfigs1 = [
       {
         type: 'RidgedMultifractalNoise3',
@@ -37,7 +37,7 @@ export const VFieldRender = async () => {
       {
         type: 'FractalBrownianMotion2',
         zoom: 100.0,
-        scalar:0.1,
+        scalar:0.05,
         octaves: 4,
         lacunarity: 2.0,
         gain: 0.5,
@@ -55,6 +55,31 @@ export const VFieldRender = async () => {
         frequency: 1
       }
     ];
+
+    //more geometric
+    const noiseConfigs2 = [
+      {
+        type: 'VoronoiTileNoise',
+        zoom: 400.0,
+        octaves: 1,
+        lacunarity: 2.0,
+        gain: 0.5,
+        shift: 0,
+        frequency: 1,
+        transform: 1,
+        scalar:2
+      },
+      {
+        type: 'VoronoiTileNoise',
+        zoom: 200.0,
+        scalar:0.1,
+        octaves: 3,
+        lacunarity: 2.0,
+        gain: 0.5,
+        shift: 0,
+        frequency: 1
+      },
+    ];
   
     const stepSize = 1;
     const seed = Math.random()*10000+12345.67891;//seeds make terrain and particle results deterministic
@@ -62,37 +87,37 @@ export const VFieldRender = async () => {
     const vf2dGridSize = 800;
   
     const vectorFieldGen2D = new VectorFieldGenerator(2, vf2dGridSize, vf2dGridSize);
-    await vectorFieldGen2D.generateFlowField(seed, noiseConfigs1, stepSize, true);
+    await vectorFieldGen2D.generateFlowField(seed, noiseConfigs2, stepSize, true);
     await vectorFieldGen2D.visualizeVectorField2D(container);
   
     const pvectorFieldGen2D = new VectorFieldGenerator(2, vf2dGridSize, vf2dGridSize);
-    await pvectorFieldGen2D.generateFlowField(seed, noiseConfigs1, stepSize, true);
+    await pvectorFieldGen2D.generateFlowField(seed, noiseConfigs2, stepSize, true);
     await pvectorFieldGen2D.visualizeVectorField2D(container2, {
       nParticles: 10000,
       clusteredVariance:true,
-      clusters: 500,
+      clusters: 1000,
       windDirection: [1, 1],
       initialSpeedRange: [0.7, 1],
       maxVelocity: 1,
       minVelocity: 0.001, //terminate path
-      maxSteps: 200,
+      maxSteps: 300,
       randomTerminationProb: 0.01,
       startPositions: [[0, 0]],//, [0, 25], [25, 0], [5, 0], [0, 5], [0, 10], [10, 0], [15, 0], [0, 15]],
       variance: vf2dGridSize, //randomly seed over entire 50x50 grid from 0,0 position
       randomDistribution: true, //random or even distribution?
       vectorMul: 3,
-      windMul: 0.5,
-      curlStrength: 0.15,
+      windMul: 0.25,
+      curlStrength: 0.25,
       randomInitialDirection: false,
       seed,
       use2dPitch:true,
       erosion:true,
       erosionLimit:0.2,
-      erosionPerStep:0.005
+      erosionPerStep:0.01
     }, true);
   
   
-    const noiseConfigs2 = [
+    const noiseConfigs3 = [
       {
         type: 'BillowNoise',
         zoom: 250.0,
@@ -115,12 +140,12 @@ export const VFieldRender = async () => {
   
   
     const vectorFieldGen3D = new VectorFieldGenerator(3, 30, 30, 30);
-    await vectorFieldGen3D.generateFlowField(seed, noiseConfigs2, stepSize, true);
+    await vectorFieldGen3D.generateFlowField(seed, noiseConfigs3, stepSize, true);
     await vectorFieldGen3D.visualizeVectorField3D(container3);
   
     // Add particle visualization in 3D
     const pvectorFieldGen3D = new VectorFieldGenerator(3, 30, 30, 30);
-    await pvectorFieldGen3D.generateFlowField(seed, noiseConfigs2, stepSize, true);
+    await pvectorFieldGen3D.generateFlowField(seed, noiseConfigs3, stepSize, true);
     await pvectorFieldGen3D.visualizeVectorField3D(container4, {
       nParticles: 500,
       windDirection: [1, 0, 1],
