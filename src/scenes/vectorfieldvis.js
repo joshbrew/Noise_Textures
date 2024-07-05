@@ -25,7 +25,7 @@ export const VFieldRender = async () => {
     const noiseConfigs1 = [
       {
         type: 'VoronoiTileNoise',
-        zoom: 100.0,
+        zoom: 200.0,
         octaves: 1,
         lacunarity: 2.0,
         gain: 0.5,
@@ -36,9 +36,9 @@ export const VFieldRender = async () => {
       },
       {
         type: 'VoronoiTileNoise',
-        zoom: 50.0,
-        scalar:0.2,
-        octaves: 3,
+        zoom: 100.0,
+        scalar:0.5,
+        octaves: 2,
         lacunarity: 2.0,
         gain: 0.5,
         shift: 0,
@@ -49,7 +49,7 @@ export const VFieldRender = async () => {
     const stepSize = 1;
     const seed = 12345.67891;///Math.floor(Math.random() * 10000);
   
-    const vf2dGridSize = 200;
+    const vf2dGridSize = 400;
   
     const vectorFieldGen2D = new VectorFieldGenerator(2, vf2dGridSize, vf2dGridSize);
     await vectorFieldGen2D.generateFlowField(seed, noiseConfigs1, stepSize, true);
@@ -68,7 +68,7 @@ export const VFieldRender = async () => {
       startPositions: [[0, 0]],//, [0, 25], [25, 0], [5, 0], [0, 5], [0, 10], [10, 0], [15, 0], [0, 15]],
       variance: vf2dGridSize, //randomly seed over entire 50x50 grid from 0,0 position
       randomDistribution: true, //random or even distribution?
-      vectorMul: 4,
+      vectorMul: 3,
       windMul: 0.5,
       curlStrength: 0.25,
       randomInitialDirection: false,

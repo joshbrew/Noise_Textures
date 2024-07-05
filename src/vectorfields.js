@@ -103,6 +103,8 @@ export class VectorField {
     }
   
     async generateFlowField(seed, noiseConfigs, stepSize, getGradient = true, get2dPitch = this.dimensions===2) {
+
+      this.noiseConfigs = noiseConfigs;
       const sizeX = this.vectorField.sizeX;
       const sizeY = this.vectorField.sizeY;
       const sizeZ = this.vectorField.sizeZ;
@@ -244,7 +246,9 @@ export class VectorField {
       clusters = nParticles/25,
       clusterAngle = 30, //vary the cluster starting angle
       seed = 10000+10000*Math.random(), //deterministic results
-      usePitch2d = false
+      usePitch2d = false,
+      erode=true, //decrement the heightmap?
+      erosionLimit=0.1 //max offset the water trails can create?
     }) {
       const noise = new BaseNoise(seed);
       this.particles = new Float32Array(nParticles * 4); // [x, y, vx, vy] for each particle
@@ -329,6 +333,8 @@ export class VectorField {
     
       const acceleration = new Float32Array(2);
       const curl = new Float32Array(2);
+
+      let heightMapCpy = erode ? new Float32Array(this.heightMap) : null;
     
       for (let step = 0; step < maxSteps; step++) {
         for (let i = 0; i < nParticles; i++) {
@@ -344,8 +350,19 @@ export class VectorField {
     
           const clampedX = clamp(Math.floor(x), 0, this.vectorField.sizeX - 1);
           const clampedY = clamp(Math.floor(y), 0, this.vectorField.sizeY - 1);
+          const heightMapIdx = clampedX+this.vectorField.sizeX*clampedY;
           const vector = this.vectorField.getVector(clampedX, clampedY);
-    
+
+          if(erode) {
+            heightMapCpy[heightMapIdx] -= 0.01; 
+            
+            //keep lower bounds 
+            if(heightMapCpy[heightMapIdx] < this.heightMap[heightMapIdx] - erosionLimit) 
+              heightMapCpy[heightMapIdx] = this.heightMap[heightMapIdx] - erosionLimit; 
+            if(this.heightMap[heightMapIdx] < -1) 
+              this.heightMap[heightMapIdx] = -1;
+          }
+          
           const velocityMagnitude = Math.sqrt(vector[0] * vector[0] + vector[1] * vector[1]);
           if (velocityMagnitude < minVelocity || (noise.seededRandom() < randomTerminationProb)) {
             continue;
@@ -364,7 +381,7 @@ export class VectorField {
           vx += windDirection[0] * windMul;
           vy += windDirection[1] * windMul;
     
-          const pitch = usePitch2d ? this.pitchMap[clampedX+this.vectorField.sizeX*clampedY] : 0;
+          const pitch = usePitch2d ? this.pitchMap[heightMapIdx] : 0;
           const slopeModifier = pitch !== 0 ? pitch*2 / Math.PI : 1; //subtact pi before multiplying by 2 to reverse slope
 
           vx += (-slopeModifier*vector[0] + acceleration[0]) * vectorMul;
@@ -392,6 +409,10 @@ export class VectorField {
           this.particles[idx + 3] = vy;
           this.particleTrails[i].push([x, y]);
         }
+      }
+
+      if(erode) {
+        this.heightMap.set(heightMapCpy);
       }
     }
 
@@ -694,10 +715,18 @@ export class VectorField {
           let indexIndex = 0;
           let colorIndex = 0;
 
+          let heightModifier = 0;
+          if(this.noiseConfigs) for(let i = 0; i<this.noiseConfigs.length; i++) {
+            if(this.noiseConfigs[i].scalar) heightModifier += this.noiseConfigs[i].scalar;
+            else heightModifier += 1;
+            if(this.noiseConfigs[i].transform) heightModifier += this.noiseConfigs[i].transform;
+          }
+
           for (let y = 0; y < this.vectorField.sizeY; y++) {
               for (let x = 0; x < this.vectorField.sizeX; x++) {
                   const k = y * this.vectorField.sizeX + x;
-                  const heightValue = this.heightMap[this.getHeightmapIndex(x, y, 0)];
+                  const heightMapIdx = this.getHeightmapIndex(x, y, 0);
+                  const heightValue = this.heightMap[heightMapIdx];
                   const vector = this.vectorField.getVector(x, y, 0);
 
                   // Fill positions
@@ -714,38 +743,59 @@ export class VectorField {
 
                   // Calculate angle and assign color based on height and angle
                   const mag = Math.sqrt(vector[1]*vector[1]+vector[0]*vector[0]);
-                  const normalizedHeightValue = Math.max(-1, Math.min(1, heightValue / mag));
+                  const normalizedHeightValue = Math.max(-1, Math.min(1, heightValue / (mag*heightModifier)));
                   const angle = mag ? Math.asin(normalizedHeightValue) : 0;
                   
                   let r,g,b,a;
                   let r2,g2,b2,a2;
-                  if (heightValue > 0 && angle > Math.PI / 2.1) {
+                  if (heightValue > 0 && angle > Math.PI / 2.3) {
                     //high elevation and lower angle
                     
-                    r=0; g=0.7; b=0; a=1;
+                    r=1; g=1; b=1; a=1;
                     
-                    r2=0.7; g2=0.7; b2=1; a2=1;
+                    r2=0.5; g2=0.5; b2=0.7; a2=0.25;
 
-                  } else if (heightValue > 0 && angle > Math.PI / 3) {
-                    //high elevation higher angle
-                    
-                    r=1; g=0.8; b=0.4; a=1;
-                    
-                    r2=0.7; g2=0.7; b2=1; a2=1;
-
-                  } else if (heightValue > 0 && angle < Math.PI / 6) {
+                  } else if (heightValue > 0 && angle > Math.PI / 4) {
                     //high elevation higher angle
                     
                     r=0.4; g=0.4; b=0.4; a=1;
                     
-                    r2=0.8; g2=0.8; b2=1; a2=1;
+                    r2=0.5; g2=0.5; b2=0.8; a2=0.25;
 
-                  } else if (heightValue > 0 && angle < Math.PI / 3) {
+                  } else if (heightValue > 0 && angle < Math.PI / 16) {
                     //high elevation higher angle
                     
-                    r=0.6; g=0.6; b=0.6; a=1;
+                    r=0.3; g=0.5; b=0.3; a=1;
+
+                    r2=0.6; g2=0.6; b2=0.9; a2=0.25;
+
+                  }  else if (heightValue > 0 && angle < Math.PI / 12) {
+                    //high elevation higher angle
                     
-                    r2=0.6; g2=0.6; b2=1; a2=1;
+                    r=0.5; g=0.5; b=0.5; a=1;
+                    
+                    r2=0.6; g2=0.6; b2=0.9; a2=0.25;
+
+                  } else if (heightValue > 0 && angle < Math.PI / 8) {
+                    //high elevation higher angle
+                    
+                    r=0.5; g=0.5; b=0; a=1;
+                    
+                    r2=0.6; g2=0.6; b2=0.9; a2=0.25;
+
+                  } else if (heightValue > 0 && angle < Math.PI / 5) {
+                    //high elevation higher angle
+                    
+                    r=0.5; g=0.6; b=0.2; a=1;
+                    
+                    r2=0.8; g2=0.8; b2=0.9; a2=0.25;
+
+                  } else if (heightValue > 0 && angle < Math.PI / 4) {
+                    //high elevation higher angle
+                    
+                    r=0.7; g=0.6; b=0.2; a=1;
+                    
+                    r2=0.8; g2=0.8; b2=0.9; a2=0.25;
 
                   } else if (heightValue <= 0) {
                     //low elevation
@@ -828,7 +878,7 @@ export class VectorField {
 
           const material2 = new BABYLON.StandardMaterial("material2", scene);
           material2.opacityTexture = texture;
-          material2.specularColor = new BABYLON.Color3(0.15, 0.15, 0.15);
+          material2.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
           customMesh2.material = material2;
 
           engine.runRenderLoop(() => {
