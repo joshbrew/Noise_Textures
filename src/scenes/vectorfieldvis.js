@@ -85,7 +85,7 @@ export const VFieldRender = async () => {
     const stepSize = 1;
     const seed = Math.random()*10000+12345.67891;//seeds make terrain and particle results deterministic
   
-    const vf2dGridSize = 800;
+    const vf2dGridSize = 400;
   
     const vectorFieldGen2D = new VectorFieldGenerator(2, vf2dGridSize, vf2dGridSize);
     await vectorFieldGen2D.generateFlowField(seed, noiseConfigs2, stepSize, true);
@@ -94,9 +94,9 @@ export const VFieldRender = async () => {
     const pvectorFieldGen2D = new VectorFieldGenerator(2, vf2dGridSize, vf2dGridSize);
     await pvectorFieldGen2D.generateFlowField(seed, noiseConfigs2, stepSize, true);
     await pvectorFieldGen2D.visualizeVectorField2D(container2, {
-      nParticles: 10000,
+      nParticles: 5000,
       clusteredVariance:true,
-      clusters: 1000,
+      clusters: 500,
       windDirection: [1, 1],
       initialSpeedRange: [0.7, 1],
       maxVelocity: 1,
@@ -106,8 +106,8 @@ export const VFieldRender = async () => {
       startPositions: [[0, 0]],//, [0, 25], [25, 0], [5, 0], [0, 5], [0, 10], [10, 0], [15, 0], [0, 15]],
       variance: vf2dGridSize, //randomly seed over entire 50x50 grid from 0,0 position
       randomDistribution: true, //random or even distribution?
-      vectorMul: 5,
-      windMul: 0.25,
+      vectorMul: 1.5,
+      windMul: 0.5,
       curlStrength: 0.25,
       randomInitialDirection: false,
       seed,

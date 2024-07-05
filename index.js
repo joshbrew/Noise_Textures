@@ -145,7 +145,7 @@ function createRadioButtons(defaultScene) {
 
 const main = async () => {
 
-    const defaultScene = 'planet'; //'noise' 'planet' 'terrain' 'vf'
+    const defaultScene = 'vf'; //'noise' 'planet' 'terrain' 'vf'
 
     await renderScene(defaultScene);
     createRadioButtons(defaultScene);

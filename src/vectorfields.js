@@ -385,9 +385,9 @@ export class VectorField {
           const pitch = usePitch2d ? this.pitchMap[heightMapIdx] : 0;
           const slopeModifier = pitch !== 0 ? pitch*2 / Math.PI : 1; //subtact pi before multiplying by 2 to reverse slope
 
-          vx += (-slopeModifier*vector[0] + acceleration[0]) * vectorMul;
-          vy += (-slopeModifier*vector[1] + acceleration[1]) * vectorMul;
-    
+          vx += -slopeModifier*(vector[0] + acceleration[0]) * vectorMul;
+          vy += -slopeModifier*(vector[1] + acceleration[1]) * vectorMul;
+          
           const currentSpeed = Math.sqrt(vx * vx + vy * vy);
           if (currentSpeed > maxVelocity) {
             vx = (vx / currentSpeed) * maxVelocity;
@@ -401,7 +401,7 @@ export class VectorField {
           vy *= 0.95;
     
           if (x < 0 || x >= this.vectorField.sizeX || y < 0 || y >= this.vectorField.sizeY) {
-            continue; // Terminate if out of bounds
+            continue; // Terminate if out of bounds (or we could contain them and bounce them around)
           }
     
           this.particles[idx] = x;

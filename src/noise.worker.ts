@@ -30,13 +30,14 @@ interface MessageData {
     stepSize: number;
     getGradient?: boolean;
     get2dPitch?: boolean;
+    use2dPitchGravity?: boolean;
 }
 
 declare var WorkerGlobalScope;
 
 if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
     self.onmessage = function (e: MessageEvent<MessageData>) {
-        const { seed, noiseConfigs, xRange, yRange, zRange, stepSize, getGradient, get2dPitch } = e.data;
+        const { seed, noiseConfigs, xRange, yRange, zRange, stepSize, getGradient, get2dPitch, use2dPitchGravity } = e.data;
         //console.log(e.data);
 
 
@@ -154,6 +155,7 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                             if (config.scalar) noiseValue *= config.scalar;
                             finalValue += noiseValue;
 
+                            //todo: gravity modifier
                             if (getGradient) {
                                 const zoom = config.zoom || 1.0;
                                 const dx = (generator.generateNoise(x + espilonX, y, 0, zoom, octaves, lacunarity, gain, shift, frequency) -
@@ -167,11 +169,12 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                                     if (config.transform) noiseValue2 += config.transform;
                                     if (config.scalar) noiseValue2 *= config.scalar;
                                     const dz = noiseValue2-noiseValue; //this is calculating phi for a 2d slope not a 3d noise coordinate
-                                    const magnitude = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                                    const magnitude = Math.sqrt((dx * dx + dy * dy + dz * dz)||1);
                                     totalpitchMag += magnitude;
                                     // Calculate the polar angle phi
                                     const phi = Math.acos(dz / magnitude);
                                     finalPhi += phi; //to rescale to get a better relative magnitude between all gradient functions summed
+                                
                                 }
 
 
@@ -186,13 +189,25 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                     }
                     noiseValues[index++] = finalValue;
                     if (gradientValues) {
-                        const _l = 1/noiseConfigs.length;
-                        gradientValues[gradIndex++] = finalDx*_l/totalMag;
-                        gradientValues[gradIndex++] = finalDy*_l/totalMag;
+                        const _l = 1 / noiseConfigs.length;
+                        let adjustedDx = finalDx * _l / totalMag;
+                        let adjustedDy = finalDy * _l / totalMag;
+                        let scaledPhi = finalPhi * _l;
 
-                        if(get2dPitch && pitch) {
-                            pitch[gradIndex*0.5] = finalPhi*_l; 
+                        //use2dPitchGravity
+                        if (get2dPitch && pitch) {
+                            const downWard = Math.sin(scaledPhi);
+                            adjustedDx *= downWard;
+                            adjustedDy *= downWard;
+                            const magdx = Math.sqrt(adjustedDx*adjustedDx+adjustedDy*adjustedDy);
+                            adjustedDx /= magdx;
+                            adjustedDy /= magdx;
+                            pitch[gradIndex * 0.5] = scaledPhi;
                         }
+
+                        gradientValues[gradIndex++] = adjustedDx;
+                        gradientValues[gradIndex++] = adjustedDy;
+
                     }
                 }
             }
