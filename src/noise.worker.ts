@@ -162,13 +162,16 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                                             generator.generateNoise(x, y - epsilonY, 0, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilonY);
                                 
                                 if(get2dPitch && pitch) {
-                                    const noiseValue2 = generator.generateNoise(x+dx, y+dy, 0, zoom, octaves, lacunarity, gain, shift, frequency);
-                                    const dz = noiseValue - noiseValue2; //this is calculating phi for a 2d slope not a 3d noise coordinate
+                                    let noiseValue2 = generator.generateNoise(x+dx, y+dy, 0, zoom, octaves, lacunarity, gain, shift, frequency);
+                                    
+                                    if (config.transform) noiseValue2 += config.transform;
+                                    if (config.scalar) noiseValue2 *= config.scalar;
+                                    const dz = noiseValue2-noiseValue; //this is calculating phi for a 2d slope not a 3d noise coordinate
                                     const magnitude = Math.sqrt(dx * dx + dy * dy + dz * dz);
                                     totalpitchMag += magnitude;
                                     // Calculate the polar angle phi
                                     const phi = Math.acos(dz / magnitude);
-                                    finalPhi += phi; //to rescale back to get a better relative magnitude between all gradient functions summed
+                                    finalPhi += phi; //to rescale to get a better relative magnitude between all gradient functions summed
                                 }
 
 
@@ -188,7 +191,7 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                         gradientValues[gradIndex++] = finalDy*_l/totalMag;
 
                         if(get2dPitch && pitch) {
-                            pitch[gradIndex*0.5] = finalPhi*_l/totalpitchMag; 
+                            pitch[gradIndex*0.5] = finalPhi*_l; 
                         }
                     }
                 }

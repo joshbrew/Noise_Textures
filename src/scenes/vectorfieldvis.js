@@ -67,17 +67,18 @@ export const VFieldRender = async () => {
         shift: 0,
         frequency: 1,
         transform: 1,
-        scalar:2
+        scalar:4
       },
       {
         type: 'VoronoiTileNoise',
         zoom: 200.0,
-        scalar:0.1,
+        scalar:1,
         octaves: 3,
         lacunarity: 2.0,
         gain: 0.5,
         shift: 0,
-        frequency: 1
+        frequency: 1,
+        transform: 0.25
       },
     ];
   
@@ -100,7 +101,7 @@ export const VFieldRender = async () => {
       initialSpeedRange: [0.7, 1],
       maxVelocity: 1,
       minVelocity: 0.001, //terminate path
-      maxSteps: 300,
+      maxSteps: 1000,
       randomTerminationProb: 0.01,
       startPositions: [[0, 0]],//, [0, 25], [25, 0], [5, 0], [0, 5], [0, 10], [10, 0], [15, 0], [0, 15]],
       variance: vf2dGridSize, //randomly seed over entire 50x50 grid from 0,0 position
