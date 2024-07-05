@@ -30,14 +30,14 @@ interface MessageData {
     stepSize: number;
     getGradient?: boolean;
     get2dPitch?: boolean;
-    use2dPitchGravity?: boolean;
+    useCumulativeGradient?: boolean; //rather than normalizing the gradients each step we can accumulate then divide by magnitude so smaller noise scales will have a smaller effect
 }
 
 declare var WorkerGlobalScope;
 
 if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
     self.onmessage = function (e: MessageEvent<MessageData>) {
-        const { seed, noiseConfigs, xRange, yRange, zRange, stepSize, getGradient, get2dPitch, use2dPitchGravity } = e.data;
+        const { seed, noiseConfigs, xRange, yRange, zRange, stepSize, getGradient, get2dPitch, useCumulativeGradient } = e.data;
         //console.log(e.data);
 
 
@@ -175,10 +175,16 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                                     finalPhi += phi; 
                                 }
             
-                                const mag = (Math.sqrt(dx * dx + dy * dy) || 1); // normalize
-                                totalMag += mag;
-                                finalDx += dx;
-                                finalDy += dy;
+                                const mag = (Math.sqrt((dx * dx + dy * dy) || 1)); // normalize
+                                //different methods produce different results 
+                                if(useCumulativeGradient) {
+                                    totalMag += mag;
+                                    finalDx += dx;
+                                    finalDy += dy;
+                                } else {
+                                    finalDx += dx/mag;
+                                    finalDy += dy/mag;
+                                }
                             }
                         }
                     }
@@ -196,8 +202,10 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                             pitch[gradIndex * 0.5] = scaledPhi;
                         }
 
-                        adjustedDx /= totalMag;
-                        adjustedDy /= totalMag;
+                        if(useCumulativeGradient) {
+                            adjustedDx /= totalMag; //can use cumulative results 
+                            adjustedDy /= totalMag;
+                        }
 
                         gradientValues[gradIndex++] = adjustedDx;
                         gradientValues[gradIndex++] = adjustedDy;

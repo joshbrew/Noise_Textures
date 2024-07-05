@@ -16,10 +16,9 @@ export const VFieldRender = async () => {
     container2.style.position = 'absolute';
     container2.style.left = '510px';
     container3.style.position = 'absolute';
-    container3.style.top = '510px';
+    container3.style.left = '1010px';
     container4.style.position = 'absolute';
-    container4.style.top = '510px';
-    container4.style.left = '500px';
+    container4.style.left = '1510px';
   
     //more natural
     const noiseConfigs1 = [
@@ -107,7 +106,7 @@ export const VFieldRender = async () => {
       variance: vf2dGridSize, //randomly seed over entire 50x50 grid from 0,0 position
       randomDistribution: true, //random or even distribution?
       vectorMul: 2,
-      windMul: 0.5,
+      windMul: 0.3,
       curlStrength: 0.25,
       randomInitialDirection: false,
       seed,

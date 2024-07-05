@@ -697,7 +697,7 @@ export class VectorField {
           await engine.initAsync();
           const scene = new BABYLON.Scene(engine);
 
-          const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 2, 50, new BABYLON.Vector3(0, 0, 0), scene);
+          const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 4, Math.PI / 2, 100, new BABYLON.Vector3(0, 0, 0), scene);
           camera.attachControl(canvas3D, true);
 
           const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
@@ -905,7 +905,7 @@ export class VectorField {
       await this.engine3D.initAsync();
       const scene = new BABYLON.Scene(this.engine3D);
       scene.clearColor = BABYLON.Color3.Black();
-      const camera = new BABYLON.ArcRotateCamera('camera', Math.PI / 2, Math.PI / 2, 50, new BABYLON.Vector3(0, 0, 0), scene);
+      const camera = new BABYLON.ArcRotateCamera('camera', Math.PI / 4, Math.PI / 2, 100, new BABYLON.Vector3(0, 0, 0), scene);
       
       camera.attachControl(this.canvas3D, true);
       const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0, 1, 0), scene);
