@@ -6,6 +6,7 @@ Run `npm i -g tinybuild` then `tinybuild` to build/run the project. Babylonjs is
 
 ### [Planet Randomizer Example](https://planetsim.netlify.app) (takes several seconds to render!!)
 
+Eventually I'll roll this all into one as a fun terrain or texture mixing tool but there's a lot of optimizing to do inbetween slamming features in.
 
 <table>
   <tr>
