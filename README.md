@@ -27,7 +27,7 @@ Run `npm i -g tinybuild` then `tinybuild` to build/run the project. Babylonjs is
   </tr>
     <tr>  
     <td colSpan="2">
-      <img width="1128" alt="Capture-min (5)" src="https://github.com/joshbrew/Noise_Textures/assets/18196383/be878f68-624f-45f9-9132-a105c9821cb3">
+      <img width="1516" alt="Capture-min (5)" src="https://github.com/joshbrew/Noise_Textures/assets/18196383/2718550c-06b9-48b5-9122-ee3ec5ab17ef">
     </td>
     </tr>
 </table>
