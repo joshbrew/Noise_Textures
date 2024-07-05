@@ -16,21 +16,23 @@ export const VFieldRender = async () => {
     container2.style.position = 'absolute';
     container2.style.left = '510px';
     container3.style.position = 'absolute';
-    container3.style.top = '500px';
+    container3.style.top = '510px';
     container4.style.position = 'absolute';
-    container4.style.top = '500px';
+    container4.style.top = '510px';
     container4.style.left = '500px';
   
     
     const noiseConfigs1 = [
       {
         type: 'VoronoiTileNoise',
-        zoom: 200.0,
-        octaves: 3,
+        zoom: 100.0,
+        octaves: 1,
         lacunarity: 2.0,
         gain: 0.5,
         shift: 0,
         frequency: 1,
+        transform: 1,
+        scalar:2
       },
       {
         type: 'VoronoiTileNoise',
@@ -40,14 +42,14 @@ export const VFieldRender = async () => {
         lacunarity: 2.0,
         gain: 0.5,
         shift: 0,
-        frequency: 1,
+        frequency: 1
       }
     ];
   
     const stepSize = 1;
     const seed = 12345.67891;///Math.floor(Math.random() * 10000);
   
-    const vf2dGridSize = 200
+    const vf2dGridSize = 200;
   
     const vectorFieldGen2D = new VectorFieldGenerator(2, vf2dGridSize, vf2dGridSize);
     await vectorFieldGen2D.generateFlowField(seed, noiseConfigs1, stepSize, true);

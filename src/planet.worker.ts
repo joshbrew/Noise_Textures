@@ -13,11 +13,12 @@ interface NoiseConfig {
     gain?: number;
     shift?: number;
     frequency?: number;
-    scalar?: number;
     xRange?: Range;
     yRange?: Range;
     zRange?: Range;
     seed?:number;
+    transform?:number; //add 
+    scalar?: number; //multiply (after add)
 }
 
 interface MessageData {
@@ -91,6 +92,7 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                             config.shift || 100,
                             config.frequency || 1
                         );
+                        if (config.transform) noiseValue += config.transform;
                         if (config.scalar) noiseValue *= config.scalar;
                         finalValue += noiseValue;
                     }

@@ -229,7 +229,7 @@ const createControls = () => {
         { id: 'octaves', label: 'Octaves', type: 'number', value: 8 },
         { id: 'lacunarity', label: 'Lacunarity', type: 'number', value: 2.0 },
         { id: 'gain', label: 'Gain', type: 'number', value: 0.5 },
-        { id: 'shift', label: 'Shift', type: 'number', value: 0 },
+        { id: 'shift', label: 'Shift', type: 'number', value: 100 },
         { id: 'frequency', label: 'Frequency', type: 'number', value: 1 },
         //{ id: 'stepSize', label: 'Step Size', type: 'number', value: 1 }
     ];

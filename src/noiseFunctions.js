@@ -2182,7 +2182,6 @@ class VoronoiTileNoise extends BaseNoise {
             y += shift;
             z += shift;
         }
-
         return 2*total-1;  // Normalize the result
     }
 }

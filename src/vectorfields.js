@@ -110,8 +110,6 @@ export class VectorField {
       const yRange = { start: 0, end: sizeY - 1 };
       const zRange = this.dimensions === 3 ? { start: 0, end: sizeZ - 1 } : undefined;
   
-      const numValues = sizeX * sizeY * sizeZ;
-  
       await this.runNoiseWorker(seed, noiseConfigs, xRange, yRange, zRange, stepSize, getGradient)
         .then((result) => {
           const { noiseValues, gradientValues } = result;
@@ -617,10 +615,8 @@ export class VectorField {
       const height = this.canvas2D.height;
 
       ctx.clearRect(0, 0, width, height);
-      //ctx.fillStyle = 'black';
-      //ctx.fillRect(0,0,this.canvas2D.width,this.canvas2D.height);
-
       ctx.strokeStyle = 'white';
+
       if (particleParams) {
         this.simulateParticles(particleParams);
 
@@ -674,24 +670,95 @@ export class VectorField {
           const positions = new Float32Array(this.vectorField.sizeX * this.vectorField.sizeY * 3);
           const indices = new Uint32Array((this.vectorField.sizeX - 1) * (this.vectorField.sizeY - 1) * 6);
           const uvs = new Float32Array(this.vectorField.sizeX * this.vectorField.sizeY * 2);
+          const colors = new Float32Array(this.vectorField.sizeX * this.vectorField.sizeY * 4); // RGBA colors
+
+          const positions2 = new Float32Array(this.vectorField.sizeX * this.vectorField.sizeY * 3);
+          const colors2 = new Float32Array(this.vectorField.sizeX * this.vectorField.sizeY * 4); // RGBA colors
 
           let positionIndex = 0;
           let uvIndex = 0;
           let indexIndex = 0;
+          let colorIndex = 0;
 
           for (let y = 0; y < this.vectorField.sizeY; y++) {
               for (let x = 0; x < this.vectorField.sizeX; x++) {
                   const k = y * this.vectorField.sizeX + x;
                   const heightValue = this.heightMap[this.getHeightmapIndex(x, y, 0)];
+                  const vector = this.vectorField.getVector(x, y, 0);
 
                   // Fill positions
                   positions[positionIndex++] = x - this.vectorField.sizeX / 2;
+                  positions2[positionIndex-1] = positions[positionIndex-1];
                   positions[positionIndex++] = heightValue * 20;
+                  positions2[positionIndex-1] = positions[positionIndex-1]+0.1;
                   positions[positionIndex++] = y - this.vectorField.sizeY / 2;
+                  positions2[positionIndex-1] = positions[positionIndex-1];
 
                   // Fill UVs
-                  uvs[uvIndex++] = (1+x)/ (this.vectorField.sizeX-1);
-                  uvs[uvIndex++] = (1+this.vectorField.sizeY - y) / (this.vectorField.sizeY-1);
+                  uvs[uvIndex++] = (1 + x) / (this.vectorField.sizeX - 1);
+                  uvs[uvIndex++] = (1 + this.vectorField.sizeY - y) / (this.vectorField.sizeY - 1);
+
+                  // Calculate angle and assign color based on height and angle
+                  const mag = Math.sqrt(vector[1]*vector[1]+vector[0]*vector[0]);
+                  const normalizedHeightValue = Math.max(-1, Math.min(1, heightValue / mag));
+                  const angle = mag ? Math.asin(normalizedHeightValue) : 0;
+                  
+                  let r,g,b,a;
+                  let r2,g2,b2,a2;
+                  if (heightValue > 0 && angle > Math.PI / 2.1) {
+                    //high elevation and lower angle
+                    
+                    r=0; g=0.7; b=0; a=1;
+                    
+                    r2=0.7; g2=0.7; b2=1; a2=1;
+
+                  } else if (heightValue > 0 && angle > Math.PI / 3) {
+                    //high elevation higher angle
+                    
+                    r=1; g=0.8; b=0.4; a=1;
+                    
+                    r2=0.7; g2=0.7; b2=1; a2=1;
+
+                  } else if (heightValue > 0 && angle < Math.PI / 6) {
+                    //high elevation higher angle
+                    
+                    r=0.4; g=0.4; b=0.4; a=1;
+                    
+                    r2=0.8; g2=0.8; b2=1; a2=1;
+
+                  } else if (heightValue > 0 && angle < Math.PI / 3) {
+                    //high elevation higher angle
+                    
+                    r=0.6; g=0.6; b=0.6; a=1;
+                    
+                    r2=0.6; g2=0.6; b2=1; a2=1;
+
+                  } else if (heightValue <= 0) {
+                    //low elevation
+                    
+                    r=0.25; g=0.25; b=1; a=1; 
+                    
+                    r2=0.25; g2=0.25; b2=1; a2=1; 
+
+                  } else {
+                    // Default color
+                    
+                    r=1; g=1; b=1; a=1;
+                    
+                    r2=1; g2=1; b2=1; a2=1;
+
+                  }
+
+                  // Fill colors (RGBA)
+                  colors2[colorIndex] = r2;
+                  colors2[colorIndex+1] = g2;
+                  colors2[colorIndex+2] = b2;
+                  colors2[colorIndex+3] = a2;
+
+                  colors[colorIndex++] = r;
+                  colors[colorIndex++] = g;
+                  colors[colorIndex++] = b;
+                  colors[colorIndex++] = a;
 
                   // Fill indices
                   if (x < this.vectorField.sizeX - 1 && y < this.vectorField.sizeY - 1) {
@@ -714,28 +781,41 @@ export class VectorField {
           vertexData.positions = positions;
           vertexData.indices = indices;
           vertexData.uvs = uvs;
+          vertexData.colors = colors; // Apply the colors
           vertexData.applyToMesh(customMesh);
+
+          const customMesh2 = new BABYLON.Mesh("custom2", scene);
+          const vertexData2 = new BABYLON.VertexData();
+          vertexData2.positions = positions2;
+          vertexData2.indices = new Uint32Array(indices);
+          vertexData2.uvs = new Float32Array(uvs);
+          vertexData2.colors = colors2; // Apply the colors
+          vertexData2.applyToMesh(customMesh2);
 
           // Create a texture from the 2D canvas
           const texture = new BABYLON.DynamicTexture(
             "dynamicTexture", 
-            {width:this.canvas2D.width,height:this.canvas2D.height}, 
+            this.canvas2D, 
             scene, 
             false
           );
           //console.log(texture);
-          
-          const ctx = texture.getContext();
-          ctx.drawImage(this.canvas2D,0,0);
-          
-          var font = "bold 44px monospace";
-          texture.drawText("", 75, 135, font, "green", null, true, true);
 
+          //const ctx = texture.getContext();
+          // ctx.strokeStyle = 'white';
+          texture.update();
+
+          // var font = "bold 44px monospace";
+          // texture.drawText("", 75, 135, font, "green", null, true, true);
+          
           const material = new BABYLON.StandardMaterial("material", scene);
-          material.diffuseTexture = texture;
-          //material.diffuseColor = new BABYLON.Color3(0.5,0.5,0.5);
           material.specularColor = new BABYLON.Color3(0.15, 0.15, 0.15);
           customMesh.material = material;
+
+          const material2 = new BABYLON.StandardMaterial("material2", scene);
+          material2.opacityTexture = texture;
+          material2.specularColor = new BABYLON.Color3(0.15, 0.15, 0.15);
+          customMesh2.material = material2;
 
           engine.runRenderLoop(() => {
               scene.render();

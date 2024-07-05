@@ -18,6 +18,7 @@ interface NoiseConfig {
     yRange?: Range;
     zRange?: Range;
     seed?: number;
+    transform?: number; //add to noise value
 }
 
 interface MessageData {
@@ -72,28 +73,32 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                                 (!config.yRange || (y >= config.yRange.start && y <= config.yRange.end)) &&
                                 (!config.zRange || (z >= config.zRange.start && z <= config.zRange.end))) {
 
+                                const zoom = config.zoom || 1;
+                                const octaves = config.octaves || 6;
+                                const lacunarity = config.lacunarity || 2.0;
+                                const gain = config.gain || 0.5;
+                                const shift = config.shift || 0; 
+                                const frequency = config.frequency || 1;
+
                                 const generator = noiseGenerators[config.type];
                                 let noiseValue = generator.generateNoise(
                                     x, y, z,
-                                    config.zoom || 1.0,
-                                    config.octaves || 6,
-                                    config.lacunarity || 2.0,
-                                    config.gain || 0.5,
-                                    config.shift || 100,
-                                    config.frequency || 1
+                                    zoom, octaves, lacunarity, gain, shift, frequency
                                 );
+                                if (config.transform) noiseValue += config.transform;
                                 if (config.scalar) noiseValue *= config.scalar;
                                 finalValue += noiseValue;
 
                                 if (getGradient) {
-                                    const dx = (generator.generateNoise(x + epsilon, y, z, config.zoom || 1.0, config.octaves || 6, config.lacunarity || 2.0, config.gain || 0.5, config.shift || 100, config.frequency || 1) -
-                                                generator.generateNoise(x - epsilon, y, z, config.zoom || 1.0, config.octaves || 6, config.lacunarity || 2.0, config.gain || 0.5, config.shift || 100, config.frequency || 1)) / (2 * epsilon);
-                                    const dy = (generator.generateNoise(x, y + epsilon, z, config.zoom || 1.0, config.octaves || 6, config.lacunarity || 2.0, config.gain || 0.5, config.shift || 100, config.frequency || 1) -
-                                                generator.generateNoise(x, y - epsilon, z, config.zoom || 1.0, config.octaves || 6, config.lacunarity || 2.0, config.gain || 0.5, config.shift || 100, config.frequency || 1)) / (2 * epsilon);
-                                    const dz = (generator.generateNoise(x, y, z + epsilon, config.zoom || 1.0, config.octaves || 6, config.lacunarity || 2.0, config.gain || 0.5, config.shift || 100, config.frequency || 1) -
-                                                generator.generateNoise(x, y, z - epsilon, config.zoom || 1.0, config.octaves || 6, config.lacunarity || 2.0, config.gain || 0.5, config.shift || 100, config.frequency || 1)) / (2 * epsilon);
+                                    const dx = (generator.generateNoise(x + epsilon, y, z, zoom, octaves, lacunarity, gain, shift, frequency) -
+                                                generator.generateNoise(x - epsilon, y, z, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilon);
+                                    const dy = (generator.generateNoise(x, y + epsilon, z, zoom, octaves, lacunarity, gain, shift, frequency) -
+                                                generator.generateNoise(x, y - epsilon, z, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilon);
+                                    const dz = (generator.generateNoise(x, y, z + epsilon, zoom, octaves, lacunarity, gain, shift, frequency) -
+                                                generator.generateNoise(x, y, z - epsilon, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilon);
                                     
-                                    const _mag = 1/Math.sqrt(dx*dx+dy*dy*dz*dz); //normalize
+                                    const _mag = 1/(Math.sqrt(dx*dx+dy*dy*dz*dz) || 1); //normalize
+                                    //const _mag = 1/(2*zoom*epsilon);
                                     
                                     finalDx += dx*_mag;
                                     finalDy += dy*_mag;
@@ -119,27 +124,31 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                         if ((!config.xRange || (x >= config.xRange.start && x <= config.xRange.end)) &&
                             (!config.yRange || (y >= config.yRange.start && y <= config.yRange.end))) {
 
+                            const zoom = config.zoom || 1;
+                            const octaves = config.octaves || 6;
+                            const lacunarity = config.lacunarity || 2.0;
+                            const gain = config.gain || 0.5;
+                            const shift = config.shift || 0; 
+                            const frequency = config.frequency || 1;
+
                             const generator = noiseGenerators[config.type];
                             let noiseValue = generator.generateNoise(
                                 x, y, 0,
-                                config.zoom || 1.0,
-                                config.octaves || 6,
-                                config.lacunarity || 2.0,
-                                config.gain || 0.5,
-                                config.shift || 100,
-                                config.frequency || 1
+                                zoom, octaves, lacunarity, gain, shift, frequency
                             );
+                            if (config.transform) noiseValue += config.transform;
                             if (config.scalar) noiseValue *= config.scalar;
                             finalValue += noiseValue;
 
                             if (getGradient) {
-                                const dx = (generator.generateNoise(x + epsilon, y, 0, config.zoom || 1.0, config.octaves || 6, config.lacunarity || 2.0, config.gain || 0.5, config.shift || 100, config.frequency || 1) -
-                                            generator.generateNoise(x - epsilon, y, 0, config.zoom || 1.0, config.octaves || 6, config.lacunarity || 2.0, config.gain || 0.5, config.shift || 100, config.frequency || 1)) / (2 * epsilon);
-                                const dy = (generator.generateNoise(x, y + epsilon, 0, config.zoom || 1.0, config.octaves || 6, config.lacunarity || 2.0, config.gain || 0.5, config.shift || 100, config.frequency || 1) -
-                                            generator.generateNoise(x, y - epsilon, 0, config.zoom || 1.0, config.octaves || 6, config.lacunarity || 2.0, config.gain || 0.5, config.shift || 100, config.frequency || 1)) / (2 * epsilon);
+                                const zoom = config.zoom || 1.0;
+                                const dx = (generator.generateNoise(x + epsilon, y, 0, zoom, octaves, lacunarity, gain, shift, frequency) -
+                                            generator.generateNoise(x - epsilon, y, 0, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilon);
+                                const dy = (generator.generateNoise(x, y + epsilon, 0, zoom, octaves, lacunarity, gain, shift, frequency) -
+                                            generator.generateNoise(x, y - epsilon, 0, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilon);
                                 
-                                const _mag = 1/Math.sqrt(dx*dx+dy*dy); //normalize
-                                            
+                                const _mag = 1/(Math.sqrt(dx*dx+dy*dy) || 1); //normalize
+                                //const _mag = 1/(2*zoom*epsilon);
                                 finalDx += dx*_mag;
                                 finalDy += dy*_mag;
 
@@ -160,23 +169,28 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                 for (let config of noiseConfigs) {
                     if (!config.xRange || (x >= config.xRange.start && x <= config.xRange.end)) {
                         
+                        const zoom = config.zoom || 1;
+                        const octaves = config.octaves || 6;
+                        const lacunarity = config.lacunarity || 2.0;
+                        const gain = config.gain || 0.5;
+                        const shift = config.shift || 0; 
+                        const frequency = config.frequency || 1;
+
                         const generator = noiseGenerators[config.type];
                         let noiseValue = generator.generateNoise(
                             x, 0, 0,
-                            config.zoom || 1.0,
-                            config.octaves || 6,
-                            config.lacunarity || 2.0,
-                            config.gain || 0.5,
-                            config.shift || 100,
-                            config.frequency || 1
+                            zoom, octaves, lacunarity, gain, shift, frequency
                         );
+                        if (config.transform) noiseValue += config.transform;
                         if (config.scalar) noiseValue *= config.scalar;
                         finalValue += noiseValue;
 
                         if (getGradient) {
-                            const dx = (generator.generateNoise(x + epsilon, 0, 0, config.zoom || 1.0, config.octaves || 6, config.lacunarity || 2.0, config.gain || 0.5, config.shift || 100, config.frequency || 1) -
-                                        generator.generateNoise(x - epsilon, 0, 0, config.zoom || 1.0, config.octaves || 6, config.lacunarity || 2.0, config.gain || 0.5, config.shift || 100, config.frequency || 1)) / (2 * epsilon);
-                            finalDx += dx;
+                            const zoom = config.zoom || 1.0
+                            const dx = (generator.generateNoise(x + epsilon, 0, 0, zoom, octaves, lacunarity, gain, shift, frequency) -
+                                        generator.generateNoise(x - epsilon, 0, 0, zoom, octaves, lacunarity, gain, shift, frequency)) / (2 * epsilon);
+
+                            finalDx += dx/(2*zoom*epsilon);
                         }
                     }
                 }
