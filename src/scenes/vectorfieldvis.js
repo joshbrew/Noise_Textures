@@ -17,6 +17,7 @@ export const VFieldRender = async () => {
     cc.appendChild(container5);
     container.style.position = 'absolute';
     container.style.left = '10px';
+    container2.style.zIndex = '2';
     container2.style.position = 'absolute';
     container2.style.left = '10px';
     container3.style.position = 'absolute';
@@ -95,6 +96,8 @@ export const VFieldRender = async () => {
     const vectorFieldGen2D = new VectorFieldGenerator(2, vf2dGridSize, vf2dGridSize);
     await vectorFieldGen2D.generateFlowField(seed, noiseConfigs2, stepSize, true);
     await vectorFieldGen2D.visualizeVectorField2D(container);
+
+    vectorFieldGen2D.canvas2D.style.backgroundColor = 'black';
   
     const simParams2d = {
       nParticles: 5000,
