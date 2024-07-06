@@ -8,17 +8,23 @@ export const VFieldRender = async () => {
     const container2 = document.createElement('div');
     const container3 = document.createElement('div');
     const container4 = document.createElement('div');
+    const container5 = document.createElement('div');
     document.body.appendChild(cc);
     cc.appendChild(container);
     cc.appendChild(container2);
     cc.appendChild(container3);
     cc.appendChild(container4);
+    cc.appendChild(container5);
+    container.style.position = 'absolute';
+    container.style.left = '10px';
     container2.style.position = 'absolute';
-    container2.style.left = '510px';
+    container2.style.left = '10px';
     container3.style.position = 'absolute';
-    container3.style.left = '1010px';
+    container3.style.left = '510px';
     container4.style.position = 'absolute';
-    container4.style.left = '1510px';
+    container4.style.left = '1020px';
+    container5.style.position = 'absolute';
+    container5.style.left = '1530px';
   
     //more natural
     const noiseConfigs1 = [
@@ -90,9 +96,7 @@ export const VFieldRender = async () => {
     await vectorFieldGen2D.generateFlowField(seed, noiseConfigs2, stepSize, true);
     await vectorFieldGen2D.visualizeVectorField2D(container);
   
-    const pvectorFieldGen2D = new VectorFieldGenerator(2, vf2dGridSize, vf2dGridSize);
-    await pvectorFieldGen2D.generateFlowField(seed, noiseConfigs2, stepSize, true);
-    await pvectorFieldGen2D.visualizeVectorField2D(container2, {
+    const simParams2d = {
       nParticles: 5000,
       clusteredVariance:true,
       clusters: 500,
@@ -114,8 +118,15 @@ export const VFieldRender = async () => {
       erosion:true,
       erosionLimit:0.2,
       erosionPerStep:0.01
-    }, true);
+    };
+
+    const pvectorFieldGen2D = new VectorFieldGenerator(2, vf2dGridSize, vf2dGridSize);
+    await pvectorFieldGen2D.generateFlowField(seed, noiseConfigs2, stepSize, true);
+    await pvectorFieldGen2D.visualizeVectorField2D(container2, simParams2d);
   
+    const pterrainGen2D = new VectorFieldGenerator(2, vf2dGridSize, vf2dGridSize);
+    await pterrainGen2D.generateFlowField(seed, noiseConfigs2, stepSize, true);
+    await pterrainGen2D.visualizeVectorField2D(container3, simParams2d, true);
   
     const noiseConfigs3 = [
       {
@@ -141,12 +152,12 @@ export const VFieldRender = async () => {
   
     const vectorFieldGen3D = new VectorFieldGenerator(3, 30, 30, 30);
     await vectorFieldGen3D.generateFlowField(seed, noiseConfigs3, stepSize, true);
-    await vectorFieldGen3D.visualizeVectorField3D(container3);
+    await vectorFieldGen3D.visualizeVectorField3D(container4);
   
     // Add particle visualization in 3D
     const pvectorFieldGen3D = new VectorFieldGenerator(3, 30, 30, 30);
     await pvectorFieldGen3D.generateFlowField(seed, noiseConfigs3, stepSize, true);
-    await pvectorFieldGen3D.visualizeVectorField3D(container4, {
+    await pvectorFieldGen3D.visualizeVectorField3D(container5, {
       nParticles: 500,
       windDirection: [1, 0, 1],
       initialSpeedRange: [0.1, 0.2, 0.2],
@@ -167,7 +178,7 @@ export const VFieldRender = async () => {
     });
   
   
-    return {vectorFieldGen2D, vectorFieldGen3D, pvectorFieldGen2D, pvectorFieldGen3D, container: cc};
+    return {vectorFieldGen2D, vectorFieldGen3D, pvectorFieldGen2D, pvectorFieldGen3D, pterrainGen2D, container: cc};
   }
   
   export const cleanupVFieldRender = async (scene) => {
@@ -175,5 +186,6 @@ export const VFieldRender = async () => {
       scene.pvectorFieldGen2D.cleanup();
       scene.vectorFieldGen3D.cleanup();
       scene.pvectorFieldGen3D.cleanup();
+      scene.pterrainGen2D.cleanup();
       scene.container.remove();
   }

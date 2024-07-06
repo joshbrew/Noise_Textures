@@ -643,7 +643,6 @@ export class VectorField {
       this.canvas2D.width = 4000;
       this.canvas2D.height = 4000;
       
-      this.canvas2D.style.backgroundColor = 'black';
       this.canvas2D.style.width='500px';
       this.canvas2D.style.height='500px';
       const ctx = this.canvas2D.getContext('2d');
