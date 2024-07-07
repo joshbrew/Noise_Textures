@@ -383,7 +383,7 @@ export class VectorField {
           vy += windDirection[1] * windMul;
     
           const pitch = usePitch2d ? this.pitchMap[heightMapIdx] : 0;
-          const slopeModifier = pitch !== 0 ? pitch*2 / Math.PI : 1; //subtact pi before multiplying by 2 to reverse slope
+          const slopeModifier = pitch !== 0 ? pitch / Math.PI : 1; //subtact pi before multiplying by 2 to reverse slope
 
           vx += -slopeModifier*(vector[0] + acceleration[0]) * vectorMul;
           vy += -slopeModifier*(vector[1] + acceleration[1]) * vectorMul;

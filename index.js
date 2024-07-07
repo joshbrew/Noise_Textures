@@ -15,6 +15,7 @@ import { terrainRender, clearTerrainRender } from './src/scenes/terrainscene'
 import { VFieldRender, cleanupVFieldRender } from './src/scenes/vectorfieldvis';
 
 
+
 let currentRender = null;
 
 let render;
@@ -29,7 +30,7 @@ async function renderScene(option) {
             await clearNoiseTextureRender(render);
         } else if (currentRender === 'vf') {
             await cleanupVFieldRender(render);
-        }
+        } 
         render = undefined;
     }
    
@@ -41,7 +42,7 @@ async function renderScene(option) {
         render = await renderNoiseTextures();
     } else if (option === 'vf') {
         render = await VFieldRender();
-    }
+    } 
 
     currentRender = option;
 }
@@ -145,10 +146,11 @@ function createRadioButtons(defaultScene) {
 
 const main = async () => {
 
-    const defaultScene = 'planet'; //'noise' 'planet' 'terrain' 'vf'
+    const defaultScene = 'planet'; //'noise' 'planet' 'terrain' 'vf', 'tank'
 
     await renderScene(defaultScene);
     createRadioButtons(defaultScene);
+
 
 }
 
