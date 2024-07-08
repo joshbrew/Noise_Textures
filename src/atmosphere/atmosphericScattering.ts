@@ -40,7 +40,10 @@ export class AtmosphericScatteringPostProcess extends PostProcess {
         sun: TransformNode | Light,
         camera: Camera,
         depthRenderer: DepthRenderer,
-        scene: Scene
+        scene: Scene,
+        redWaveLength=700,
+        greenWaveLength=530,
+        blueWaveLength=440
     ) {
         super(
             name,
@@ -83,9 +86,9 @@ export class AtmosphericScatteringPostProcess extends PostProcess {
             intensity: 15,
             scatteringStrength: 1,
             densityModifier: 1,
-            redWaveLength: 700,
-            greenWaveLength: 530,
-            blueWaveLength: 440
+            redWaveLength,
+            greenWaveLength,
+            blueWaveLength
         };
 
         this.camera = camera;

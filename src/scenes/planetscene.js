@@ -164,11 +164,11 @@ export async function planetRender() {
         const zoomFactor = 1.3;
 
         const noiseConfigs = [
-            { type: 'FractalBrownianMotion', scalar:0.75, zoom: zoomFactor * 0.8, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 2.0, frequency: 1, offset: offset },
-            { type: 'FractalBrownianMotion2', scalar:0.75, zoom: zoomFactor * 1, octaves: 8, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 1.3, frequency: 1, offset: offset },
-            { type: 'VoronoiTileNoise', scalar:0.9, zoom: zoomFactor * 0.35, octaves: 2, lacunarity: 2, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
-            { type: 'RidgedMultifractalNoise4', zoom: zoomFactor * 0.2, octaves: 6, lacunarity: 2.1, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset },
-            { type: 'LanczosBillowNoise', zoom: zoomFactor * 0.5, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer2 + 1.3 * 0.5, frequency: 1, offset: offset }
+            { type: 'FractalBrownianMotion', scalar:0.75, zoom: zoomFactor * 0.8, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 2.0, frequency: 1, offset: offset, offset2:offset2 },
+            { type: 'FractalBrownianMotion2', scalar:0.75, zoom: zoomFactor * 1, octaves: 8, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 1.3, frequency: 1, offset: offset, offset2:offset2 },
+            { type: 'VoronoiTileNoise', scalar:0.9, zoom: zoomFactor * 0.35, octaves: 2, lacunarity: 2, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset, offset2:offset2 },
+            { type: 'RidgedMultifractalNoise4', zoom: zoomFactor * 0.2, octaves: 6, lacunarity: 2.1, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset, offset2:offset2 },
+            { type: 'LanczosBillowNoise', zoom: zoomFactor * 0.5, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer2 + 1.3 * 0.5, frequency: 1, offset: offset, offset2:offset2 }
         ];
 
         let useFBM = Math.random() > 0.5;
@@ -287,6 +287,7 @@ export async function planetRender() {
                 shadowGenerator.addShadowCaster(planet);
             }
 
+            let minHeightValue = Infinity;
             // Partition the vertices and indices
             for (let i = 0; i < numSplits; i++) {
                 const startLat = i * Math.floor(verticesPerSplit / (segments + 1));
@@ -317,6 +318,8 @@ export async function planetRender() {
                         const z = coordinates[noiseIndex * VERTEX_SIZE + 2];
 
                         const heightValue = noiseValue * 1.5;
+                        if(minHeightValue > heightValue) minHeightValue = heightValue;
+
                         const nx = x * radius + x * heightValue;
                         const ny = y * radius + y * heightValue;
                         const nz = z * radius + z * heightValue;
@@ -379,15 +382,22 @@ export async function planetRender() {
             atmospheresphere.freezeWorldMatrix();
             //atmospheresphere.position = planet.position;
 
+            const redWaveLength = 700 - Math.random() * 300;
+            const greenWaveLength = 530 - Math.random() * 200;
+            const blueWaveLength = 440 - Math.random() * 100;
+
             atmosphere = new AtmosphericScatteringPostProcess(
                 "atmospherePostProcess",
                 atmospheresphere,
-                radius,
-                radius + 8,
+                radius+minHeightValue,
+                radius + 12 + Math.random()*10 - 5,
                 pointLight,
                 camera,
                 depthRenderer,
-                scene
+                scene,
+                redWaveLength,
+                greenWaveLength,
+                blueWaveLength
             );
             //}
 
