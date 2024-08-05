@@ -143,10 +143,10 @@ export async function terrainRender() {
         const shift = 1.5;
 
         const noiseConfigs = [
-            { type: 'FractalBrownianMotion', zoom: 1000, octaves: octaves, lacunarity: lacunarity, gain: gain, shift: shift },
-            { type: 'FractalBrownianMotion2', zoom: 1000, octaves: octaves, lacunarity: lacunarity, gain: gain, shift: shift },
-            { type: 'RidgedMultifractalNoise', zoom: 250, octaves: octaves, lacunarity: lacunarity, gain: gain, shift: shift },
-            { type: 'BillowNoise', zoom: 250, octaves: octaves, lacunarity: lacunarity, gain: gain, shift: shift }
+            { type: 'FractalBrownianMotion', zoom: 1000, octaves: octaves, lacunarity: lacunarity, gain: gain, xShift: shift, yShift: shift, zShift: shift },
+            { type: 'FractalBrownianMotion2', zoom: 1000, octaves: octaves, lacunarity: lacunarity, gain: gain, xShift: shift, yShift: shift, zShift: shift },
+            { type: 'RidgedMultifractalNoise', zoom: 250, octaves: octaves, lacunarity: lacunarity, gain: gain, xShift: shift, yShift: shift, zShift: shift },
+            { type: 'BillowNoise', zoom: 250, octaves: octaves, lacunarity: lacunarity, gain: gain, shift: shift, xShift: shift, yShift: shift, zShift: shift }
         ];
 
 

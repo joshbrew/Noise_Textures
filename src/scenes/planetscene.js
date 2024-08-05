@@ -164,11 +164,11 @@ export async function planetRender() {
         const zoomFactor = 1.3;
 
         const noiseConfigs = [
-            { type: 'FractalBrownianMotion', scalar:0.75, zoom: zoomFactor * 0.8, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 2.0, frequency: 1, offset: offset, offset2:offset2 },
-            { type: 'FractalBrownianMotion2', scalar:0.75, zoom: zoomFactor * 1, octaves: 8, lacunarity: 2.0, gain: 0.5, shift: randomizer3 + 1.3, frequency: 1, offset: offset, offset2:offset2 },
-            { type: 'VoronoiTileNoise', scalar:0.9, zoom: zoomFactor * 0.35, octaves: 2, lacunarity: 2, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset, offset2:offset2 },
-            { type: 'RidgedMultifractalNoise4', zoom: zoomFactor * 0.2, octaves: 6, lacunarity: 2.1, gain: 0.5, shift: randomizer1 + 1.3 * 0.5, frequency: 1, offset: offset, offset2:offset2 },
-            { type: 'LanczosBillowNoise', zoom: zoomFactor * 0.5, octaves: 6, lacunarity: 2.0, gain: 0.5, shift: randomizer2 + 1.3 * 0.5, frequency: 1, offset: offset, offset2:offset2 }
+            { type: 'FractalBrownianMotion', scalar:0.75, zoom: zoomFactor * 0.8, octaves: 6, lacunarity: 2.0, gain: 0.5, xShift: randomizer3 + 2.0, yShift: randomizer3 + 2.0, zShift: randomizer3 + 2.0, frequency: 1, offset: offset, offset2:offset2 },
+            { type: 'FractalBrownianMotion2', scalar:0.75, zoom: zoomFactor * 1, octaves: 8, lacunarity: 2.0, gain: 0.5, xShift: randomizer3 + 1.3, yShift: randomizer3 + 1.3, zShift: randomizer3 + 1.3,  frequency: 1, offset: offset, offset2:offset2 },
+            { type: 'VoronoiTileNoise', scalar:0.9, zoom: zoomFactor * 0.35, octaves: 2, lacunarity: 2, gain: 0.5, xShift: randomizer1 + 1.3 * 0.5, yShift: randomizer1 + 1.3 * 0.5, zShift: randomizer1 + 1.3 * 0.5,  frequency: 1, offset: offset, offset2:offset2 },
+            { type: 'RidgedMultifractalNoise4', zoom: zoomFactor * 0.2, octaves: 6, lacunarity: 2.1, gain: 0.5, xShift: randomizer1 + 1.3 * 0.5, yShift: randomizer1 + 1.3 * 0.5, zShift: randomizer1 + 1.3 * 0.5,  frequency: 1, offset: offset, offset2:offset2 },
+            { type: 'LanczosBillowNoise', zoom: zoomFactor * 0.5, octaves: 6, lacunarity: 2.0, gain: 0.5, xShift: randomizer2 + 1.3 * 0.5, yShift: randomizer2 + 1.3 * 0.5, zShift: randomizer2 + 1.3 * 0.5,  frequency: 1, offset: offset, offset2:offset2 }
         ];
 
         let useFBM = Math.random() > 0.5;

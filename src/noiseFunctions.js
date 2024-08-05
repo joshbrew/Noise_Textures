@@ -949,9 +949,8 @@ class CosineNoise extends BaseNoise {
 
 //now for generator implementations, just extend them with the previous noise generators
 
-
 class PerlinNoise extends Noise {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, freq = 1, turbulence = false) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, turbulence = false) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -961,7 +960,6 @@ class PerlinNoise extends Noise {
 
         let angle = this.seedN * 2 * Math.PI; //start at random angle;
         const angleIncrement = Math.PI / 4;
-
 
         for (let i = 0; i < octaves; i++) {
             let noiseValue = this.noise(x * freq, y * freq, z * freq) * amp;
@@ -985,9 +983,9 @@ class PerlinNoise extends Noise {
             angle += angleIncrement;
 
             // Apply shift to the coordinates
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
         if (turbulence) sum -= 1;
@@ -1020,7 +1018,7 @@ class HexWorms extends CellularNoise {
         return total;
     }
 
-    generateNoise(x, y = 0, z = 0, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, freq = 1) {
+    generateNoise(x, y = 0, z = 0, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1034,12 +1032,10 @@ class HexWorms extends CellularNoise {
             amp *= gain;
 
             // Apply shift to the coordinates
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
-
-        sum;
 
         return sum;
     }
@@ -1047,7 +1043,6 @@ class HexWorms extends CellularNoise {
 
 class PerlinWorms extends Noise {
     noise(x, y = 0, z = 0) {
-
         const steps = 5;
         const persistence = 0.5;
 
@@ -1066,11 +1061,10 @@ class PerlinWorms extends Noise {
             frequency *= 2;
         }
 
-
         return total;
     }
 
-    generateNoise(x, y = 0, z = 0, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, freq = 1) {
+    generateNoise(x, y = 0, z = 0, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1084,9 +1078,9 @@ class PerlinWorms extends Noise {
             amp *= gain;
 
             // Apply shift to the coordinates
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
         return sum;
@@ -1094,7 +1088,7 @@ class PerlinWorms extends Noise {
 }
 
 class LanczosBillowNoise extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, freq = 1) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1103,10 +1097,7 @@ class LanczosBillowNoise extends FastLanczosNoise3D {
         let maxAmp = 0;
         let amp = 1.0;
 
-        //3d turbulence example
         let angle = this.seedN * 2 * Math.PI; // start at random angle for X rotation
-        // let angleY = this.seedN * 2 * Math.PI; // start at random angle for Y rotation
-        // let angleZ = this.seedN * 2 * Math.PI; // start at random angle for Z rotation
         const angleIncrement = Math.PI / 4;
 
         for (let i = 0; i < octaves; i++) {
@@ -1124,17 +1115,11 @@ class LanczosBillowNoise extends FastLanczosNoise3D {
             let newY = x * sinAngle + y * cosAngle;
             let newZ = z;
 
-            // Apply rotation to the coordinates around the Y axis
-            // const cosAngleY = Math.cos(angle);
-            // const sinAngleY = Math.sin(angle);
             let rotatedX = newX * cosAngle + newZ * sinAngle;
             let rotatedZ = -newX * sinAngle + newZ * cosAngle;
             newX = rotatedX;
             newZ = rotatedZ;
 
-            // Apply rotation to the coordinates around the X axis
-            // const cosAngleX = Math.cos(angle);
-            // const sinAngleX = Math.sin(angle);
             let rotatedY = newY * cosAngle - newZ * sinAngle;
             rotatedZ = newY * sinAngle + newZ * cosAngle;
             newY = rotatedY;
@@ -1145,30 +1130,28 @@ class LanczosBillowNoise extends FastLanczosNoise3D {
             z = newZ;
 
             angle += angleIncrement;
-            // angleY += angleIncrement;
-            // angleZ += angleIncrement;
 
             // Apply shift to the coordinates
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
-        sum /= maxAmp; // for fast lanczos
+        sum /= maxAmp;
 
         return sum;
     }
 }
 
-
 class LanczosAntiBillowNoise extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, freq = 1) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
 
         let sum = 0;
-        let amp = 1.0; let maxAmp = 0;
+        let amp = 1.0; 
+        let maxAmp = 0;
 
         let angle = this.seedN * 2 * Math.PI; //start at random angle;
         const angleIncrement = Math.PI / 4;
@@ -1195,20 +1178,19 @@ class LanczosAntiBillowNoise extends FastLanczosNoise3D {
             angle += angleIncrement;
 
             // Apply shift to the coordinates
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
-        //sum += 1 //for others
-        sum /= maxAmp; //for fast lancsoz
+        sum /= maxAmp;
 
         return -sum;
     }
 }
 
 class BillowNoise extends Noise {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1220,10 +1202,10 @@ class BillowNoise extends Noise {
         const angleIncrement = Math.PI / 4;
 
         for (let i = 0; i < octaves; i++) {
-            const noiseValue = this.noise(x * frequency, y * frequency, z * frequency);
+            const noiseValue = this.noise(x * freq, y * freq, z * freq);
             sum += (2 * Math.abs(noiseValue) - 1) * amp;
 
-            frequency *= lacunarity;
+            freq *= lacunarity;
             amp *= gain;
 
             // Apply rotation to the coordinates
@@ -1240,9 +1222,9 @@ class BillowNoise extends Noise {
             angle += angleIncrement;
 
             // Apply shift to the coordinates
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
         sum += 1;
@@ -1251,9 +1233,8 @@ class BillowNoise extends Noise {
     }
 }
 
-
 class AntiBillowNoise extends Noise {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1265,10 +1246,10 @@ class AntiBillowNoise extends Noise {
         const angleIncrement = Math.PI / 4;
 
         for (let i = 0; i < octaves; i++) {
-            const noiseValue = this.noise(x * frequency, y * frequency, z * frequency);
+            const noiseValue = this.noise(x * freq, y * freq, z * freq);
             sum += (2 * Math.abs(noiseValue) - 1) * amp;
 
-            frequency *= lacunarity;
+            freq *= lacunarity;
             amp *= gain;
 
             // Apply rotation to the coordinates
@@ -1285,9 +1266,9 @@ class AntiBillowNoise extends Noise {
             angle += angleIncrement;
 
             // Apply shift to the coordinates
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
         sum += 1;
@@ -1296,8 +1277,6 @@ class AntiBillowNoise extends Noise {
     }
 }
 
-
-
 class RidgeNoise extends Noise {
     noise(x, y, z) {
         let value = super.noise(x, y, z);
@@ -1305,7 +1284,7 @@ class RidgeNoise extends Noise {
         return value * value;
     }
 
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1314,15 +1293,14 @@ class RidgeNoise extends Noise {
         let amp = 1.0;
 
         for (let i = 0; i < octaves; i++) {
-            sum += this.noise(x * frequency, y * frequency, z * frequency) * amp;
-            frequency *= lacunarity;
-
+            sum += this.noise(x * freq, y * freq, z * freq) * amp;
+            freq *= lacunarity;
             amp *= gain;
 
             // Apply shift to the coordinates
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
         sum -= 1;
@@ -1338,7 +1316,7 @@ class AntiRidgeNoise extends Noise {
         return value * value;
     }
 
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1346,15 +1324,14 @@ class AntiRidgeNoise extends Noise {
         let sum = 0;
         let amp = 1.0;
         for (let i = 0; i < octaves; i++) {
-            sum += this.noise(x * frequency, y * frequency, z * frequency) * amp;
-            frequency *= lacunarity;
-
+            sum += this.noise(x * freq, y * freq, z * freq) * amp;
+            freq *= lacunarity;
             amp *= gain;
 
             // Apply shift to the coordinates
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
         sum -= 1;
@@ -1363,16 +1340,13 @@ class AntiRidgeNoise extends Noise {
 }
 
 class RidgedMultifractalNoise extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1, exp1 = 1, exp2 = 0) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 8, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, exp1 = 1, exp2 = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
 
         let sum = 1 - Math.abs(this.noise(x, y, z));
         let amp = 1.0;
-
-        //let angle = this.seedN * 2 * Math.PI; // Start at random angle;
-        //let angleIncr = Math.PI / 6; // Adjust as needed
 
         for (let i = 1; i < octaves; i++) {
             x *= lacunarity;
@@ -1381,27 +1355,23 @@ class RidgedMultifractalNoise extends FastLanczosNoise3D {
 
             amp *= gain;
 
-            // Add some variation on the fractal pattern with exponents
             let noise = Math.abs(this.noise(x, y, z));
-            if(exp2) noise = 1 - Math.pow(noise, exp2);
-            if(exp1) noise = Math.pow(noise, exp1);
+            if (exp2) noise = 1 - Math.pow(noise, exp2);
+            if (exp1) noise = Math.pow(noise, exp1);
 
             sum -= noise * amp;
 
-            //angle += //angleIncr;
-
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
-        return sum; // The negative makes it more ridgelike, positive more bubbly
+        return sum;
     }
 }
 
-//more spiraly 
 class RidgedMultifractalNoise2 extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.75, shift = 0, frequency = 1, exp1 = 1, exp2 = 0) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.75, xShift = 0, yShift = 0, zShift = 0, exp1 = 1, exp2 = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1418,33 +1388,28 @@ class RidgedMultifractalNoise2 extends FastLanczosNoise3D {
 
             amp *= gain;
 
-            //add some variation on the fractal pattern with exponents
             let noise = Math.abs(this.noise(x, y, z));
-            if(exp2) noise = 1 - Math.pow(noise, exp2);
-            if(exp1) noise = Math.pow(noise, exp1);
+            if (exp2) noise = 1 - Math.pow(noise, exp2);
+            if (exp1) noise = Math.pow(noise, exp1);
 
             sum -= noise * amp;
 
-            //adds some rotation to vary the textures more 
-            let lastX;
             x = x * Math.cos(angle) + x * Math.sin(angle);
             y = y * Math.sin(angle) + y * Math.cos(angle);
             z = z * Math.sin(angle) + z * Math.cos(angle);
-            //z ?
             angle += angleIncr;
 
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
-        return sum; //the negative makes it more ridgelike, positive more bubbly
+        return sum;
     }
 }
 
-
 class RidgedMultifractalNoise3 extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1, exp1 = 0, exp2 = 1.5) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 8, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, exp1 = 0, exp2 = 1.5) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1455,17 +1420,13 @@ class RidgedMultifractalNoise3 extends FastLanczosNoise3D {
         for (let i = 0; i < octaves; i++) {
             let noise = this.noise(x, y, z);
 
-            // Map noise to range [0, 2]
-            noise = Math.max(0.0000001,(noise + 1)); // Now noise is in range [0, 2]
+            noise = Math.max(0.0000001, (noise + 1));
 
-            // Apply a spring-like curve to noise value
-            noise = 2*Math.pow(noise*0.5,exp2)-1;
+            noise = 2 * Math.pow(noise * 0.5, exp2) - 1;
 
-            // Adjust to get sharper peaks
             noise = 1 - Math.abs(noise);
 
-            // Apply additional exponent to shape the noise
-            if(exp1) noise = 1 - (Math.pow(noise, exp1));
+            if (exp1) noise = 1 - (Math.pow(noise, exp1));
 
             sum += noise * amp;
 
@@ -1475,19 +1436,17 @@ class RidgedMultifractalNoise3 extends FastLanczosNoise3D {
 
             amp *= gain;
 
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
-        // Adjust the final sum to fit the desired range
-        return (sum-1);
+        return (sum - 1);
     }
 }
 
-
 class RidgedMultifractalNoise4 extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1, exp1 = 1, exp2 = 0.5) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 8, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, exp1 = 1, exp2 = 0.5) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1496,42 +1455,34 @@ class RidgedMultifractalNoise4 extends FastLanczosNoise3D {
         let amp = 1.0;
 
         for (let i = 0; i < octaves; i++) {
-            // Calculate noise value
             let noise = Math.abs(this.noise(x, y, z));
-            if(exp2) noise = 1 - Math.pow(noise, exp2);
-            if(exp1) noise = Math.pow(noise, exp1);
+            if (exp2) noise = 1 - Math.pow(noise, exp2);
+            if (exp1) noise = Math.pow(noise, exp1);
 
             sum += noise * amp;
 
-            // Increase frequency and decrease amplitude
             x *= lacunarity;
             y *= lacunarity;
             z *= lacunarity;
             amp *= gain;
 
-            // Move coordinates for variation
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
-        return sum - 1; // Positive sum for sharper ridges
+        return sum - 1;
     }
 }
 
-
-
 class RidgedAntiMultifractalNoise extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1, exp1 = 1, exp2 = 0) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 8, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, exp1 = 1, exp2 = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
 
         let sum = 1 - Math.abs(this.noise(x, y, z));
         let amp = 1.0;
-
-        //let angle = this.seedN * 2 * Math.PI; // Start at random angle;
-        //let angleIncr = Math.PI / 6; // Adjust as needed
 
         for (let i = 1; i < octaves; i++) {
             x *= lacunarity;
@@ -1540,27 +1491,23 @@ class RidgedAntiMultifractalNoise extends FastLanczosNoise3D {
 
             amp *= gain;
 
-            // Add some variation on the fractal pattern with exponents
             let noise = Math.abs(this.noise(x, y, z));
-            if(exp2) noise = 1 - Math.pow(noise, exp2);
-            if(exp1) noise = Math.pow(noise, exp1);
+            if (exp2) noise = 1 - Math.pow(noise, exp2);
+            if (exp1) noise = Math.pow(noise, exp1);
 
             sum -= noise * amp;
 
-            //angle += //angleIncr;
-
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
-        return -sum; // The negative makes it more ridgelike, positive more bubbly
+        return -sum;
     }
 }
 
-//more spiraly 
 class RidgedAntiMultifractalNoise2 extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1, exp1 = 1, exp2 = 0) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, exp1 = 1, exp2 = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1577,30 +1524,28 @@ class RidgedAntiMultifractalNoise2 extends FastLanczosNoise3D {
 
             amp *= gain;
 
-            //add some variation on the fractal pattern with exponents
             let noise = Math.abs(this.noise(x, y, z));
-            if(exp2) noise = 1 - Math.pow(noise, exp2);
-            if(exp1) noise = Math.pow(noise, exp1);
+            if (exp2) noise = 1 - Math.pow(noise, exp2);
+            if (exp1) noise = Math.pow(noise, exp1);
 
             sum -= noise * amp;
 
-            //adds some rotation to vary the textures more 
             x = x * Math.cos(angle) + x * Math.sin(angle);
             y = y * Math.sin(angle) + y * Math.cos(angle);
             z = z * Math.sin(angle) + z * Math.cos(angle);
             angle += angleIncr;
 
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
-        return -sum; //the negative makes it more ridgelike, positive more bubbly
+        return -sum;
     }
 }
 
 class RidgedAntiMultifractalNoise3 extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1, exp1 = 0, exp2 = 1.5) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 8, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, exp1 = 0, exp2 = 1.5) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1611,17 +1556,13 @@ class RidgedAntiMultifractalNoise3 extends FastLanczosNoise3D {
         for (let i = 0; i < octaves; i++) {
             let noise = this.noise(x, y, z);
 
-            // Map noise to range [0, 2]
-            noise = Math.max(0.0000001,(noise + 1)); // Now noise is in range [0, 2]
+            noise = Math.max(0.0000001, (noise + 1));
 
-            // Apply a spring-like curve to noise value
-            noise = 2*Math.pow(noise*0.5,exp2)-1;
+            noise = 2 * Math.pow(noise * 0.5, exp2) - 1;
 
-            // Adjust to get sharper peaks
             noise = 1 - Math.abs(noise);
 
-            // Apply additional exponent to shape the noise
-            if(exp1) noise = 1 - (Math.pow(noise, exp1));
+            if (exp1) noise = 1 - (Math.pow(noise, exp1));
 
             sum += noise * amp;
 
@@ -1631,19 +1572,17 @@ class RidgedAntiMultifractalNoise3 extends FastLanczosNoise3D {
 
             amp *= gain;
 
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
-        // Adjust the final sum to fit the desired range
-        return -(sum-1);
+        return -(sum - 1);
     }
 }
 
-
 class RidgedAntiMultifractalNoise4 extends FastLanczosNoise3D {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 8, lacunarity = 2.0, gain = 0.5, shift = 0, frequency = 1, exp1 = 1, exp2 = 0.5) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 8, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, exp1 = 1, exp2 = 0.5) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1652,34 +1591,28 @@ class RidgedAntiMultifractalNoise4 extends FastLanczosNoise3D {
         let amp = 1.0;
 
         for (let i = 0; i < octaves; i++) {
-            // Calculate noise value
             let noise = Math.abs(this.noise(x, y, z));
-            if(exp2) noise = 1 - Math.pow(noise, exp2);
-            if(exp1) noise = Math.pow(noise, exp1);
+            if (exp2) noise = 1 - Math.pow(noise, exp2);
+            if (exp1) noise = Math.pow(noise, exp1);
 
             sum += noise * amp;
 
-            // Increase frequency and decrease amplitude
             x *= lacunarity;
             y *= lacunarity;
             z *= lacunarity;
             amp *= gain;
 
-            // Move coordinates for variation
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
-        return -(sum - 1); // Positive sum for sharper ridges
+        return -(sum - 1);
     }
 }
 
-
-
-
 class FractalBrownianMotion extends SimplexNoise3D {
-    fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+    fbm(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1688,21 +1621,19 @@ class FractalBrownianMotion extends SimplexNoise3D {
         let amplitude = 1.0;
         let maxValue = 0;
 
-        // Use a random seed to initialize the angle
         let angle = this.seedN * 2 * Math.PI;
 
         for (let i = 0; i < octaves; i++) {
-            sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+            sum += amplitude * this.noise(x * freq, y * freq, z * freq);
             maxValue += amplitude;
 
-            frequency *= lacunarity;
+            freq *= lacunarity;
             amplitude *= gain;
 
-            // Calculate random increments using a rotation around a random angle
-            angle += Math.PI * 2 / octaves; // Increment angle
-            let offsetX = shift * Math.cos(angle);
-            let offsetY = shift * Math.sin(angle);
-            let offsetZ = shift * Math.sin(angle);
+            angle += Math.PI * 2 / octaves; 
+            let offsetX = xShift * Math.cos(angle);
+            let offsetY = yShift * Math.sin(angle);
+            let offsetZ = zShift * Math.sin(angle);
 
             x += offsetX;
             y += offsetY;
@@ -1712,19 +1643,16 @@ class FractalBrownianMotion extends SimplexNoise3D {
         return sum / maxValue;
     }
 
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
-        // Initial FBM pass
-        let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, frequency);
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
+        let fbm1 = this.fbm(x, y, z, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm2 = this.fbm(fbm1, fbm1, fbm1, 1, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
 
-        // Recursive FBM pass using the output of the initial FBM
-        let fbm2 = this.fbm(fbm1, fbm1, fbm1, 1, octaves, lacunarity, gain, shift, frequency);
-
-        return 2*fbm2;
+        return 2 * fbm2;
     }
 }
 
 class FractalBrownianMotion2 extends SimplexNoise3D {
-    fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+    fbm(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1733,21 +1661,19 @@ class FractalBrownianMotion2 extends SimplexNoise3D {
         let amplitude = 1.0;
         let maxValue = 0;
 
-        // Use a random seed to initialize the angle
         let angle = this.seedN * 2 * Math.PI;
 
         for (let i = 0; i < octaves; i++) {
-            sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+            sum += amplitude * this.noise(x * freq, y * freq, z * freq);
             maxValue += amplitude;
 
-            frequency *= lacunarity;
+            freq *= lacunarity;
             amplitude *= gain;
 
-            // Calculate random increments using a rotation around a random angle
-            angle += Math.PI * 2 / octaves; // Increment angle
-            let offsetX = shift * Math.cos(angle);
-            let offsetY = shift * Math.sin(angle);
-            let offsetZ = shift * Math.sin(angle);
+            angle += Math.PI * 2 / octaves; 
+            let offsetX = xShift * Math.cos(angle);
+            let offsetY = yShift * Math.sin(angle);
+            let offsetZ = zShift * Math.sin(angle);
 
             x += offsetX;
             y += offsetY;
@@ -1757,22 +1683,17 @@ class FractalBrownianMotion2 extends SimplexNoise3D {
         return sum / maxValue;
     }
 
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, freq = 1) {
-        // Initial FBM pass
-        let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, freq);
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
+        let fbm1 = this.fbm(x, y, z, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
 
-        // Second FBM pass using the output of the initial FBM
-        let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
-
-        // Third FBM pass using the output of the second FBM
-        let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
-
-        return 2*fbm3;
+        return 2 * fbm3;
     }
 }
 
 class FractalBrownianMotion3 extends SimplexNoise3D {
-    fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+    fbm(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1781,21 +1702,19 @@ class FractalBrownianMotion3 extends SimplexNoise3D {
         let amplitude = 1.0;
         let maxValue = 0;
 
-        // Use a random seed to initialize the angle
         let angle = this.seedN * 2 * Math.PI;
 
         for (let i = 0; i < octaves; i++) {
-            sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+            sum += amplitude * this.noise(x * freq, y * freq, z * freq);
             maxValue += amplitude;
 
-            frequency *= lacunarity;
+            freq *= lacunarity;
             amplitude *= gain;
 
-            // Calculate random increments using a rotation around a random angle
-            angle += Math.PI * 2 / octaves; // Increment angle
-            let offsetX = shift * Math.cos(angle);
-            let offsetY = shift * Math.sin(angle);
-            let offsetZ = shift * Math.sin(angle);
+            angle += Math.PI * 2 / octaves; 
+            let offsetX = xShift * Math.cos(angle);
+            let offsetY = yShift * Math.sin(angle);
+            let offsetZ = zShift * Math.sin(angle);
 
             x += offsetX;
             y += offsetY;
@@ -1805,23 +1724,17 @@ class FractalBrownianMotion3 extends SimplexNoise3D {
         return sum / maxValue;
     }
 
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, freq = 1) {
-        // Initial FBM pass
-        let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, freq);
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
+        let fbm1 = this.fbm(x, y, z, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm2 = this.fbm(x + fbm1 * zoom, y + fbm1 * zoom, z + fbm1 * zoom, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
 
-        // Second FBM pass using the output of the initial FBM
-        let fbm2 = this.fbm(x + fbm1 * zoom, y + fbm1 * zoom, z + fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
-
-        // Third FBM pass using the output of the second FBM
-        let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
-
-        return 2*fbm3;
+        return 2 * fbm3;
     }
 }
 
-
 class CellularBrownianMotion extends CellularNoise3D {
-    fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+    fbm(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1830,44 +1743,38 @@ class CellularBrownianMotion extends CellularNoise3D {
         let amplitude = 1.0;
         let maxValue = 0;
 
-        // Use a random seed to initialize the angle
         let angle = this.seedN * 2 * Math.PI;
 
         for (let i = 0; i < octaves; i++) {
-            sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+            sum += amplitude * this.noise(x * freq, y * freq, z * freq);
             maxValue += amplitude;
 
-            frequency *= lacunarity;
+            freq *= lacunarity;
             amplitude *= gain;
 
-            // Calculate random increments using a rotation around a random angle
-            angle += Math.PI * 2 / octaves; // Increment angle
-            let offsetX = shift * Math.cos(angle);
-            let offsetY = shift * Math.sin(angle);
-            let offsetZ = shift * Math.sin(angle);
+            angle += Math.PI * 2 / octaves; 
+            let offsetX = xShift * Math.cos(angle);
+            let offsetY = yShift * Math.sin(angle);
+            let offsetZ = zShift * Math.sin(angle);
 
             x += offsetX;
             y += offsetY;
             z += offsetZ;
         }
 
-        return sum// / maxValue;
+        return sum;
     }
-        
 
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
-        // Initial FBM pass
-        let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, frequency);
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
+        let fbm1 = this.fbm(x, y, z, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
 
-        // Recursive FBM pass using the output of the initial FBM
-        let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, frequency);
-
-        return 1.5*fbm2-1;
+        return 1.5 * fbm2 - 1;
     }
 }
 
 class CellularBrownianMotion2 extends CellularNoise3D {
-    fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+    fbm(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1876,46 +1783,39 @@ class CellularBrownianMotion2 extends CellularNoise3D {
         let amplitude = 1.0;
         let maxValue = 0;
 
-        // Use a random seed to initialize the angle
         let angle = this.seedN * 2 * Math.PI;
 
         for (let i = 0; i < octaves; i++) {
-            sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+            sum += amplitude * this.noise(x * freq, y * freq, z * freq);
             maxValue += amplitude;
 
-            frequency *= lacunarity;
+            freq *= lacunarity;
             amplitude *= gain;
 
-            // Calculate random increments using a rotation around a random angle
-            angle += Math.PI * 2 / octaves; // Increment angle
-            let offsetX = shift * Math.cos(angle);
-            let offsetY = shift * Math.sin(angle);
-            let offsetZ = shift * Math.sin(angle);
+            angle += Math.PI * 2 / octaves; 
+            let offsetX = xShift * Math.cos(angle);
+            let offsetY = yShift * Math.sin(angle);
+            let offsetZ = zShift * Math.sin(angle);
 
             x += offsetX;
             y += offsetY;
             z += offsetZ;
         }
 
-        return sum// / maxValue;
+        return sum;
     }
 
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, freq = 1) {
-        // Initial FBM pass
-        let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, freq);
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
+        let fbm1 = this.fbm(x, y, z, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
 
-        // Second FBM pass using the output of the initial FBM
-        let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
-
-        // Third FBM pass using the output of the second FBM
-        let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
-
-        return 1.5*fbm3-1;
+        return 1.5 * fbm3 - 1;
     }
 }
 
 class CellularBrownianMotion3 extends CellularNoise3D {
-    fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+    fbm(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1924,47 +1824,39 @@ class CellularBrownianMotion3 extends CellularNoise3D {
         let amplitude = 1.0;
         let maxValue = 0;
 
-        // Use a random seed to initialize the angle
         let angle = this.seedN * 2 * Math.PI;
 
         for (let i = 0; i < octaves; i++) {
-            sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+            sum += amplitude * this.noise(x * freq, y * freq, z * freq);
             maxValue += amplitude;
 
-            frequency *= lacunarity;
+            freq *= lacunarity;
             amplitude *= gain;
 
-            // Calculate random increments using a rotation around a random angle
-            angle += Math.PI * 2 / octaves; // Increment angle
-            let offsetX = shift * Math.cos(angle);
-            let offsetY = shift * Math.sin(angle);
-            let offsetZ = shift * Math.sin(angle);
+            angle += Math.PI * 2 / octaves; 
+            let offsetX = xShift * Math.cos(angle);
+            let offsetY = yShift * Math.sin(angle);
+            let offsetZ = zShift * Math.sin(angle);
 
             x += offsetX;
             y += offsetY;
             z += offsetZ;
         }
 
-        return sum// / maxValue;
+        return sum;
     }
 
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, freq = 1) {
-        // Initial FBM pass
-        let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, freq);
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
+        let fbm1 = this.fbm(x, y, z, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm2 = this.fbm(x + fbm1 * zoom, y + fbm1 * zoom, z + fbm1 * zoom, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
 
-        // Second FBM pass using the output of the initial FBM
-        let fbm2 = this.fbm(x + fbm1 * zoom, y + fbm1 * zoom, z + fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
-
-        // Third FBM pass using the output of the second FBM
-        let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
-
-        return 1.5*fbm3-1;
+        return 1.5 * fbm3 - 1;
     }
 }
 
-
 class VoronoiBrownianMotion extends VoronoiNoise3D {
-    fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+    fbm(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -1973,43 +1865,38 @@ class VoronoiBrownianMotion extends VoronoiNoise3D {
         let amplitude = 1.0;
         let maxValue = 0;
 
-        // Use a random seed to initialize the angle
         let angle = this.seedN * 2 * Math.PI;
 
         for (let i = 0; i < octaves; i++) {
-            sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+            sum += amplitude * this.noise(x * freq, y * freq, z * freq);
             maxValue += amplitude;
 
-            frequency *= lacunarity;
+            freq *= lacunarity;
             amplitude *= gain;
 
-            // Calculate random increments using a rotation around a random angle
-            angle += Math.PI * 2 / octaves; // Increment angle
-            let offsetX = shift * Math.cos(angle);
-            let offsetY = shift * Math.sin(angle);
-            let offsetZ = shift * Math.sin(angle);
+            angle += Math.PI * 2 / octaves; 
+            let offsetX = xShift * Math.cos(angle);
+            let offsetY = yShift * Math.sin(angle);
+            let offsetZ = zShift * Math.sin(angle);
 
             x += offsetX;
             y += offsetY;
             z += offsetZ;
         }
 
-        return sum-1// / maxValue;
+        return sum - 1;
     }
 
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
-        // Initial FBM pass
-        let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, frequency);
-
-        // Recursive FBM pass using the output of the initial FBM
-        let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, frequency);
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
+        let fbm1 = this.fbm(x, y, z, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
 
         return fbm2;
     }
 }
 
 class VoronoiBrownianMotion2 extends VoronoiNoise3D {
-    fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+    fbm(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -2018,46 +1905,39 @@ class VoronoiBrownianMotion2 extends VoronoiNoise3D {
         let amplitude = 1.0;
         let maxValue = 0;
 
-        // Use a random seed to initialize the angle
         let angle = this.seedN * 2 * Math.PI;
 
         for (let i = 0; i < octaves; i++) {
-            sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+            sum += amplitude * this.noise(x * freq, y * freq, z * freq);
             maxValue += amplitude;
 
-            frequency *= lacunarity;
+            freq *= lacunarity;
             amplitude *= gain;
 
-            // Calculate random increments using a rotation around a random angle
-            angle += Math.PI * 2 / octaves; // Increment angle
-            let offsetX = shift * Math.cos(angle);
-            let offsetY = shift * Math.sin(angle);
-            let offsetZ = shift * Math.sin(angle);
+            angle += Math.PI * 2 / octaves; 
+            let offsetX = xShift * Math.cos(angle);
+            let offsetY = yShift * Math.sin(angle);
+            let offsetZ = zShift * Math.sin(angle);
 
             x += offsetX;
             y += offsetY;
             z += offsetZ;
         }
 
-        return sum-1// / maxValue;
+        return sum - 1;
     }
 
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, freq = 1) {
-        // Initial FBM pass
-        let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, freq);
-
-        // Second FBM pass using the output of the initial FBM
-        let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
-
-        // Third FBM pass using the output of the second FBM
-        let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
+        let fbm1 = this.fbm(x, y, z, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm2 = this.fbm(fbm1 * zoom, fbm1 * zoom, fbm1 * zoom, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
 
         return fbm3;
     }
 }
 
 class VoronoiBrownianMotion3 extends VoronoiNoise3D {
-    fbm(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+    fbm(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -2066,46 +1946,36 @@ class VoronoiBrownianMotion3 extends VoronoiNoise3D {
         let amplitude = 1.0;
         let maxValue = 0;
 
-        // Use a random seed to initialize the angle
         let angle = this.seedN * 2 * Math.PI;
 
         for (let i = 0; i < octaves; i++) {
-            sum += amplitude * this.noise(x * frequency, y * frequency, z * frequency);
+            sum += amplitude * this.noise(x * freq, y * freq, z * freq);
             maxValue += amplitude;
 
-            frequency *= lacunarity;
+            freq *= lacunarity;
             amplitude *= gain;
 
-            // Calculate random increments using a rotation around a random angle
-            angle += Math.PI * 2 / octaves; // Increment angle
-            let offsetX = shift * Math.cos(angle);
-            let offsetY = shift * Math.sin(angle);
-            let offsetZ = shift * Math.sin(angle);
+            angle += Math.PI * 2 / octaves; 
+            let offsetX = xShift * Math.cos(angle);
+            let offsetY = yShift * Math.sin(angle);
+            let offsetZ = zShift * Math.sin(angle);
 
             x += offsetX;
             y += offsetY;
             z += offsetZ;
         }
 
-        return sum-1// / maxValue;
+        return sum - 1;
     }
 
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 100, freq = 1) {
-        // Initial FBM pass
-        let fbm1 = this.fbm(x, y, z, zoom, octaves, lacunarity, gain, shift, freq);
-
-        // Second FBM pass using the output of the initial FBM
-        let fbm2 = this.fbm(x + fbm1 * zoom, y + fbm1 * zoom, z + fbm1 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
-
-        // Third FBM pass using the output of the second FBM
-        let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, octaves, lacunarity, gain, shift, freq);
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
+        let fbm1 = this.fbm(x, y, z, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm2 = this.fbm(x + fbm1 * zoom, y + fbm1 * zoom, z + fbm1 * zoom, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm3 = this.fbm(x + fbm2 * zoom, y + fbm2 * zoom, z + fbm2 * zoom, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
 
         return fbm3;
     }
 }
-
-
-
 
 class VoronoiTileNoise extends BaseNoise {
     constructor(seed = Date.now()) {
@@ -2151,20 +2021,14 @@ class VoronoiTileNoise extends BaseNoise {
             }
         }
 
-        // Calculate the distance to the closest edge of the Voronoi cell
         const edgeDist = secondMinDist - minDist;
-
-
-        // Calculate the edge detection value
         const edgeGradient = edgeDist < edgeThreshold ? 0 : 1;
-
-        // Combine the gradients to create a smooth center gradient with a black outline
         const combinedGradient = edgeDist * edgeGradient;
 
         return combinedGradient;
     }
 
-    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1, edgeThreshold=0.05) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 4, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, edgeThreshold = 0.05) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -2173,16 +2037,16 @@ class VoronoiTileNoise extends BaseNoise {
         let amplitude = 1;
 
         for (let i = 0; i < octaves; i++) {
-            total += this.noise(x * frequency, y * frequency, z * frequency, edgeThreshold) * amplitude;
+            total += this.noise(x * freq, y * freq, z * freq, edgeThreshold) * amplitude;
 
             amplitude *= gain;
-            frequency *= lacunarity;
+            freq *= lacunarity;
 
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
-        return 2*total-1;  // Normalize the result
+        return 2 * total - 1;
     }
 }
 
@@ -2232,22 +2096,15 @@ class VoronoiCircleGradientTileNoise extends BaseNoise {
             }
         }
 
-         // Calculate the distance to the closest edge of the Voronoi cell
-         const edgeDist = secondMinDist - minDist;
+        const edgeDist = secondMinDist - minDist;
+        const centerGradient = 1 - Math.min(minDist, 1);
+        const edgeGradient = edgeDist < edgeThreshold ? 0 : 1;
+        const combinedGradient = centerGradient * edgeGradient;
 
-         // Calculate the gradient from the center
-         const centerGradient = 1 - Math.min(minDist, 1);
- 
-         // Calculate the edge detection value
-         const edgeGradient = edgeDist < edgeThreshold ? 0 : 1;
- 
-         // Combine the gradients to create a smooth center gradient with a black outline
-         const combinedGradient = centerGradient * edgeGradient;
- 
-         return combinedGradient;
+        return combinedGradient;
     }
 
-    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1, edgeThreshold=0.05) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 4, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, edgeThreshold = 0.05) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -2256,17 +2113,17 @@ class VoronoiCircleGradientTileNoise extends BaseNoise {
         let amplitude = 1;
 
         for (let i = 0; i < octaves; i++) {
-            total += this.noise(x * frequency, y * frequency, z * frequency, edgeThreshold) * amplitude;
+            total += this.noise(x * freq, y * freq, z * freq, edgeThreshold) * amplitude;
 
             amplitude *= gain;
-            frequency *= lacunarity;
+            freq *= lacunarity;
 
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
-        return total-1;  // Normalize the result
+        return total - 1;
     }
 }
 
@@ -2314,21 +2171,18 @@ class VoronoiCircleGradientTileNoise2 extends BaseNoise {
             }
         }
 
-        // Calculate the distance to the closest point
         const centerDist = Math.sqrt(
             (closestPoint.px - x) * (closestPoint.px - x) +
             (closestPoint.py - y) * (closestPoint.py - y) +
             (closestPoint.pz - z) * (closestPoint.pz - z)
         );
 
-        // Apply a sine wave variation to the gradient function
         const gradient = Math.sin(centerDist * Math.PI);
 
         return minVal * gradient;
     }
 
-    // Function to add fractal detail
-    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 4, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
         let total = 0;
         let maxValue = 0;
         let amplitude = 1;
@@ -2336,24 +2190,24 @@ class VoronoiCircleGradientTileNoise2 extends BaseNoise {
         let angle = this.seedN * 2 * Math.PI;
 
         for (let i = 0; i < octaves; i++) {
-            total += this.noise(x * frequency / zoom, y * frequency / zoom, z * frequency / zoom) * amplitude;
+            total += this.noise(x * freq / zoom, y * freq / zoom, z * freq / zoom) * amplitude;
 
             maxValue += amplitude;
             amplitude *= gain;
-            frequency *= lacunarity;
+            freq *= lacunarity;
 
-            angle += Math.PI * 2 / octaves; // Increment angle
-            let offsetX = shift * Math.cos(angle);
-            let offsetY = shift * Math.sin(angle);
-            let offsetZ = shift * Math.sin(angle);
+            angle += Math.PI * 2 / octaves; 
+            let offsetX = xShift * Math.cos(angle);
+            let offsetY = yShift * Math.sin(angle);
+            let offsetZ = zShift * Math.sin(angle);
 
             x += offsetX;
             y += offsetY;
             z += offsetZ;
 
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
         return total - 1;
@@ -2406,22 +2260,14 @@ class VoronoiFlatShadeTileNoise extends BaseNoise {
             }
         }
 
-         // Calculate the distance to the closest edge of the Voronoi cell
-         const edgeDist = secondMinDist - minDist;
+        const edgeDist = secondMinDist - minDist;
+        const edgeGradient = edgeDist < edgeThreshold ? 0 : 1;
+        const combinedGradient = edgeGradient;
 
-         // Calculate the gradient from the center
-         //const centerGradient = 1 - Math.min(minDist, 1);
- 
-         // Calculate the edge detection value
-         const edgeGradient = edgeDist < edgeThreshold ? 0 : 1;
- 
-         // Combine the gradients to create a smooth center gradient with a black outline
-         const combinedGradient = edgeGradient; //*centerGradient
- 
-         return combinedGradient;
+        return combinedGradient;
     }
 
-    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1, edgeThreshold=0.05) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 4, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, edgeThreshold = 0.05) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -2430,20 +2276,19 @@ class VoronoiFlatShadeTileNoise extends BaseNoise {
         let amplitude = 1;
 
         for (let i = 0; i < octaves; i++) {
-            total += this.noise(x * frequency, y * frequency, z * frequency, edgeThreshold) * amplitude;
+            total += this.noise(x * freq, y * freq, z * freq, edgeThreshold) * amplitude;
 
             amplitude *= gain;
-            frequency *= lacunarity;
+            freq *= lacunarity;
 
-            x += shift;
-            y += shift;
-            z += shift;
+            x += xShift;
+            y += yShift;
+            z += zShift;
         }
 
-        return total-1;  // Normalize the result
+        return total - 1;
     }
 }
-
 
 class VoronoiRipple3D extends BaseNoise {
     constructor(seed = Date.now()) {
@@ -2455,7 +2300,6 @@ class VoronoiRipple3D extends BaseNoise {
         return this.perm[idx] / 255;
     }
 
-    // Helper function to calculate Euclidean distance
     euclideanDist(px, py, pz, x, y, z) {
         const dx = px - x;
         const dy = py - y;
@@ -2463,7 +2307,7 @@ class VoronoiRipple3D extends BaseNoise {
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
-    noise(x, y, z, t=0, rippleFreq=10, zoom=1) {
+    noise(x, y, z, t = 0, rippleFreq = 10, zoom = 1) {
         let minDist = Infinity;
         let secondMinDist = Infinity;
         let minVal = 0;
@@ -2492,43 +2336,37 @@ class VoronoiRipple3D extends BaseNoise {
             }
         }
 
-        // Calculate the distance to the closest edge of the Voronoi cell
         const edgeDist = secondMinDist - minDist;
-
-        // Apply a ripple effect that conforms to the shape of the Voronoi cell edges
         const rippleEffect = Math.sin(Math.PI + edgeDist * Math.PI * rippleFreq + t);
 
-        // Combine the ripple effect with the Voronoi distance
         return minVal * (1 + rippleEffect) * 0.5;
     }
-    // Function to add fractal detail
-    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1, rt=0, rippleFreq=10) {
+
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 4, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, rt = 0, rippleFreq = 10) {
         let total = 0;
         let maxValue = 0;
         let amplitude = 1;
 
         for (let i = 0; i < octaves; i++) {
-            total += this.noise(x * frequency / zoom, y * frequency / zoom, z * frequency / zoom, rt, rippleFreq) * amplitude;
+            total += this.noise(x * freq / zoom, y * freq / zoom, z * freq / zoom, rt, rippleFreq) * amplitude;
 
             maxValue += amplitude;
             amplitude *= gain;
-            frequency *= lacunarity;
+            freq *= lacunarity;
 
-            // Applying a shifting offset to avoid repeating patterns
             const angle = this.seedN * 2 * Math.PI;
-            const offsetX = shift * Math.cos(angle + i);
-            const offsetY = shift * Math.sin(angle + i);
-            const offsetZ = shift * Math.sin(angle + i);
+            const offsetX = xShift * Math.cos(angle + i);
+            const offsetY = yShift * Math.sin(angle + i);
+            const offsetZ = zShift * Math.sin(angle + i);
 
             x += offsetX;
             y += offsetY;
             z += offsetZ;
         }
 
-        return 2*total-1;
+        return 2 * total - 1;
     }
 }
-
 
 class VoronoiRipple3D2 extends BaseNoise {
     constructor(seed = Date.now()) {
@@ -2540,7 +2378,6 @@ class VoronoiRipple3D2 extends BaseNoise {
         return this.perm[idx] / 255;
     }
 
-    // Helper function to calculate Euclidean distance
     euclideanDist(px, py, pz, x, y, z) {
         const dx = px - x;
         const dy = py - y;
@@ -2548,7 +2385,7 @@ class VoronoiRipple3D2 extends BaseNoise {
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
-    noise(x, y, z, t=0, rippleFreq=10, zoom=1) {
+    noise(x, y, z, t = 0, rippleFreq = 10, zoom = 1) {
         let minDist = Infinity;
         let secondMinDist = Infinity;
         let minVal = 0;
@@ -2577,44 +2414,37 @@ class VoronoiRipple3D2 extends BaseNoise {
             }
         }
 
-        // Calculate the distance to the closest edge of the Voronoi cell
         const edgeDist = secondMinDist - minDist;
+        const rippleEffect = Math.sin(Math.PI + zoom * edgeDist * Math.PI * rippleFreq + t);
 
-        // Apply a ripple effect that conforms to the shape of the Voronoi cell edges
-        const rippleEffect = Math.sin(Math.PI + zoom*edgeDist * Math.PI * rippleFreq + t);
-
-        // Combine the ripple effect with the Voronoi distance
         return minVal * (1 + rippleEffect) * 0.5;
     }
-    // Function to add fractal detail
-    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1, rt=0, rippleFreq=10) {
+
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 4, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, rt = 0, rippleFreq = 10) {
         let total = 0;
         let maxValue = 0;
         let amplitude = 1;
 
         for (let i = 0; i < octaves; i++) {
-            total += this.noise(x * frequency / zoom, y * frequency / zoom, z * frequency / zoom, rt, rippleFreq, zoom) * amplitude;
+            total += this.noise(x * freq / zoom, y * freq / zoom, z * freq / zoom, rt, rippleFreq, zoom) * amplitude;
 
             maxValue += amplitude;
             amplitude *= gain;
-            frequency *= lacunarity;
+            freq *= lacunarity;
 
-            // Applying a shifting offset to avoid repeating patterns
             const angle = this.seedN * 2 * Math.PI;
-            const offsetX = shift * Math.cos(angle + i);
-            const offsetY = shift * Math.sin(angle + i);
-            const offsetZ = shift * Math.sin(angle + i);
+            const offsetX = xShift * Math.cos(angle + i);
+            const offsetY = yShift * Math.sin(angle + i);
+            const offsetZ = zShift * Math.sin(angle + i);
 
             x += offsetX;
             y += offsetY;
             z += offsetZ;
         }
 
-        return 2*total-1;
+        return 2 * total - 1;
     }
 }
-
-
 
 class VoronoiCircularRipple3D extends BaseNoise {
     constructor(seed = Date.now()) {
@@ -2626,7 +2456,6 @@ class VoronoiCircularRipple3D extends BaseNoise {
         return this.perm[idx] / 255;
     }
 
-    // Helper function to calculate Euclidean distance
     euclideanDist(px, py, pz, x, y, z) {
         const dx = px - x;
         const dy = py - y;
@@ -2634,7 +2463,7 @@ class VoronoiCircularRipple3D extends BaseNoise {
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
-    noise(x, y, z, t=0, rippleFrequency=10) {
+    noise(x, y, z, t = 0, rippleFrequency = 10) {
         let minDist = Infinity;
         let minVal = 0;
 
@@ -2659,78 +2488,65 @@ class VoronoiCircularRipple3D extends BaseNoise {
             }
         }
 
-        // Apply the ripple effect based on Voronoi distance
         const rippleEffect = Math.sin(Math.PI + minDist * Math.PI * rippleFrequency + t);
 
-        // Combine the ripple effect with the Voronoi distance
         return minVal * (1 + rippleEffect) * 0.5;
     }
 
-    // Function to add fractal detail
-    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1, t=0, rippleFreq = 10) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 4, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, t = 0, rippleFreq = 10) {
         let total = 0;
         let amplitude = 1;
 
         for (let i = 0; i < octaves; i++) {
-            total += this.noise(x * frequency / zoom, y * frequency / zoom, z * frequency / zoom, t, rippleFreq) * amplitude;
+            total += this.noise(x * freq / zoom, y * freq / zoom, z * freq / zoom, t, rippleFreq) * amplitude;
 
             amplitude *= gain;
-            frequency *= lacunarity;
+            freq *= lacunarity;
 
-            // Applying a shifting offset to avoid repeating patterns
             const angle = this.seedN * 2 * Math.PI;
-            const offsetX = shift * Math.cos(angle + i);
-            const offsetY = shift * Math.sin(angle + i);
-            const offsetZ = shift * Math.sin(angle + i);
+            const offsetX = xShift * Math.cos(angle + i);
+            const offsetY = yShift * Math.sin(angle + i);
+            const offsetZ = zShift * Math.sin(angle + i);
 
             x += offsetX;
             y += offsetY;
             z += offsetZ;
         }
 
-        return 2*total-1;
+        return 2 * total - 1;
     }
 }
 
 class FVoronoiRipple3D extends VoronoiRipple3D {
-    constructor(seed = Date.now()) {    
+    constructor(seed = Date.now()) {
         super(seed);
         this.gen = new VoronoiRipple3D(seed);
     }
 
-    generateNoise = (x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) => {
-          // Initial FBM pass
-        let fbm1 = this.gen.generateNoise(x, y, z, zoom, octaves, lacunarity, gain, shift, frequency);
+    generateNoise = (x, y, z, zoom = 1.0, freq = 1, octaves = 4, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) => {
+        let fbm1 = this.gen.generateNoise(x, y, z, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm2 = this.gen.generateNoise(fbm1, fbm1, fbm1, 1, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
 
-        // Recursive FBM pass using the output of the initial FBM
-        let fbm2 = this.gen.generateNoise(fbm1, fbm1, fbm1, 1, octaves, lacunarity, gain, shift, frequency);
- 
-        return 2*fbm2;
+        return 2 * fbm2;
     }
-
 }
 
-
 class FVoronoiCircularRipple3D extends VoronoiCircularRipple3D {
-    constructor(seed = Date.now()) {    
+    constructor(seed = Date.now()) {
         super(seed);
         this.gen = new VoronoiCircularRipple3D(seed);
     }
 
-    generateNoise = (x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) => {
-          // Initial FBM pass
-        let fbm1 = this.gen.generateNoise(x, y, z, zoom, octaves, lacunarity, gain, shift, frequency);
+    generateNoise = (x, y, z, zoom = 1.0, freq = 1, octaves = 4, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) => {
+        let fbm1 = this.gen.generateNoise(x, y, z, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm2 = this.gen.generateNoise(fbm1, fbm1, fbm1, 1, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
 
-        // Recursive FBM pass using the output of the initial FBM
-        let fbm2 = this.gen.generateNoise(fbm1, fbm1, fbm1, 1, octaves, lacunarity, gain, shift, frequency);
- 
-        return 2*fbm2;
+        return 2 * fbm2;
     }
-
 }
 
 class RippleNoise extends FastLanczosNoise {
-    generateNoise(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, freq = 1, turbulence = false, rippleFrequency = 12, neighborhoodSize = 1) {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, turbulence = false, rippleFrequency = 12, neighborhoodSize = 1) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -2755,12 +2571,11 @@ class RippleNoise extends FastLanczosNoise {
             freq *= lacunarity;
             amp *= gain;
 
-            angle += Math.PI * 2 / octaves; // Increment angle
-            let offsetX = shift * Math.cos(angle + Math.random() * Math.PI);
-            let offsetY = shift * Math.sin(angle + Math.random() * Math.PI);
-            let offsetZ = shift * Math.sin(angle + Math.random() * Math.PI);
+            angle += Math.PI * 2 / octaves;
+            let offsetX = xShift * Math.cos(angle + Math.random() * Math.PI);
+            let offsetY = yShift * Math.sin(angle + Math.random() * Math.PI);
+            let offsetZ = zShift * Math.sin(angle + Math.random() * Math.PI);
 
-            // Update positions with varied shifts to avoid diagonal bias
             x += offsetX;
             y += offsetY;
             z += offsetZ;
@@ -2773,7 +2588,6 @@ class RippleNoise extends FastLanczosNoise {
     }
 
     calculateRippleEffect(x, y, z, rippleFrequency, neighborhoodSize) {
-        // Using the permutation array to determine static ripple coordinates within a local neighborhood
         const staticPoints = this.getStaticRipplePoints(x, y, z, neighborhoodSize);
 
         let rippleSum = 0;
@@ -2790,7 +2604,6 @@ class RippleNoise extends FastLanczosNoise {
     }
 
     getStaticRipplePoints(x, y, z, neighborhoodSize) {
-        // Generate static ripple points within a local neighborhood based on the permutation array and the coordinates
         const points = [];
 
         for (let dx = -neighborhoodSize; dx <= neighborhoodSize; dx++) {
@@ -2818,13 +2631,12 @@ class RippleNoise extends FastLanczosNoise {
         const permValue1 = perm[index1];
         const permValue2 = perm[index2];
 
-        // Linear interpolation between two neighboring permutation values
         return permValue1 + fracPart * (permValue2 - permValue1);
     }
 }
 
 class FractalRipples extends FastLanczosNoise {
-    gen(x, y, z, zoom = 1.0, octaves = 6, lacunarity = 2.0, gain = 0.5, shift = 0, freq = 1, turbulence = false, rippleFrequency = 4, neighborhoodSize = 1) {
+    gen(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, turbulence = false, rippleFrequency = 4, neighborhoodSize = 1) {
         x /= zoom;
         y /= zoom;
         z /= zoom;
@@ -2833,7 +2645,7 @@ class FractalRipples extends FastLanczosNoise {
         let amp = 1.0;
         let totalAmp = 0;
         let angle = this.seedN * 2 * Math.PI;
-        const incr = Math.PI/4;
+        const incr = Math.PI / 4;
 
         for (let i = 0; i < octaves; i++) {
             let noiseValue = this.noise(x * freq, y * freq, z * freq) * amp;
@@ -2850,12 +2662,11 @@ class FractalRipples extends FastLanczosNoise {
             freq *= lacunarity;
             amp *= gain;
 
-            angle += Math.PI / 4; // Increment angle
-            let offsetX = shift * Math.cos(angle);
-            let offsetY = shift * Math.sin(angle);
-            let offsetZ = shift * Math.sin(angle);
+            angle += Math.PI / 4;
+            let offsetX = xShift * Math.cos(angle);
+            let offsetY = yShift * Math.sin(angle);
+            let offsetZ = zShift * Math.sin(angle);
 
-            // Update positions with varied shifts to avoid diagonal bias
             x += offsetX;
             y += offsetY;
             z += offsetZ;
@@ -2876,8 +2687,8 @@ class FractalRipples extends FastLanczosNoise {
             const dx = point[0] - x;
             const dy = point[1] - y;
             const dz = point[2] - z;
-            const distance = dx * dx + dy * dy + dz * dz; // Squared distance
-            rippleSum += Math.sin(Math.sqrt(distance) * twoPiRippleFreq); // Calculate ripple effect
+            const distance = dx * dx + dy * dy + dz * dz;
+            rippleSum += Math.sin(Math.sqrt(distance) * twoPiRippleFreq);
         }
 
         return rippleSum / staticPoints.length;
@@ -2908,12 +2719,13 @@ class FractalRipples extends FastLanczosNoise {
         return perm[index1] + fracPart * (perm[index2] - perm[index1]);
     }
 
-    generateNoise(x, y, z, zoom = 1.0, octaves = 4, lacunarity = 2.0, gain = 0.5, shift = 100, frequency = 1) {
-        let fbm1 = this.gen(x, y, z, 1000 * zoom, octaves, lacunarity, gain, shift, frequency);
-        let fbm2 = this.gen(fbm1, fbm1, fbm1, zoom, octaves, lacunarity, gain, shift, frequency);
-        return 2*fbm2;
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 4, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0) {
+        let fbm1 = this.gen(x, y, z, 1000 * zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        let fbm2 = this.gen(fbm1, fbm1, fbm1, zoom, freq, octaves, lacunarity, gain, xShift, yShift, zShift);
+        return 2 * fbm2;
     }
 }
+
 
 
 //noise functions

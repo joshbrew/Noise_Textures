@@ -11,14 +11,16 @@ interface NoiseConfig {
     octaves?: number;
     lacunarity?: number;
     gain?: number;
-    shift?: number;
+    xShift?: number;
+    yShift?: number;
+    zShift?: number;
     frequency?: number;
     xRange?: Range;
     yRange?: Range;
     zRange?: Range;
-    seed?:number;
-    transform?:number; //add 
-    scalar?: number; //multiply (after add)
+    seed?: number;
+    transform?: number; // add
+    scalar?: number; // multiply (after add)
 }
 
 interface MessageData {
@@ -58,8 +60,6 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
             const theta = lat * Math.PI / segments;
             const poleScaleLat = Math.sin(theta);
             for (let lon = 0; lon <= segments; lon++) {
-
-
                 const phi = lon * 2 * Math.PI / segments;
                 const poleScaleLon = Math.sin(phi);
 
@@ -86,11 +86,13 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                         let noiseValue = generator.generateNoise(
                             noiseX, noiseY, noiseZ,
                             config.zoom || 1.0,
+                            config.frequency || 1,
                             config.octaves || 6,
                             config.lacunarity || 2.0,
                             config.gain || 0.5,
-                            config.shift || 100,
-                            config.frequency || 1
+                            config.xShift || 0,
+                            config.yShift || 0,
+                            config.zShift || 0
                         );
                         if (config.transform) noiseValue += config.transform;
                         if (config.scalar) noiseValue *= config.scalar;

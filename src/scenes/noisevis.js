@@ -3,7 +3,7 @@ import noiseworker from '../noise.worker';
 
 // List of noise generators to visualize
 const noiseGenerators = [
-    //Traditional noise types
+    // Traditional noise types
     'PerlinNoise',
     'BillowNoise',
     'AntiBillowNoise',
@@ -22,7 +22,7 @@ const noiseGenerators = [
     'RidgedAntiMultifractalNoise3',
     'RidgedAntiMultifractalNoise4',
 
-    //fractal noise
+    // Fractal noise
     'FractalBrownianMotion',
     'FractalBrownianMotion2',
     'FractalBrownianMotion3',
@@ -35,11 +35,11 @@ const noiseGenerators = [
     'VoronoiBrownianMotion2',
     'VoronoiBrownianMotion3',
 
-    //worms
+    // Worms
     'PerlinWorms',
     'HexWorms',
 
-    //voronoi
+    // Voronoi
     'VoronoiTileNoise',
     'VoronoiFlatShadeTileNoise',
     'VoronoiCircleGradientTileNoise',
@@ -50,10 +50,14 @@ const noiseGenerators = [
     'FVoronoiRipple3D',
     'FVoronoiCircularRipple3D',
 
-    //ripple effect
+    // Ripple effect
     'RippleNoise',
     'FractalRipples'
 ];
+
+// Global variable to control abortion of noise generation
+let abortFlag = false;
+let currentWorker = null;
 
 // Function to create a canvas and append it to the container
 const createCanvas = (size, title) => {
@@ -104,8 +108,6 @@ const createCanvas = (size, title) => {
     return canvas;
 };
 
-
-
 // Function to run the noise worker for a given noise generator
 const runNoiseWorker = async (seed, canvas, noiseConfigs, stepSize) => {
     const size = canvas.width;
@@ -120,12 +122,18 @@ const runNoiseWorker = async (seed, canvas, noiseConfigs, stepSize) => {
     const promises = [];
 
     for (let thread = 0; thread < maxThreads; thread++) {
+        // if (abortFlag) {
+        //     if (currentWorker) currentWorker.terminate();
+        //     return;
+        // }
+
         const startY = thread * chunkSize;
         const endY = Math.min((thread + 1) * chunkSize, size);
 
         if (startY >= size) break;
 
         const worker = new Worker(noiseworker);
+        currentWorker = worker;
         workers.push(worker);
 
         promises.push(new Promise((resolve) => {
@@ -152,22 +160,17 @@ const runNoiseWorker = async (seed, canvas, noiseConfigs, stepSize) => {
                 resolve(true);
             };
 
-            const xRange = { start: 0, end: size - 1 };
-            const yRange = { start: startY, end: endY - 1 };
-
-            worker.postMessage({ seed, noiseConfigs, xRange, yRange, stepSize });
+            worker.postMessage({ seed, noiseConfigs, xRange: { start: 0, end: size - 1 }, yRange: { start: startY, end: endY - 1 }, stepSize });
         }));
     }
 
     await Promise.all(promises);
 
-    try {context.putImageData(imageData, 0, 0); } catch(er){console.error(er);}
-
+    try { context.putImageData(imageData, 0, 0); } catch (er) { console.error(er); }
 };
 
 // Function to regenerate all canvases with updated parameters
 const generateCanvases = async () => {
-
     let container = document.querySelector('.canvas-container');
     if (!container) {
         container = document.createElement('span');
@@ -183,27 +186,31 @@ const generateCanvases = async () => {
     const octaves = parseInt(document.querySelector('#octaves').value, 10);
     const lacunarity = parseFloat(document.querySelector('#lacunarity').value);
     const gain = parseFloat(document.querySelector('#gain').value);
-    const shift = parseFloat(document.querySelector('#shift').value);
+    const xShift = parseFloat(document.querySelector('#xShift').value);
+    const yShift = parseFloat(document.querySelector('#yShift').value);
+    const zShift = parseFloat(document.querySelector('#zShift').value);
     const frequency = parseFloat(document.querySelector('#frequency').value);
-    //const stepSize = parseFloat(document.querySelector('#stepSize').value);
 
     // Remove existing canvases
     container.innerHTML = '';
 
     for (const noiseType of noiseGenerators) {
+        if (abortFlag) break;
+
         const noiseConfigs = [{
-            type:noiseType,
+            type: noiseType,
             zoom,
             octaves,
             lacunarity,
             gain,
-            shift,
+            xShift,
+            yShift,
+            zShift,
             frequency
         }];
         const canvas = createCanvas(500, noiseType);
         await runNoiseWorker(seed, canvas, noiseConfigs, 1);
     }
-
 
     return container;
 };
@@ -218,10 +225,9 @@ const createControls = () => {
     controlsContainer.style.zIndex = '10';
     document.body.appendChild(controlsContainer);
 
-    
-    controlsContainer.insertAdjacentHTML('afterbegin',`
+    controlsContainer.insertAdjacentHTML('afterbegin', `
         <div style="font-size:10px;">Seed and settings will dramatically</br> alter noise quality.</div>
-    `)
+    `);
 
     const controls = [
         { id: 'seed', label: 'Seed', type: 'number', value: 12345.678910 },
@@ -229,9 +235,10 @@ const createControls = () => {
         { id: 'octaves', label: 'Octaves', type: 'number', value: 8 },
         { id: 'lacunarity', label: 'Lacunarity', type: 'number', value: 2.0 },
         { id: 'gain', label: 'Gain', type: 'number', value: 0.5 },
-        { id: 'shift', label: 'Shift', type: 'number', value: 100 },
+        { id: 'xShift', label: 'X Shift', type: 'number', value: 100 },
+        { id: 'yShift', label: 'Y Shift', type: 'number', value: 100 },
+        { id: 'zShift', label: 'Z Shift', type: 'number', value: 100 },
         { id: 'frequency', label: 'Frequency', type: 'number', value: 1 },
-        //{ id: 'stepSize', label: 'Step Size', type: 'number', value: 1 }
     ];
 
     controls.forEach(control => {
@@ -256,16 +263,28 @@ const createControls = () => {
     regenerateButton.innerText = 'Regenerate Canvases';
     regenerateButton.onclick = async () => {
         regenerateButton.disabled = true;
+        abortFlag = false;
         await generateCanvases();
         regenerateButton.disabled = false;
     };
-    controlsContainer.appendChild(regenerateButton);
 
-    return {container:controlsContainer, regenerateButton};
+    const abortButton = document.createElement('button');
+    abortButton.innerText = 'Abort Generation';
+    abortButton.onclick = () => {
+        abortFlag = true;
+        // if (currentWorker) {
+        //     currentWorker.terminate();
+        //     currentWorker = null;
+        // }
+    };
+
+    controlsContainer.appendChild(regenerateButton);
+    controlsContainer.appendChild(abortButton);
+
+    return { container: controlsContainer, regenerateButton, abortButton };
 };
 
 // Create controls and run the initial visualization
-
 export async function renderNoiseTextures() {
     const controls = createControls();
     controls.regenerateButton.disabled = true;
@@ -275,7 +294,7 @@ export async function renderNoiseTextures() {
     return {
         controls,
         canvasContainer
-    }
+    };
 }
 
 export async function clearNoiseTextureRender(render) {
@@ -284,4 +303,3 @@ export async function clearNoiseTextureRender(render) {
 
     return true;
 }
-

@@ -1,5 +1,6 @@
 
 import './index.css';
+import { createSim as createFluidSim, destroySim as destroyFluidSim } from './src/scenes/fluidvis';
 
 
 //visualize the noise generators as 2d textures
@@ -14,6 +15,8 @@ import { terrainRender, clearTerrainRender } from './src/scenes/terrainscene'
 
 import { VFieldRender, cleanupVFieldRender } from './src/scenes/vectorfieldvis';
 
+
+const defaultScene = 'planet'; //'noise' 'planet' 'terrain' 'vf', 'fluid', 'tank'
 
 
 let currentRender = null;
@@ -30,7 +33,9 @@ async function renderScene(option) {
             await clearNoiseTextureRender(render);
         } else if (currentRender === 'vf') {
             await cleanupVFieldRender(render);
-        } 
+        } else if (currentRender === 'fluid') {
+            await destroyFluidSim(render);
+        }
         render = undefined;
     }
    
@@ -42,113 +47,62 @@ async function renderScene(option) {
         render = await renderNoiseTextures();
     } else if (option === 'vf') {
         render = await VFieldRender();
-    } 
+    } else if (option === "fluid") {
+        render = await createFluidSim();
+    }
 
     currentRender = option;
 }
 
+function createRadioButton(labelText, value, defaultScene, renderSceneCallback, inputElements) {
+    const label = document.createElement('label');
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = 'render';
+    input.value = value;
+    input.checked = defaultScene === value;
+    input.onchange = async () => {
+        // Disable all inputs during rendering
+        inputElements.forEach(element => element.disabled = true);
+        await renderSceneCallback(value);
+        // Enable all inputs after rendering
+        inputElements.forEach(element => element.disabled = false);
+    };
+    label.appendChild(input);
+    label.appendChild(document.createTextNode(` ${labelText}`));
+    return { label, input };
+}
+
 function createRadioButtons(defaultScene) {
     const container = document.createElement('span');
-    container.innerHTML='<div>Switcher</div>'
+    container.innerHTML = '<div>Switcher</div>';
     container.className = 'render-options';
 
-    const planetLabel = document.createElement('label');
-    const planetInput = document.createElement('input');
-    planetInput.type = 'radio';
-    planetInput.name = 'render';
-    planetInput.value = 'planet';
-    planetInput.checked = defaultScene === planetInput.value ? true : false;
-    planetInput.onchange = async () => {
-        terrainInput.disabled = true;
-        planetInput.disabled = true;
-        noiseInput.disabled = true;
-        vInput.disabled = true;
-        await renderScene('planet');
-        terrainInput.disabled = false;
-        planetInput.disabled = false;
-        noiseInput.disabled = false;
-        vInput.disabled = false;
-    }
-    planetLabel.appendChild(planetInput);
-    planetLabel.appendChild(document.createTextNode(' 3D Planet'));
+    const renderOptions = [
+        { label: '3D Planet', value: 'planet' },
+        { label: 'Terrain', value: 'terrain' },
+        { label: 'Noise Textures', value: 'noise' },
+        { label: 'Vector Fields', value: 'vf' },
+        //{ label: 'Fluid Sim', value:'fluid'}
+    ];
 
-    const terrainLabel = document.createElement('label');
-    const terrainInput = document.createElement('input');
-    terrainInput.type = 'radio';
-    terrainInput.name = 'render';
-    terrainInput.value = 'terrain';
-    terrainInput.checked = defaultScene === terrainInput.value ? true : false;
-    terrainInput.onchange = async () => {
-        terrainInput.disabled = true;
-        planetInput.disabled = true;
-        noiseInput.disabled = true;
-        vInput.disabled = true;
-        await renderScene('terrain');
-        terrainInput.disabled = false;
-        planetInput.disabled = false;
-        noiseInput.disabled = false;
-        vInput.disabled = false;
-    }
-    terrainLabel.appendChild(terrainInput);
-    terrainLabel.appendChild(document.createTextNode(' Terrain'));
+    const inputElements = [];
 
-    const noiseLabel = document.createElement('label');
-    const noiseInput = document.createElement('input');
-    noiseInput.type = 'radio';
-    noiseInput.name = 'render';
-    noiseInput.value = 'noise';
-    noiseInput.checked = defaultScene === noiseInput.value ? true : false;
-    noiseInput.onchange = async () => {
-        terrainInput.disabled = true;
-        planetInput.disabled = true;
-        noiseInput.disabled = true;
-        vInput.disabled = true;
-        await renderScene('noise');
-        terrainInput.disabled = false;
-        planetInput.disabled = false;
-        noiseInput.disabled = false;
-        vInput.disabled = false;
-    }
-    noiseLabel.appendChild(noiseInput);
-    noiseLabel.appendChild(document.createTextNode(' Noise Textures'));
-
-    
-    const vfLabel = document.createElement('label');
-    const vInput = document.createElement('input');
-    vInput.type = 'radio';
-    vInput.name = 'render';
-    vInput.value = 'vf';
-    vInput.checked = defaultScene === vInput.value ? true : false;
-    vInput.onchange = async () => {
-        terrainInput.disabled = true;
-        planetInput.disabled = true;
-        noiseInput.disabled = true;
-        vInput.disabled = true;
-        await renderScene('vf');
-        terrainInput.disabled = false;
-        planetInput.disabled = false;
-        noiseInput.disabled = false;
-        vInput.disabled = false;
-    }
-    vfLabel.appendChild(vInput);
-    vfLabel.appendChild(document.createTextNode(' Vector Fields'));
-
-    container.appendChild(planetLabel);
-    container.appendChild(document.createElement('br'));
-    container.appendChild(terrainLabel);
-    container.appendChild(document.createElement('br'));
-    container.appendChild(noiseLabel);
-    container.appendChild(document.createElement('br'));
-    container.appendChild(vfLabel);
+    renderOptions.forEach(option => {
+        const { label, input } = createRadioButton(option.label, option.value, defaultScene, renderScene, inputElements);
+        inputElements.push(input);
+        container.appendChild(label);
+        container.appendChild(document.createElement('br'));
+    });
 
     document.body.appendChild(container);
 }
 
+
 const main = async () => {
 
-    const defaultScene = 'planet'; //'noise' 'planet' 'terrain' 'vf', 'tank'
-
     await renderScene(defaultScene);
+    // Usage
     createRadioButtons(defaultScene);
 
 
