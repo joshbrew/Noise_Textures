@@ -1,6 +1,6 @@
 # Noise_Textures
 
-Multithreaded heightmap/noise texture generation tests for a bunch of different noise algorithms. 40+ variants plus some spherical and planar terrain generation tests, and some vector field tests with WIP erosion sims. Needs to move to the GPU but it's not that slow and the resolution is theoretically infinite. 
+Multithreaded heightmap/noise texture generation tests for a bunch of different noise algorithms. 35+ variants plus some spherical and planar terrain generation tests, and some vector field tests with WIP erosion sims. Needs to move to the GPU but it's not that slow and the resolution is theoretically infinite. 
 
 Run `npm i -g tinybuild` then `tinybuild` to build/run the project. Babylonjs is using webgpu so use a chrome based browser, or android.
 
