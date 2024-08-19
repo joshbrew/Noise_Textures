@@ -1,6 +1,6 @@
 # Noise_Textures
 
-Quick heightmap/noise texture generation tests for Perlin Noise, Billow Noise, Ridged Multifractal Noise, and Fractal Brownian Motion (recursive perlin).
+Multithreaded heightmap/noise texture generation tests for a bunch of different noise algorithms. 40+ variants plus some spherical and planar terrain generation tests, and some vector field tests with WIP erosion sims.
 
 Run `npm i -g tinybuild` then `tinybuild` to build/run the project. Babylonjs is using webgpu so use a chrome based browser, or android.
 
