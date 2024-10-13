@@ -175,6 +175,8 @@ const generateCanvas = async () => {
     const frequency = parseFloat(document.querySelector('#frequency').value);
     const width = parseInt(document.querySelector('#width').value, 10);
     const height = parseInt(document.querySelector('#height').value, 10);
+    const scalar = parseFloat(document.querySelector('#scalar').value) || 1;
+    const transform = parseFloat(document.querySelector('#transform').value) || 0;
 
     const selectedNoises = Array.from(document.querySelectorAll('.noise-checkbox:checked')).map(cb => cb.value);
 
@@ -190,7 +192,8 @@ const generateCanvas = async () => {
             yShift: override.yShift !== undefined ? override.yShift : yShift,
             // zShift: override.zShift !== undefined ? override.zShift : zShift,
             frequency: override.frequency !== undefined ? override.frequency : frequency,
-            scalar: override.scalar !== undefined ? override.scalar : 1 // Scalar multiplier
+            scalar: override.scalar !== undefined ? override.scalar : scalar, // Scalar multiplier
+            transform: override.transform !== undefined ? override.transform : transform
         };
     });
 
@@ -343,7 +346,7 @@ const openOverrideModal = (noiseType) => {
         <div class="modal-content">
             <h3>Customize ${noiseType} Parameters</h3>
             <label>Scalar: <input id="${uniqueId}-scalar" type="number" step="0.1" value="${overrides[noiseType]?.scalar || 1}"></label><br>
-            <label>Transform (add): <input id="${uniqueId}-transform" type="number" step="0.1" value="${overrides[noiseType]?.scalar || 1}"></label><br>
+            <label>Transform (add): <input id="${uniqueId}-transform" type="number" step="0.1" value="${overrides[noiseType]?.transform || 0}"></label><br>
             <label>Zoom: <input id="${uniqueId}-zoom" type="number" step="0.1" value="${overrides[noiseType]?.zoom || ''}"></label><br>
             <label>Octaves: <input id="${uniqueId}-octaves" type="number" step="1" value="${overrides[noiseType]?.octaves || ''}"></label><br>
             <label>Lacunarity: <input id="${uniqueId}-lacunarity" type="number" step="0.1" value="${overrides[noiseType]?.lacunarity || ''}"></label><br>
