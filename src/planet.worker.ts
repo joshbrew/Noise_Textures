@@ -94,8 +94,10 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                             config.yShift || 0,
                             config.zShift || 0
                         );
-                        if (config.transform) noiseValue += config.transform;
+
                         if (config.scalar) noiseValue *= config.scalar;
+                        if (config.transform) noiseValue += config.transform;
+                        
                         finalValue += noiseValue;
                     }
                 }

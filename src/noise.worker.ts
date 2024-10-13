@@ -97,8 +97,10 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
                                     x, y, z,
                                     zoom, frequency, octaves, lacunarity, gain, xShift, yShift, zShift
                                 );
+
+                                if (config.scalar) noiseValue *= config.scalar; 
                                 if (config.transform) noiseValue += config.transform;
-                                if (config.scalar) noiseValue *= config.scalar;
+
                                 finalValue += noiseValue;
 
                                 if (getGradient) {

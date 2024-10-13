@@ -213,6 +213,8 @@ const createControls = () => {
         { id: 'octaves', label: 'Octaves', type: 'number', value: 8 },
         { id: 'frequency', label: 'Frequency', type: 'number', value: 1 },
         { id: 'gain', label: 'Gain', type: 'number', value: 0.5 },
+        { id: 'scalar', label: 'Scalar (multiply)', type: 'number', value: 1 },
+        { id: 'transform', label: 'Transform (add)', type: 'number', value: 0 },
         { id: 'xShift', label: 'X Shift', type: 'number', value: 100 },
         { id: 'yShift', label: 'Y Shift', type: 'number', value: 100 }//,
         // { id: 'zShift', label: 'Z Shift', type: 'number', value: 100 }
@@ -341,6 +343,7 @@ const openOverrideModal = (noiseType) => {
         <div class="modal-content">
             <h3>Customize ${noiseType} Parameters</h3>
             <label>Scalar: <input id="${uniqueId}-scalar" type="number" step="0.1" value="${overrides[noiseType]?.scalar || 1}"></label><br>
+            <label>Transform (add): <input id="${uniqueId}-transform" type="number" step="0.1" value="${overrides[noiseType]?.scalar || 1}"></label><br>
             <label>Zoom: <input id="${uniqueId}-zoom" type="number" step="0.1" value="${overrides[noiseType]?.zoom || ''}"></label><br>
             <label>Octaves: <input id="${uniqueId}-octaves" type="number" step="1" value="${overrides[noiseType]?.octaves || ''}"></label><br>
             <label>Lacunarity: <input id="${uniqueId}-lacunarity" type="number" step="0.1" value="${overrides[noiseType]?.lacunarity || ''}"></label><br>
@@ -369,7 +372,8 @@ const openOverrideModal = (noiseType) => {
             yShift: parseFloat(document.getElementById(`${uniqueId}-yShift`).value) || overrides[noiseType]?.yShift,
             // zShift: parseFloat(document.getElementById(`${uniqueId}-zShift`).value) || overrides[noiseType]?.zShift,
             frequency: parseFloat(document.getElementById(`${uniqueId}-frequency`).value) || overrides[noiseType]?.frequency,
-            scalar: parseFloat(document.getElementById(`${uniqueId}-scalar`).value) || 1
+            scalar: parseFloat(document.getElementById(`${uniqueId}-scalar`).value) || 1,
+            transform: parseFloat(document.getElementById(`${uniqueId}-transform`).value) || 0
         };
         modal.remove();
     };
