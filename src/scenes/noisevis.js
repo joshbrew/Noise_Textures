@@ -12,6 +12,13 @@ const noiseGenerators = [
     'RidgeNoise',
     'AntiRidgeNoise',
 
+    'Cellular',
+    'Worley',
+    
+    // 'Hermite',
+    // 'Quintic',
+    // 'Cosine',
+    
     'RidgedMultifractalNoise',
     'RidgedMultifractalNoise2',
     'RidgedMultifractalNoise3',

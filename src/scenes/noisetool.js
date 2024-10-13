@@ -8,7 +8,10 @@ const noiseCategories = {
         'BillowNoise',
         'AntiBillowNoise',
         'RidgeNoise',
-        'AntiRidgeNoise'
+        'AntiRidgeNoise',
+        'Hermite',
+        'Quintic',
+        'Cosine',
     ],
     "Fractal Noise": [
         'RidgedMultifractalNoise',
@@ -24,6 +27,8 @@ const noiseCategories = {
         'FractalBrownianMotion3'
     ],
     "Cellular Noise": [
+        'Cellular',
+        'Worley',
         'CellularBrownianMotion',
         'CellularBrownianMotion2',
         'CellularBrownianMotion3'

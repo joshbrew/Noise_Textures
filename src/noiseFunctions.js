@@ -993,6 +993,234 @@ class PerlinNoise extends Noise {
     }
 }
 
+
+class Cellular extends CellularNoise3D {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, turbulence = false) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amp = 1.0;
+
+        let angle = this.seedN * 2 * Math.PI; //start at random angle;
+        const angleIncrement = Math.PI / 4;
+
+        for (let i = 0; i < octaves; i++) {
+            let noiseValue = this.noise(x * freq, y * freq, z * freq) * amp;
+            if (turbulence) { noiseValue = Math.abs(noiseValue); } //this just makes the billow effect
+            sum += noiseValue;
+
+            freq *= lacunarity;
+            amp *= gain;
+
+            // Apply rotation to the coordinates
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+
+            const newX = x * cosAngle - y * sinAngle;
+            const newY = x * sinAngle + y * cosAngle;
+            const newZ = y * sinAngle + z * cosAngle;
+
+            x = newX;
+            y = newY;
+            z = newZ;
+            angle += angleIncrement;
+
+            // Apply shift to the coordinates
+            x += xShift;
+            y += yShift;
+            z += zShift;
+        }
+
+        if (turbulence) sum -= 1;
+        return 2*sum-1;
+    }
+}
+
+
+class Worley extends WorleyNoise3D {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, turbulence = false) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amp = 1.0;
+
+        let angle = this.seedN * 2 * Math.PI; //start at random angle;
+        const angleIncrement = Math.PI / 4;
+
+        for (let i = 0; i < octaves; i++) {
+            let noiseValue = this.noise(x * freq, y * freq, z * freq) * amp;
+            if (turbulence) { noiseValue = Math.abs(noiseValue); } //this just makes the billow effect
+            sum += noiseValue;
+
+            freq *= lacunarity;
+            amp *= gain;
+
+            // Apply rotation to the coordinates
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+
+            const newX = x * cosAngle - y * sinAngle;
+            const newY = x * sinAngle + y * cosAngle;
+            const newZ = y * sinAngle + z * cosAngle;
+
+            x = newX;
+            y = newY;
+            z = newZ;
+            angle += angleIncrement;
+
+            // Apply shift to the coordinates
+            x += xShift;
+            y += yShift;
+            z += zShift;
+        }
+
+        if (turbulence) sum -= 1;
+        return sum-1;
+    }
+}
+
+
+class Hermite extends HermiteNoise {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, turbulence = false) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amp = 1.0;
+
+        let angle = this.seedN * 2 * Math.PI; //start at random angle;
+        const angleIncrement = Math.PI / 4;
+
+        for (let i = 0; i < octaves; i++) {
+            let noiseValue = this.noise(x * freq, y * freq, z * freq) * amp;
+            if (turbulence) { noiseValue = Math.abs(noiseValue); } //this just makes the billow effect
+            sum += noiseValue;
+
+            freq *= lacunarity;
+            amp *= gain;
+
+            // Apply rotation to the coordinates
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+
+            const newX = x * cosAngle - y * sinAngle;
+            const newY = x * sinAngle + y * cosAngle;
+            const newZ = y * sinAngle + z * cosAngle;
+
+            x = newX;
+            y = newY;
+            z = newZ;
+            angle += angleIncrement;
+
+            // Apply shift to the coordinates
+            x += xShift;
+            y += yShift;
+            z += zShift;
+        }
+
+        if (turbulence) sum -= 1;
+        return sum-1;
+    }
+}
+
+
+
+class Quintic extends QuinticNoise {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, turbulence = false) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amp = 1.0;
+
+        let angle = this.seedN * 2 * Math.PI; //start at random angle;
+        const angleIncrement = Math.PI / 4;
+
+        for (let i = 0; i < octaves; i++) {
+            let noiseValue = this.noise(x * freq, y * freq, z * freq) * amp;
+            if (turbulence) { noiseValue = Math.abs(noiseValue); } //this just makes the billow effect
+            sum += noiseValue;
+
+            freq *= lacunarity;
+            amp *= gain;
+
+            // Apply rotation to the coordinates
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+
+            const newX = x * cosAngle - y * sinAngle;
+            const newY = x * sinAngle + y * cosAngle;
+            const newZ = y * sinAngle + z * cosAngle;
+
+            x = newX;
+            y = newY;
+            z = newZ;
+            angle += angleIncrement;
+
+            // Apply shift to the coordinates
+            x += xShift;
+            y += yShift;
+            z += zShift;
+        }
+
+        if (turbulence) sum -= 1;
+        return sum-1;
+    }
+}
+
+
+
+class Cosine extends CosineNoise {
+    generateNoise(x, y, z, zoom = 1.0, freq = 1, octaves = 6, lacunarity = 2.0, gain = 0.5, xShift = 0, yShift = 0, zShift = 0, turbulence = false) {
+        x /= zoom;
+        y /= zoom;
+        z /= zoom;
+
+        let sum = 0;
+        let amp = 1.0;
+
+        let angle = this.seedN * 2 * Math.PI; //start at random angle;
+        const angleIncrement = Math.PI / 4;
+
+        for (let i = 0; i < octaves; i++) {
+            let noiseValue = this.noise(x * freq, y * freq, z * freq) * amp;
+            if (turbulence) { noiseValue = Math.abs(noiseValue); } //this just makes the billow effect
+            sum += noiseValue;
+
+            freq *= lacunarity;
+            amp *= gain;
+
+            // Apply rotation to the coordinates
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+
+            const newX = x * cosAngle - y * sinAngle;
+            const newY = x * sinAngle + y * cosAngle;
+            const newZ = y * sinAngle + z * cosAngle;
+
+            x = newX;
+            y = newY;
+            z = newZ;
+            angle += angleIncrement;
+
+            // Apply shift to the coordinates
+            x += xShift;
+            y += yShift;
+            z += zShift;
+        }
+
+        if (turbulence) sum -= 1;
+        return sum-1;
+    }
+}
+
+
 class HexWorms extends CellularNoise {
     noise(x, y = 0, z = 0) {
         const steps = 5;
@@ -2752,6 +2980,10 @@ export {
 
     //extensions (has the generateNoise() functions with nearly identical inputs)
     PerlinNoise,
+
+    Hermite,
+    Quintic,
+    Cosine,
     
     BillowNoise,
     AntiBillowNoise,
@@ -2777,6 +3009,9 @@ export {
 
     PerlinWorms,
     HexWorms,
+
+    Cellular,
+    Worley,
 
     CellularBrownianMotion,
     CellularBrownianMotion2,
