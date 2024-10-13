@@ -3,17 +3,22 @@ import noiseworker from '../noise.worker';
 
 // Categorized noise generators
 const noiseCategories = {
-    "Basic Noise": [
+    "Basic": [
         'PerlinNoise',
         'BillowNoise',
         'AntiBillowNoise',
-        'RidgeNoise',
-        'AntiRidgeNoise',
         'Hermite',
         'Quintic',
         'Cosine',
     ],
-    "Fractal Noise": [
+    "Fractal Brownian Motion": [
+        'FractalBrownianMotion',
+        'FractalBrownianMotion2',
+        'FractalBrownianMotion3'
+    ],
+    "Ridge": [
+        'RidgeNoise',
+        'AntiRidgeNoise',
         'RidgedMultifractalNoise',
         'RidgedMultifractalNoise2',
         'RidgedMultifractalNoise3',
@@ -21,23 +26,16 @@ const noiseCategories = {
         'RidgedAntiMultifractalNoise',
         'RidgedAntiMultifractalNoise2',
         'RidgedAntiMultifractalNoise3',
-        'RidgedAntiMultifractalNoise4',
-        'FractalBrownianMotion',
-        'FractalBrownianMotion2',
-        'FractalBrownianMotion3'
+        'RidgedAntiMultifractalNoise4'
     ],
-    "Cellular Noise": [
+    "Cellular": [
         'Cellular',
         'Worley',
         'CellularBrownianMotion',
         'CellularBrownianMotion2',
         'CellularBrownianMotion3'
     ],
-    "Worm Noise": [
-        'PerlinWorms',
-        'HexWorms'
-    ],
-    "Voronoi Noise": [
+    "Voronoi": [
         'VoronoiTileNoise',
         'VoronoiFlatShadeTileNoise',
         'VoronoiBrownianMotion',
@@ -51,7 +49,11 @@ const noiseCategories = {
         'FVoronoiRipple3D',
         'FVoronoiCircularRipple3D'
     ],
-    "Ripple Noise": [
+    "Worms": [
+        'PerlinWorms',
+        'HexWorms'
+    ],
+    "Ripples": [
         'RippleNoise',
         'FractalRipples'
     ]
