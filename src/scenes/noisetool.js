@@ -330,6 +330,7 @@ const openOverrideModal = (noiseType) => {
     const modalContent = `
         <div class="modal-content">
             <h3>Customize ${noiseType} Parameters</h3>
+            <label>Scalar: <input id="${uniqueId}-scalar" type="number" step="0.1" value="${overrides[noiseType]?.scalar || 1}"></label><br>
             <label>Zoom: <input id="${uniqueId}-zoom" type="number" step="0.1" value="${overrides[noiseType]?.zoom || ''}"></label><br>
             <label>Octaves: <input id="${uniqueId}-octaves" type="number" step="1" value="${overrides[noiseType]?.octaves || ''}"></label><br>
             <label>Lacunarity: <input id="${uniqueId}-lacunarity" type="number" step="0.1" value="${overrides[noiseType]?.lacunarity || ''}"></label><br>
@@ -337,7 +338,6 @@ const openOverrideModal = (noiseType) => {
             <label>X Shift: <input id="${uniqueId}-xShift" type="number" step="1" value="${overrides[noiseType]?.xShift || ''}"></label><br>
             <label>Y Shift: <input id="${uniqueId}-yShift" type="number" step="1" value="${overrides[noiseType]?.yShift || ''}"></label><br>
             <label>Frequency: <input id="${uniqueId}-frequency" type="number" step="0.1" value="${overrides[noiseType]?.frequency || ''}"></label><br>
-            <label>Scalar: <input id="${uniqueId}-scalar" type="number" step="0.1" value="${overrides[noiseType]?.scalar || 1}"></label><br>
             <div class="modal-buttons">
                 <button id="${uniqueId}-save-override">Save</button>
                 <button id="${uniqueId}-reset-override">Reset</button>
