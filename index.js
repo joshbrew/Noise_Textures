@@ -1,10 +1,11 @@
 
 import './index.css';
-import { createSim as createFluidSim, destroySim as destroyFluidSim } from './src/scenes/fluidvis';
 
 
 //visualize the noise generators as 2d textures
 import {renderNoiseTextures, clearNoiseTextureRender} from './src/scenes/noisevis'
+
+import {renderNoiseTextures as rnt, clearNoiseTextureRender as cnt} from './src/scenes/noisetool'
 
 //3d planetary terrain noise
 import {planetRender, clearPlanetRender} from './src/scenes/planetscene'
@@ -16,7 +17,7 @@ import { terrainRender, clearTerrainRender } from './src/scenes/terrainscene'
 import { VFieldRender, cleanupVFieldRender } from './src/scenes/vectorfieldvis';
 
 
-const defaultScene = 'planet'; //'noise' 'planet' 'terrain' 'vf', 'fluid', 'tank'
+const defaultScene = 'noise2'; //'noise' 'noise2' 'planet' 'terrain' 'vf', 'fluid', 'tank'
 
 
 let currentRender = null;
@@ -31,11 +32,11 @@ async function renderScene(option) {
             await clearTerrainRender(render);
         } else if (currentRender === 'noise') {
             await clearNoiseTextureRender(render);
+        } else if (currentRender === 'noise2') {
+            await cnt(render);
         } else if (currentRender === 'vf') {
             await cleanupVFieldRender(render);
-        } else if (currentRender === 'fluid') {
-            await destroyFluidSim(render);
-        }
+        } 
         render = undefined;
     }
    
@@ -45,11 +46,11 @@ async function renderScene(option) {
         render = await terrainRender();
     } else if (option === 'noise') {
         render = await renderNoiseTextures();
+    } else if (option === 'noise2') {
+        render = await rnt();
     } else if (option === 'vf') {
         render = await VFieldRender();
-    } else if (option === "fluid") {
-        render = await createFluidSim();
-    }
+    } 
 
     currentRender = option;
 }
@@ -79,9 +80,10 @@ function createRadioButtons(defaultScene) {
     container.className = 'render-options';
 
     const renderOptions = [
-        { label: '3D Planet', value: 'planet' },
-        { label: 'Terrain', value: 'terrain' },
+        { label: '2D Noise Mixer', value: 'noise2' },
         { label: 'Noise Textures', value: 'noise' },
+        { label: '3D Planet', value: 'planet' },
+        { label: 'Flat Terrain', value: 'terrain' },
         { label: 'Vector Fields', value: 'vf' },
         //{ label: 'Fluid Sim', value:'fluid'}
     ];
@@ -104,7 +106,6 @@ const main = async () => {
     await renderScene(defaultScene);
     // Usage
     createRadioButtons(defaultScene);
-
 
 }
 

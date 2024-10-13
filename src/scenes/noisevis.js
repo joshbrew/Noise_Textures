@@ -60,7 +60,7 @@ let abortFlag = false;
 let currentWorker = null;
 
 // Function to create a canvas and append it to the container
-const createCanvas = (size, title) => {
+const createCanvas = (width, height, title) => {
     // Create a flex container if it doesn't exist
     let container = document.querySelector('.canvas-container');
     if (!container) {
@@ -75,18 +75,18 @@ const createCanvas = (size, title) => {
     // Create a wrapper for canvas and title
     const canvasWrapper = document.createElement('div');
     canvasWrapper.style.position = 'relative';
-    canvasWrapper.style.width = `${size}px`;
-    canvasWrapper.style.height = `${size}px`;
+    canvasWrapper.style.width = `${width}px`;
+    canvasWrapper.style.height = `${height}px`;
     canvasWrapper.style.flexShrink = '0'; // Prevent the wrapper from shrinking
 
     const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
+    canvas.width = width;
+    canvas.height = height;
     canvas.style.display = 'block'; // To ensure the canvas takes the full width of its container
 
     const context = canvas.getContext('2d');
     context.fillStyle = 'black';
-    context.fillRect(0, 0, size, size);
+    context.fillRect(0, 0, width, height);
 
     const titleElement = document.createElement('div');
     titleElement.innerText = title;
@@ -110,14 +110,15 @@ const createCanvas = (size, title) => {
 
 // Function to run the noise worker for a given noise generator
 const runNoiseWorker = async (seed, canvas, noiseConfigs, stepSize) => {
-    const size = canvas.width;
+    const width = canvas.width;
+    const height = canvas.height;
     const context = canvas.getContext('2d');
-    const imageData = context.createImageData(size, size);
+    const imageData = context.createImageData(width, height);
     const data = imageData.data;
 
-    const map = new Float32Array(size * size);
+    const map = new Float32Array(width * height);
     const maxThreads = navigator.hardwareConcurrency || 4;
-    const chunkSize = Math.ceil(size / maxThreads);
+    const chunkSize = Math.ceil(height / maxThreads);
     const workers = [];
     const promises = [];
 
@@ -128,9 +129,9 @@ const runNoiseWorker = async (seed, canvas, noiseConfigs, stepSize) => {
         // }
 
         const startY = thread * chunkSize;
-        const endY = Math.min((thread + 1) * chunkSize, size);
+        const endY = Math.min((thread + 1) * chunkSize, height);
 
-        if (startY >= size) break;
+        if (startY >= height) break;
 
         const worker = new Worker(noiseworker);
         currentWorker = worker;
@@ -142,13 +143,13 @@ const runNoiseWorker = async (seed, canvas, noiseConfigs, stepSize) => {
 
                 let index = 0;
                 for (let y = startY; y < endY; y++) {
-                    for (let x = 0; x < size; x++) {
+                    for (let x = 0; x < width; x++) {
                         const noiseValue = noiseValues[index++];
-                        map[y * size + x] = noiseValue; // Store the noise value
+                        map[y * width + x] = noiseValue; // Store the noise value
 
                         const brightnessFactor = (noiseValue + 1) * 0.5;
                         const intensity = Math.floor(brightnessFactor * 255);
-                        const pixelIndex = (y * size + x) * 4;
+                        const pixelIndex = (y * width + x) * 4;
                         data[pixelIndex] = intensity;
                         data[pixelIndex + 1] = intensity;
                         data[pixelIndex + 2] = intensity;
@@ -160,7 +161,7 @@ const runNoiseWorker = async (seed, canvas, noiseConfigs, stepSize) => {
                 resolve(true);
             };
 
-            worker.postMessage({ seed, noiseConfigs, xRange: { start: 0, end: size - 1 }, yRange: { start: startY, end: endY - 1 }, stepSize });
+            worker.postMessage({ seed, noiseConfigs, xRange: { start: 0, end: width - 1 }, yRange: { start: startY, end: endY - 1 }, stepSize });
         }));
     }
 
@@ -190,6 +191,8 @@ const generateCanvases = async () => {
     const yShift = parseFloat(document.querySelector('#yShift').value);
     const zShift = parseFloat(document.querySelector('#zShift').value);
     const frequency = parseFloat(document.querySelector('#frequency').value);
+    const width = parseInt(document.querySelector('#width').value, 10);
+    const height = parseInt(document.querySelector('#height').value, 10);
 
     // Remove existing canvases
     container.innerHTML = '';
@@ -208,7 +211,7 @@ const generateCanvases = async () => {
             zShift,
             frequency
         }];
-        const canvas = createCanvas(500, noiseType);
+        const canvas = createCanvas(width, height, noiseType);
         await runNoiseWorker(seed, canvas, noiseConfigs, 1);
     }
 
@@ -239,6 +242,8 @@ const createControls = () => {
         { id: 'yShift', label: 'Y Shift', type: 'number', value: 100 },
         { id: 'zShift', label: 'Z Shift', type: 'number', value: 100 },
         { id: 'frequency', label: 'Frequency', type: 'number', value: 1 },
+        { id: 'width', label: 'Width', type: 'number', value: 500 },
+        { id: 'height', label: 'Height', type: 'number', value: 500 }
     ];
 
     controls.forEach(control => {
@@ -272,10 +277,10 @@ const createControls = () => {
     abortButton.innerText = 'Abort Generation';
     abortButton.onclick = () => {
         abortFlag = true;
-        // if (currentWorker) {
-        //     currentWorker.terminate();
-        //     currentWorker = null;
-        // }
+        if (currentWorker) {
+            currentWorker.terminate();
+            currentWorker = null;
+        }
     };
 
     controlsContainer.appendChild(regenerateButton);
