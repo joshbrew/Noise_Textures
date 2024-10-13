@@ -300,7 +300,9 @@ const createControls = () => {
     regenerateButton.innerText = 'Generate Noise';
     regenerateButton.onclick = async () => {
         abortFlag = false;
+        regenerateButton.disabled = true;
         await generateCanvas();
+        regenerateButton.disabled = false;
     };
 
     const abortButton = document.createElement('button');
@@ -309,6 +311,7 @@ const createControls = () => {
         abortFlag = true;
         currentWorkers.forEach(worker => worker.terminate());
         currentWorkers = [];
+        regenerateButton.disabled = false;
     };
 
     actionButtonsWrapper.appendChild(regenerateButton);
