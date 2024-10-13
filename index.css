@@ -134,6 +134,11 @@ body {
     align-items: center;
 }
 
+input {
+    color:white;
+    background-color: black;
+}
+
 /* Styling for noise items */
 .noise-wrapper {
     display: flex;
@@ -232,13 +237,13 @@ body {
 }
 
 .modal-content {
-    background: #fff;
-    color: #000;
+    background: #222;
+    color: white;
     padding: 20px;
     border-radius: 5px;
     width: 50%; /* Responsive width */
     max-width: 500px;
-    max-height: 60vh; /* Limit height so it doesn’t take up the whole screen */
+    max-height: 70vh; /* Limit height so it doesn’t take up the whole screen */
     overflow-y: auto; /* Enable scrolling if modal content is too large */
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); /* Add some shadow for depth */
 }
