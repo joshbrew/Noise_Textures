@@ -123,10 +123,10 @@ const runNoiseWorker = async (seed, canvas, noiseConfigs, stepSize) => {
     const promises = [];
 
     for (let thread = 0; thread < maxThreads; thread++) {
-        // if (abortFlag) {
-        //     if (currentWorker) currentWorker.terminate();
-        //     return;
-        // }
+        if (abortFlag) {
+            if (currentWorker) currentWorker.terminate();
+            return;
+        }
 
         const startY = thread * chunkSize;
         const endY = Math.min((thread + 1) * chunkSize, height);
@@ -189,7 +189,7 @@ const generateCanvases = async () => {
     const gain = parseFloat(document.querySelector('#gain').value);
     const xShift = parseFloat(document.querySelector('#xShift').value);
     const yShift = parseFloat(document.querySelector('#yShift').value);
-    const zShift = parseFloat(document.querySelector('#zShift').value);
+    // const zShift = parseFloat(document.querySelector('#zShift').value);
     const frequency = parseFloat(document.querySelector('#frequency').value);
     const width = parseInt(document.querySelector('#width').value, 10);
     const height = parseInt(document.querySelector('#height').value, 10);
@@ -208,7 +208,7 @@ const generateCanvases = async () => {
             gain,
             xShift,
             yShift,
-            zShift,
+            // zShift,
             frequency
         }];
         const canvas = createCanvas(width, height, noiseType);
@@ -240,7 +240,7 @@ const createControls = () => {
         { id: 'gain', label: 'Gain', type: 'number', value: 0.5 },
         { id: 'xShift', label: 'X Shift', type: 'number', value: 100 },
         { id: 'yShift', label: 'Y Shift', type: 'number', value: 100 },
-        { id: 'zShift', label: 'Z Shift', type: 'number', value: 100 },
+        // { id: 'zShift', label: 'Z Shift', type: 'number', value: 100 },
         { id: 'frequency', label: 'Frequency', type: 'number', value: 1 },
         { id: 'width', label: 'Width', type: 'number', value: 500 },
         { id: 'height', label: 'Height', type: 'number', value: 500 }
@@ -281,6 +281,7 @@ const createControls = () => {
             currentWorker.terminate();
             currentWorker = null;
         }
+        regenerateButton.disabled = false;
     };
 
     controlsContainer.appendChild(regenerateButton);
