@@ -33,7 +33,6 @@ button:disabled {
     position: fixed;
     bottom: 10px;
     right: 10px;
-    background: white;
     padding: 10px;
     border: 1px solid #ccc;
     border-radius: 5px;
