@@ -164,7 +164,7 @@ const generateCanvas = async () => {
     const gain = parseFloat(document.querySelector('#gain').value);
     const xShift = parseFloat(document.querySelector('#xShift').value);
     const yShift = parseFloat(document.querySelector('#yShift').value);
-    const zShift = parseFloat(document.querySelector('#zShift').value);
+    // const zShift = parseFloat(document.querySelector('#zShift').value);
     const frequency = parseFloat(document.querySelector('#frequency').value);
     const width = parseInt(document.querySelector('#width').value, 10);
     const height = parseInt(document.querySelector('#height').value, 10);
@@ -181,7 +181,7 @@ const generateCanvas = async () => {
             gain: override.gain !== undefined ? override.gain : gain,
             xShift: override.xShift !== undefined ? override.xShift : xShift,
             yShift: override.yShift !== undefined ? override.yShift : yShift,
-            zShift: override.zShift !== undefined ? override.zShift : zShift,
+            // zShift: override.zShift !== undefined ? override.zShift : zShift,
             frequency: override.frequency !== undefined ? override.frequency : frequency,
             scalar: override.scalar !== undefined ? override.scalar : 1 // Scalar multiplier
         };
@@ -198,17 +198,17 @@ const createControls = () => {
     document.querySelector('.main-container').appendChild(controlsContainer);
 
     const controls = [
+        { id: 'width', label: 'Width', type: 'number', value: 500 },
+        { id: 'height', label: 'Height', type: 'number', value: 500 },
         { id: 'seed', label: 'Seed', type: 'number', value: 12345.678910 },
         { id: 'zoom', label: 'Zoom', type: 'number', value: 50.0 },
-        { id: 'octaves', label: 'Octaves', type: 'number', value: 8 },
         { id: 'lacunarity', label: 'Lacunarity', type: 'number', value: 2.0 },
+        { id: 'octaves', label: 'Octaves', type: 'number', value: 8 },
+        { id: 'frequency', label: 'Frequency', type: 'number', value: 1 },
         { id: 'gain', label: 'Gain', type: 'number', value: 0.5 },
         { id: 'xShift', label: 'X Shift', type: 'number', value: 100 },
-        { id: 'yShift', label: 'Y Shift', type: 'number', value: 100 },
-        { id: 'zShift', label: 'Z Shift', type: 'number', value: 100 },
-        { id: 'frequency', label: 'Frequency', type: 'number', value: 1 },
-        { id: 'width', label: 'Width', type: 'number', value: 500 },
-        { id: 'height', label: 'Height', type: 'number', value: 500 }
+        { id: 'yShift', label: 'Y Shift', type: 'number', value: 100 }//,
+        // { id: 'zShift', label: 'Z Shift', type: 'number', value: 100 }
     ];
 
     // Create input controls
@@ -336,7 +336,6 @@ const openOverrideModal = (noiseType) => {
             <label>Gain: <input id="${uniqueId}-gain" type="number" step="0.1" value="${overrides[noiseType]?.gain || ''}"></label><br>
             <label>X Shift: <input id="${uniqueId}-xShift" type="number" step="1" value="${overrides[noiseType]?.xShift || ''}"></label><br>
             <label>Y Shift: <input id="${uniqueId}-yShift" type="number" step="1" value="${overrides[noiseType]?.yShift || ''}"></label><br>
-            <label>Z Shift: <input id="${uniqueId}-zShift" type="number" step="1" value="${overrides[noiseType]?.zShift || ''}"></label><br>
             <label>Frequency: <input id="${uniqueId}-frequency" type="number" step="0.1" value="${overrides[noiseType]?.frequency || ''}"></label><br>
             <label>Scalar: <input id="${uniqueId}-scalar" type="number" step="0.1" value="${overrides[noiseType]?.scalar || 1}"></label><br>
             <div class="modal-buttons">
@@ -358,7 +357,7 @@ const openOverrideModal = (noiseType) => {
             gain: parseFloat(document.getElementById(`${uniqueId}-gain`).value) || overrides[noiseType]?.gain,
             xShift: parseFloat(document.getElementById(`${uniqueId}-xShift`).value) || overrides[noiseType]?.xShift,
             yShift: parseFloat(document.getElementById(`${uniqueId}-yShift`).value) || overrides[noiseType]?.yShift,
-            zShift: parseFloat(document.getElementById(`${uniqueId}-zShift`).value) || overrides[noiseType]?.zShift,
+            // zShift: parseFloat(document.getElementById(`${uniqueId}-zShift`).value) || overrides[noiseType]?.zShift,
             frequency: parseFloat(document.getElementById(`${uniqueId}-frequency`).value) || overrides[noiseType]?.frequency,
             scalar: parseFloat(document.getElementById(`${uniqueId}-scalar`).value) || 1
         };
