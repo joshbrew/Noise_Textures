@@ -16,6 +16,8 @@ import { terrainRender, clearTerrainRender } from './src/scenes/terrainscene'
 
 import { VFieldRender, cleanupVFieldRender } from './src/scenes/vectorfieldvis';
 
+import { makeRiverNetwork, deleteRiverNetwork } from './src/scenes/riversim';
+
 
 const defaultScene = 'noise2'; //'noise' 'noise2' 'planet' 'terrain' 'vf', 'fluid', 'tank'
 
@@ -36,6 +38,8 @@ async function renderScene(option) {
             await cnt(render);
         } else if (currentRender === 'vf') {
             await cleanupVFieldRender(render);
+        } else if (currentRender === 'rv') {
+            await deleteRiverNetwork(render);
         } 
         render = undefined;
     }
@@ -50,6 +54,8 @@ async function renderScene(option) {
         render = await rnt();
     } else if (option === 'vf') {
         render = await VFieldRender();
+    } else if (option === 'rv') {
+        render = await makeRiverNetwork();
     } 
 
     currentRender = option;
@@ -85,6 +91,7 @@ function createRadioButtons(defaultScene) {
         { label: '3D Planet', value: 'planet' },
         { label: 'Flat Terrain', value: 'terrain' },
         { label: 'Vector Fields', value: 'vf' },
+        { label: 'Rivers', value: 'rv' }
         //{ label: 'Fluid Sim', value:'fluid'}
     ];
 
