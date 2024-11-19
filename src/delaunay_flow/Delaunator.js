@@ -18,11 +18,17 @@ const EPSILON = Math.pow(2, -52);
 const EDGE_STACK = new Uint32Array(512);
 
 function orient2d(ax, ay, bx, by, cx, cy) {
-    return (ay - cy) * (bx - cx) - (ax - cx) * (by - cy);
+    const acx = ax - cx;
+    const acy = ay - cy;
+    const bcx = bx - cx;
+    const bcy = by - cy;
+    return acy * bcx - acx * bcy;
 }
 
 function pseudoAngle(dx, dy) {
-    const p = dx / (Math.abs(dx) + Math.abs(dy));
+    const absSum = Math.abs(dx) + Math.abs(dy);
+    if (absSum === 0) return 0; // Avoid division by zero
+    const p = dx / absSum;
     return (dy > 0 ? 3 - p : 1 + p) / 4; // [0..1]
 }
 
@@ -44,9 +50,11 @@ function inCircle(ax, ay, bx, by, cx, cy, px, py) {
     const bp = ex * ex + ey * ey;
     const cp = fx * fx + fy * fy;
 
-    return dx * (ey * cp - bp * fy) -
-        dy * (ex * cp - bp * fx) +
-        ap * (ex * fy - ey * fx) < 0;
+    const cross1 = ey * cp - bp * fy;
+    const cross2 = ex * cp - bp * fx;
+    const cross3 = ex * fy - ey * fx;
+
+    return dx * cross1 - dy * cross2 + ap * cross3 < 0;
 }
 
 function circumradius(ax, ay, bx, by, cx, cy) {
@@ -57,10 +65,13 @@ function circumradius(ax, ay, bx, by, cx, cy) {
 
     const bl = dx * dx + dy * dy;
     const cl = ex * ex + ey * ey;
-    const d = 0.5 / (dx * ey - dy * ex);
+    const determinant = dx * ey - dy * ex;
 
-    const x = (ey * bl - dy * cl) * d;
-    const y = (dx * cl - ex * bl) * d;
+    if (determinant === 0) return Infinity; // Avoid division by zero
+    const factor = 0.5 / determinant;
+
+    const x = (ey * bl - dy * cl) * factor;
+    const y = (dx * cl - ex * bl) * factor;
 
     return x * x + y * y;
 }
@@ -73,50 +84,63 @@ function circumcenter(ax, ay, bx, by, cx, cy) {
 
     const bl = dx * dx + dy * dy;
     const cl = ex * ex + ey * ey;
-    const d = 0.5 / (dx * ey - dy * ex);
+    const determinant = dx * ey - dy * ex;
 
-    const x = ax + (ey * bl - dy * cl) * d;
-    const y = ay + (dx * cl - ex * bl) * d;
+    if (determinant === 0) return null; // Degenerate case
+    const factor = 0.5 / determinant;
+
+    const x = ax + (ey * bl - dy * cl) * factor;
+    const y = ay + (dx * cl - ex * bl) * factor;
 
     return { x, y };
 }
 
 function quicksort(ids, dists, left, right) {
+    // Insertion sort for small partitions
     if (right - left <= 20) {
         for (let i = left + 1; i <= right; i++) {
             const temp = ids[i];
             const tempDist = dists[temp];
             let j = i - 1;
-            while (j >= left && dists[ids[j]] > tempDist) ids[j + 1] = ids[j--];
+            while (j >= left && dists[ids[j]] > tempDist) {
+                ids[j + 1] = ids[j];
+                j--;
+            }
             ids[j + 1] = temp;
         }
+        return;
+    }
+
+    // Median-of-three pivot selection
+    const median = (left + right) >> 1;
+    if (dists[ids[left]] > dists[ids[right]]) swap(ids, left, right);
+    if (dists[ids[left]] > dists[ids[median]]) swap(ids, left, median);
+    if (dists[ids[median]] > dists[ids[right]]) swap(ids, median, right);
+
+    // Partitioning
+    let pivotIndex = median;
+    const pivot = ids[pivotIndex];
+    const pivotDist = dists[pivot];
+    swap(ids, pivotIndex, right); // Move pivot to the end
+    let partitionIndex = left;
+
+    for (let i = left; i < right; i++) {
+        if (dists[ids[i]] < pivotDist) {
+            swap(ids, i, partitionIndex);
+            partitionIndex++;
+        }
+    }
+    swap(ids, partitionIndex, right); // Move pivot to its final place
+
+    // Recursive calls for smaller partitions first
+    const leftSize = partitionIndex - left;
+    const rightSize = right - partitionIndex;
+    if (leftSize < rightSize) {
+        quicksort(ids, dists, left, partitionIndex - 1);
+        quicksort(ids, dists, partitionIndex + 1, right);
     } else {
-        const median = (left + right) >> 1;
-        let i = left + 1;
-        let j = right;
-        swap(ids, median, i);
-        if (dists[ids[left]] > dists[ids[right]]) swap(ids, left, right);
-        if (dists[ids[i]] > dists[ids[right]]) swap(ids, i, right);
-        if (dists[ids[left]] > dists[ids[i]]) swap(ids, left, i);
-
-        const temp = ids[i];
-        const tempDist = dists[temp];
-        while (true) {
-            do i++; while (dists[ids[i]] < tempDist);
-            do j--; while (dists[ids[j]] > tempDist);
-            if (j < i) break;
-            swap(ids, i, j);
-        }
-        ids[left + 1] = ids[j];
-        ids[j] = temp;
-
-        if (right - i + 1 >= j - left) {
-            quicksort(ids, dists, i, right);
-            quicksort(ids, dists, left, j - 1);
-        } else {
-            quicksort(ids, dists, left, j - 1);
-            quicksort(ids, dists, i, right);
-        }
+        quicksort(ids, dists, partitionIndex + 1, right);
+        quicksort(ids, dists, left, partitionIndex - 1);
     }
 }
 
@@ -174,30 +198,36 @@ export default class Delaunator {
     }
 
     update() {
-        const { coords, _hullPrev: hullPrev, _hullNext: hullNext, _hullTri: hullTri, _hullHash: hullHash } = this;
+        const {
+            coords,
+            _hullPrev: hullPrev,
+            _hullNext: hullNext,
+            _hullTri: hullTri,
+            _hullHash: hullHash
+        } = this;
         const n = coords.length >> 1;
-
-        // populate an array of point indices; calculate input data bbox
-        let minX = Infinity;
-        let minY = Infinity;
-        let maxX = -Infinity;
-        let maxY = -Infinity;
-
+    
+        // Populate an array of point indices; calculate input data bbox
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
         for (let i = 0; i < n; i++) {
             const x = coords[2 * i];
             const y = coords[2 * i + 1];
+            
             if (x < minX) minX = x;
             if (y < minY) minY = y;
             if (x > maxX) maxX = x;
             if (y > maxY) maxY = y;
+            
             this._ids[i] = i;
         }
+    
         const cx = (minX + maxX) / 2;
         const cy = (minY + maxY) / 2;
-
+    
         let i0, i1, i2;
-
-        // pick a seed point close to the center
+    
+        // Pick a seed point close to the center
         for (let i = 0, minDist = Infinity; i < n; i++) {
             const d = dist(cx, cy, coords[2 * i], coords[2 * i + 1]);
             if (d < minDist) {
@@ -205,10 +235,11 @@ export default class Delaunator {
                 minDist = d;
             }
         }
+    
         const i0x = coords[2 * i0];
         const i0y = coords[2 * i0 + 1];
-
-        // find the point closest to the seed
+    
+        // Find the point closest to the seed
         for (let i = 0, minDist = Infinity; i < n; i++) {
             if (i === i0) continue;
             const d = dist(i0x, i0y, coords[2 * i], coords[2 * i + 1]);
@@ -217,12 +248,13 @@ export default class Delaunator {
                 minDist = d;
             }
         }
+    
         let i1x = coords[2 * i1];
         let i1y = coords[2 * i1 + 1];
-
+    
         let minRadius = Infinity;
-
-        // find the third point which forms the smallest circumcircle with the first two
+    
+        // Find the third point which forms the smallest circumcircle with the first two
         for (let i = 0; i < n; i++) {
             if (i === i0 || i === i1) continue;
             const r = circumradius(i0x, i0y, i1x, i1y, coords[2 * i], coords[2 * i + 1]);
@@ -231,12 +263,12 @@ export default class Delaunator {
                 minRadius = r;
             }
         }
+    
         let i2x = coords[2 * i2];
         let i2y = coords[2 * i2 + 1];
-
+    
         if (minRadius === Infinity) {
-            // order collinear points by dx (or dy if all x are identical)
-            // and return the list as a hull
+            // Order collinear points by dx (or dy if all x are identical) and return the list as a hull
             for (let i = 0; i < n; i++) {
                 this._dists[i] = (coords[2 * i] - coords[0]) || (coords[2 * i + 1] - coords[1]);
             }
@@ -256,129 +288,125 @@ export default class Delaunator {
             this.halfedges = new Uint32Array(0);
             return;
         }
-
-        // swap the order of the seed points for counter-clockwise orientation
+    
+        // Swap the order of the seed points for counter-clockwise orientation
         if (orient2d(i0x, i0y, i1x, i1y, i2x, i2y) < 0) {
-            const i = i1;
-            const x = i1x;
-            const y = i1y;
-            i1 = i2;
-            i1x = i2x;
-            i1y = i2y;
-            i2 = i;
-            i2x = x;
-            i2y = y;
+            [i1, i2] = [i2, i1];
+            [i1x, i2x] = [i2x, i1x];
+            [i1y, i2y] = [i2y, i1y];
         }
-
+    
         const center = circumcenter(i0x, i0y, i1x, i1y, i2x, i2y);
         this._cx = center.x;
         this._cy = center.y;
-
+    
         for (let i = 0; i < n; i++) {
             this._dists[i] = dist(coords[2 * i], coords[2 * i + 1], center.x, center.y);
         }
-
-        // sort the points by distance from the seed triangle circumcenter
+    
+        // Sort the points by distance from the seed triangle circumcenter
         quicksort(this._ids, this._dists, 0, n - 1);
-
-        // set up the seed triangle as the starting hull
+    
+        // Set up the seed triangle as the starting hull
         this._hullStart = i0;
         let hullSize = 3;
-
+    
         hullNext[i0] = hullPrev[i2] = i1;
         hullNext[i1] = hullPrev[i0] = i2;
         hullNext[i2] = hullPrev[i1] = i0;
-
+    
         hullTri[i0] = 0;
         hullTri[i1] = 1;
         hullTri[i2] = 2;
-
+    
         hullHash.fill(-1);
         hullHash[this._hashKey(i0x, i0y)] = i0;
         hullHash[this._hashKey(i1x, i1y)] = i1;
         hullHash[this._hashKey(i2x, i2y)] = i2;
-
+    
         this.trianglesLen = 0;
         this._addTriangle(i0, i1, i2, -1, -1, -1);
-
-        for (let k = 0, xp, yp; k < this._ids.length; k++) {
+    
+        let xp, yp;
+        for (let k = 0; k < this._ids.length; k++) {
             const i = this._ids[k];
             const x = coords[2 * i];
             const y = coords[2 * i + 1];
-
-            // skip near-duplicate points
+    
+            // Skip near-duplicate points
             if (k > 0 && Math.abs(x - xp) <= EPSILON && Math.abs(y - yp) <= EPSILON) continue;
             xp = x;
             yp = y;
-
-            // skip seed triangle points
+    
+            // Skip seed triangle points
             if (i === i0 || i === i1 || i === i2) continue;
-
-            // find a visible edge on the convex hull using edge hash
+    
+            // Find a visible edge on the convex hull using edge hash
             let start = 0;
             for (let j = 0, key = this._hashKey(x, y); j < this._hashSize; j++) {
                 start = hullHash[(key + j) % this._hashSize];
                 if (start !== -1 && start !== hullNext[start]) break;
             }
-
+    
             start = hullPrev[start];
             let e = start, q;
-            while (q = hullNext[e], orient2d(x, y, coords[2 * e], coords[2 * e + 1], coords[2 * q], coords[2 * q + 1]) >= 0) {
+            while ((q = hullNext[e]), orient2d(x, y, coords[2 * e], coords[2 * e + 1], coords[2 * q], coords[2 * q + 1]) >= 0) {
                 e = q;
                 if (e === start) {
                     e = -1;
                     break;
                 }
             }
-            if (e === -1) continue; // likely a near-duplicate point; skip it
-
-            // add the first triangle from the point
+            if (e === -1) continue; // Likely a near-duplicate point; skip it
+    
+            // Add the first triangle from the point
             let t = this._addTriangle(e, i, hullNext[e], -1, -1, hullTri[e]);
-
-            // recursively flip triangles from the point until they satisfy the Delaunay condition
+    
+            // Recursively flip triangles from the point until they satisfy the Delaunay condition
             hullTri[i] = this._legalize(t + 2);
-            hullTri[e] = t; // keep track of boundary triangles on the hull
+            hullTri[e] = t; // Keep track of boundary triangles on the hull
             hullSize++;
-
-            // walk forward through the hull, adding more triangles and flipping recursively
+    
+            // Walk forward through the hull, adding more triangles and flipping recursively
             let n = hullNext[e];
-            while (q = hullNext[n], orient2d(x, y, coords[2 * n], coords[2 * n + 1], coords[2 * q], coords[2 * q + 1]) < 0) {
+            while ((q = hullNext[n]), orient2d(x, y, coords[2 * n], coords[2 * n + 1], coords[2 * q], coords[2 * q + 1]) < 0) {
                 t = this._addTriangle(n, i, q, hullTri[i], -1, hullTri[n]);
                 hullTri[i] = this._legalize(t + 2);
-                hullNext[n] = n; // mark as removed
+                hullNext[n] = n; // Mark as removed
                 hullSize--;
                 n = q;
             }
-
-            // walk backward from the other side, adding more triangles and flipping
+    
+            // Walk backward from the other side, adding more triangles and flipping
             if (e === start) {
-                while (q = hullPrev[e], orient2d(x, y, coords[2 * q], coords[2 * q + 1], coords[2 * e], coords[2 * e + 1]) < 0) {
+                while ((q = hullPrev[e]), orient2d(x, y, coords[2 * q], coords[2 * q + 1], coords[2 * e], coords[2 * e + 1]) < 0) {
                     t = this._addTriangle(q, i, e, -1, hullTri[e], hullTri[q]);
                     this._legalize(t + 2);
                     hullTri[q] = t;
-                    hullNext[e] = e; // mark as removed
+                    hullNext[e] = e; // Mark as removed
                     hullSize--;
                     e = q;
                 }
             }
-
-            // update the hull indices
+    
+            // Update the hull indices
             this._hullStart = hullPrev[i] = e;
             hullNext[e] = hullPrev[n] = i;
             hullNext[i] = n;
-
-            // save the two new edges in the hash table
+    
+            // Save the two new edges in the hash table
             hullHash[this._hashKey(x, y)] = i;
             hullHash[this._hashKey(coords[2 * e], coords[2 * e + 1])] = e;
         }
-
+    
+        // Construct the final hull
         this.hull = new Uint32Array(hullSize);
         for (let i = 0, e = this._hullStart; i < hullSize; i++) {
             this.hull[i] = e;
             e = hullNext[e];
         }
-
-        // trim typed triangle mesh arrays
+    
+        // Trim typed triangle mesh arrays
         this.triangles = this._triangles.subarray(0, this.trianglesLen);
         this.halfedges = this._halfedges.subarray(0, this.trianglesLen);
     }

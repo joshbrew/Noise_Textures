@@ -1,13 +1,10 @@
 import Delaunator from "./Delaunator";
-import { BaseNoise, PerlinNoise } from "../noiseFunctions";
+import { BaseNoise, PerlinNoise, RidgedMultifractalNoise4, RidgeNoise, VoronoiTileNoise, FractalBrownianMotion, RippleNoise, FractalRipples, FVoronoiRipple3D, VoronoiBrownianMotion3, FractalBrownianMotion3, FVoronoiCircularRipple3D } from "../noiseFunctions";
 
 self.onmessage = function (event) {
     const data = event.data;
     if (data.type === 'start') {
-        const npts = data.npts;
-
-        // Begin computation
-        computeRiverNetwork(npts);
+        computeRiverNetwork(data.npts);
     }
 };
 
@@ -15,247 +12,227 @@ function computeRiverNetwork(npts) {
     const seed1 = 1122828271;
     const seed2 = 1075380921 + Date.now();
 
-    const rand1 = new BaseNoise(seed1); // Random generator for points
-    const rand2 = new PerlinNoise(seed2); // Perlin noise generator for heightmap
+    const rand1 = new BaseNoise(seed1);
+    const rand2 = new VoronoiTileNoise(seed2);
 
-    // Generate random points using BaseNoise
-    const pts = [];
-    for (let i = 0; i < npts; i++) {
-        pts.push([rand1.seededRandom(), rand1.seededRandom()]);
-    }
-
+    const pts = generatePoints(rand1, npts);
     self.postMessage({ type: 'progress', message: 'Points generated.' });
 
-    // Generate heights using PerlinNoise generateNoise method
-    const zs = [];
-    const zoom = 10.0; // Zoom level for Perlin noise
-    const freq = 1; // Frequency
-    const octaves = 6; // Number of octaves
-    const lacunarity = 2.0; // Frequency multiplier
-    const gain = 0.5; // Amplitude multiplier
-    const xShift = 0; // Optional x-axis shift
-    const yShift = 0; // Optional y-axis shift
-
-    for (let i = 0; i < npts; i++) {
-        const [x, y] = pts[i];
-        zs.push(rand2.generateNoise(x, y, 0, zoom, freq, octaves, lacunarity, gain, xShift, yShift));
-    }
-
+    const zs = computeHeights(rand2, pts);
     self.postMessage({ type: 'progress', message: 'Heights computed.' });
 
     const delaunay = Delaunator.from(pts);
-
-    function computeNeighbors(delaunay, npts, maxEdgeLength, points) {
-        const neighbors = Array.from({ length: npts }, () => []);
-
-        function nextHalfedge(e) {
-            return (e % 3 === 2) ? e - 2 : e + 1;
-        }
-
-        function distance(p1, p2) {
-            const dx = points[p1][0] - points[p2][0];
-            const dy = points[p1][1] - points[p2][1];
-            return Math.sqrt(dx * dx + dy * dy);
-        }
-
-        for (let e = 0; e < delaunay.triangles.length; e++) {
-            const p = delaunay.triangles[e];
-            const q = delaunay.triangles[nextHalfedge(e)];
-
-            // Only add neighbors if the edge length is below the maximum
-            if (distance(p, q) <= maxEdgeLength) {
-                if (!neighbors[p].includes(q)) neighbors[p].push(q);
-                if (!neighbors[q].includes(p)) neighbors[q].push(p);
-            }
-        }
-
-        return neighbors;
-    }
-
-    // Update this line to pass the maxEdgeLength and points to computeNeighbors
-    const maxEdgeLength = 0.03; // Adjust this value as needed
-    const neighbors = computeNeighbors(delaunay, npts, maxEdgeLength, pts);
-
+    const neighbors = computeNeighbors(delaunay, pts, 0.03);
     self.postMessage({ type: 'progress', message: 'Neighbors computed.' });
 
+    const riverEdges = constructRiverNetwork(pts, zs, neighbors);
+    self.postMessage({ type: 'result', edges: riverEdges, pts });
+}
 
-    const hull = delaunay.hull;
-    const hullSet = new Set(hull);
-
-    const gr = new Map();
-    for (let i = 0; i < npts; i++) {
-        gr.set(i, {
-            predecessors: new Set(),
-            successors: new Set(),
-            inEdges: new Map(),
-            outEdges: new Map(),
-        });
+function generatePoints(rand, count) {
+    const points = new Array(count);
+    for (let i = 0; i < count; i++) {
+        points[i] = [rand.seededRandom(), rand.seededRandom()];
     }
+    return points;
+}
 
-    const indices = zs.map((z, i) => [z, i]).sort((a, b) => b[0] - a[0]).map(([z, i]) => i);
-    let flowq = indices.slice();
+function computeHeights(noise, points) {
+    const zoom = 0.7;
+    const freq = 1;
+    const octaves = 1;
+    const lacunarity = 2.0;
+    const gain = 0.5;
 
-    let rechecks = [];
-    let visited = new Set();
-    let vetos = new Set();
-
-    function isBoundary(point) {
-        const [x, y] = point;
-        return x <= 0 || x >= 1 || y <= 0 || y >= 1;
+    const heights = new Array(points.length);
+    for (let i = 0; i < points.length; i++) {
+        const [x, y] = points[i];
+        heights[i] = noise.generateNoise(x, y, 0, zoom, freq, octaves, lacunarity, gain);
     }
+    return heights;
+}
 
-    function flowrate(p1, p2, vel = [0, 0, 0]) {
-        const x = pts[p2][0] - pts[p1][0];
-        const y = pts[p2][1] - pts[p1][1];
-        const z = zs[p2] - zs[p1];
-        const r = Math.sqrt(x * x + y * y + z * z);
+function computeNeighbors(delaunay, points, maxEdgeLength) {
+    const neighbors = Array.from({ length: points.length }, () => []);
+    const triangles = delaunay.triangles;
+    const nextHalfedge = (e) => (e % 3 === 2 ? e - 2 : e + 1);
 
-        const vi = (x * vel[0] + y * vel[1] + z * vel[2]) / r;
-        const vfsq = vi * vi - 2 * z;
+    for (let e = 0; e < triangles.length; e++) {
+        const p = triangles[e];
+        const q = triangles[nextHalfedge(e)];
 
-        let vf = [0, 0, 0];
-        let dt = -Infinity;
-
-        if (vfsq >= 0) {
-            dt = (vi + Math.sqrt(vfsq)) / (2 * r);
-            const vhat = Math.sqrt(vfsq) / r;
-            vf = [vhat * x, vhat * y, vhat * z];
+        if (distance(points[p], points[q]) <= maxEdgeLength) {
+            if (!neighbors[p].includes(q)) neighbors[p].push(q);
+            if (!neighbors[q].includes(p)) neighbors[q].push(p);
         }
+    }
+    return neighbors;
+}
 
-        return { dt, vf };
+function distance([x1, y1], [x2, y2]) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+function constructRiverNetwork(pts, zs, neighbors) {
+    const npts = pts.length;
+    const gr = initializeGraph(npts);
+    const indices = Array.from(zs.keys()).sort((a, b) => zs[b] - zs[a]);
+    let flowq = indices.slice();
+    let rechecks = [];
+    const visited = new Set();
+    const vetos = new Set();
+
+    const clearOutflows = createClearOutflows(gr, zs, rechecks);
+    const processNode = createProcessNode(pts, zs, neighbors, gr, vetos, rechecks, visited);
+
+    while (flowq.length > 0 || rechecks.length > 0) {
+        const thisnode = getNextNode(flowq, rechecks, zs);
+        visited.add(thisnode);
+
+        clearOutflows(thisnode);
+
+        if (isBoundary(pts[thisnode])) continue;
+
+        processNode(thisnode);
     }
 
-    function findOutflow(pt, veto = new Set(), vetouphill = false) {
-        let px = 0, py = 0, pz = 0;
-        let m = 1;
+    return collectEdges(gr);
+}
 
-        const node = gr.get(pt);
-        node.predecessors.forEach(pred => {
-            const edge = gr.get(pred).outEdges.get(pt);
-            const outflow = edge.outflow;
-            const mass = edge.weight;
+function initializeGraph(npts) {
+    const graph = Array.from({ length: npts }, () => ({
+        predecessors: new Set(),
+        successors: new Set(),
+        inEdges: new Map(),
+        outEdges: new Map(),
+    }));
+    return graph;
+}
+
+function createClearOutflows(gr, zs, rechecks) {
+    return function clearOutflows(node) {
+        const nodeData = gr[node];
+        const successors = Array.from(nodeData.successors);
+
+        for (let i = 0; i < successors.length; i++) {
+            const oldout = successors[i];
+            nodeData.successors.delete(oldout);
+            gr[oldout].predecessors.delete(node);
+            gr[oldout].inEdges.delete(node);
+            nodeData.outEdges.delete(oldout);
+
+            if (zs[oldout] > zs[node]) rechecks.push(oldout);
+        }
+    };
+}
+
+function createProcessNode(pts, zs, neighbors, gr, vetos, rechecks, visited) {
+    const flowrate = createFlowRate(pts, zs);
+
+    return function processNode(node) {
+        const { nextnode, outflow, m } = findOutflow(node, pts, zs, neighbors, gr, vetos, flowrate);
+
+        if (nextnode !== null) {
+            updateGraph(node, nextnode, gr, outflow, m, zs, rechecks);
+        }
+    };
+}
+
+function createFlowRate(pts, zs) {
+    return function flowrate(p1, p2, vel) {
+        const [dx, dy] = [pts[p2][0] - pts[p1][0], pts[p2][1] - pts[p1][1]];
+        const dz = zs[p2] - zs[p1];
+        const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        const vi = (dx * vel[0] + dy * vel[1] + dz * vel[2]) / r;
+        const vfsq = vi * vi - 2 * dz;
+
+        if (vfsq < 0) return { dt: -Infinity, vf: [0, 0, 0] };
+
+        const dt = (vi + Math.sqrt(vfsq)) / (2 * r);
+        return { dt, vf: [(dx / r) * Math.sqrt(vfsq), (dy / r) * Math.sqrt(vfsq), dz / r] };
+    };
+}
+
+function findOutflow(node, pts, zs, neighbors, gr, vetos, flowrate) {
+    const nodeData = gr[node];
+    let px = 0,
+        py = 0,
+        pz = 0,
+        m = 1;
+
+    const predecessors = Array.from(nodeData.predecessors);
+    for (let i = 0; i < predecessors.length; i++) {
+        const pred = predecessors[i];
+        const edge = gr[pred].outEdges.get(node);
+        if (edge) {
+            const { outflow, weight } = edge;
             px += outflow[0];
             py += outflow[1];
             pz += outflow[2];
-            m += mass;
-
-            if (node.successors.has(pred) && gr.get(pred).outEdges.get(pt).weight > edge.weight) {
-                const backEdge = node.outEdges.get(pred);
-                if (backEdge) {
-                    px -= backEdge.outflow[0];
-                    py -= backEdge.outflow[1];
-                    pz -= backEdge.outflow[2];
-                    m -= backEdge.weight;
-                }
-            }
-        });
-
-        const vi = [px / m, py / m, pz / m];
-        let dtmax = 0;
-        let vf = [0, 0, 0];
-        let nbrmax = null;
-
-        for (const nbr of neighbors[pt]) {
-            if (veto.has(nbr)) continue;
-            if (vetouphill && zs[nbr] > zs[pt]) continue;
-
-            // Skip neighbors on the boundary
-            if (isBoundary(pts[nbr])) continue;
-
-            const { dt, vf: vn } = flowrate(pt, nbr, vi);
-            if (dt > dtmax) {
-                dtmax = dt;
-                vf = vn;
-                nbrmax = nbr;
-            }
-        }
-
-        const outflow = [vf[0] * m, vf[1] * m, vf[2] * m];
-        return { nextnode: nbrmax, outflow, m };
-    }
-
-    let qtop = flowq[0];
-    let processed = 0;
-
-    while (flowq.length > 0 || rechecks.length > 0) {
-        let thisnode;
-
-        if (rechecks.length > 0) {
-            rechecks = Array.from(new Set(rechecks)).sort((a, b) => zs[b] - zs[a]);
-            thisnode = rechecks.shift();
-        } else {
-            thisnode = flowq.shift();
-            if (flowq.length > 0) {
-                qtop = flowq[0];
-            } else {
-                qtop = null;
-            }
-            vetos.clear();
-            visited.clear();
-        }
-
-        if (visited.has(thisnode)) {
-            gr.get(thisnode).predecessors.forEach(pred => {
-                if (visited.has(pred) && zs[pred] > zs[thisnode]) {
-                    vetos.add(pred);
-                }
-            });
-        }
-
-        const node = gr.get(thisnode);
-
-        const oldouts = Array.from(node.successors);
-        oldouts.forEach(oldout => {
-            node.successors.delete(oldout);
-            gr.get(oldout).predecessors.delete(thisnode);
-            gr.get(oldout).inEdges.delete(thisnode);
-            node.outEdges.delete(oldout);
-
-            if (qtop !== null && zs[oldout] > zs[qtop]) {
-                rechecks.push(oldout);
-            }
-        });
-
-        visited.add(thisnode);
-
-        if (isBoundary(pts[thisnode])) {
-            continue; // Terminate flow at boundary node
-        }
-
-        const { nextnode, outflow, m } = findOutflow(thisnode, vetos);
-
-        if (nextnode === null) {
-            continue;
-        }
-
-        node.successors.add(nextnode);
-        node.outEdges.set(nextnode, { outflow: outflow, weight: m });
-        gr.get(nextnode).predecessors.add(thisnode);
-        gr.get(nextnode).inEdges.set(thisnode, { outflow: outflow, weight: m });
-        if (qtop !== null && zs[nextnode] > zs[qtop]) {
-            rechecks.push(nextnode);
-        }
-
-        processed++;
-        if (processed % 1000 === 0) {
-            self.postMessage({ type: 'progress', message: 'Processed ' + processed + ' nodes...' });
+            m += weight;
         }
     }
 
-    self.postMessage({ type: 'progress', message: 'River network constructed.' });
+    const vi = [px / m, py / m, pz / m];
+    let bestNeighbor = null,
+        maxDt = -Infinity,
+        bestOutflow = null;
 
+    const nodeNeighbors = neighbors[node];
+    for (let i = 0; i < nodeNeighbors.length; i++) {
+        const nbr = nodeNeighbors[i];
+        if (vetos.has(nbr) || zs[nbr] > zs[node] || isBoundary(pts[nbr])) continue;
+
+        const { dt, vf } = flowrate(node, nbr, vi);
+        if (dt > maxDt) {
+            maxDt = dt;
+            bestOutflow = vf.map((v) => v * m);
+            bestNeighbor = nbr;
+        }
+    }
+
+    return { nextnode: bestNeighbor, outflow: bestOutflow, m };
+}
+
+function updateGraph(from, to, gr, outflow, weight, zs, rechecks) {
+    const fromData = gr[from];
+    const toData = gr[to];
+
+    fromData.successors.add(to);
+    fromData.outEdges.set(to, { outflow, weight });
+    toData.predecessors.add(from);
+    toData.inEdges.set(from, { outflow, weight });
+
+    if (zs[to] > zs[rechecks[0]]) rechecks.push(to);
+}
+
+function collectEdges(graph) {
     const edges = [];
-    gr.forEach((node, i) => {
-        node.successors.forEach(j => {
-            const edge = node.outEdges.get(j);
-            const weight = edge.weight;
-            edges.push({ source: i, target: j, weight: weight });
-        });
-    });
+    for (let i = 0; i < graph.length; i++) {
+        const node = graph[i];
+        const successors = Array.from(node.successors);
 
-    self.postMessage({ type: 'progress', message: 'Edges collected.' });
+        for (let j = 0; j < successors.length; j++) {
+            const target = successors[j];
+            const { weight } = node.outEdges.get(target);
+            edges.push({ source: i, target, weight });
+        }
+    }
+    return edges;
+}
 
-    self.postMessage({ type: 'result', edges: edges, pts: pts });
+function isBoundary([x, y]) {
+    return x <= 0 || x >= 1 || y <= 0 || y >= 1;
+}
+
+function getNextNode(flowq, rechecks, zs) {
+    if (rechecks.length > 0) {
+        rechecks.sort((a, b) => zs[b] - zs[a]);
+        return rechecks.pop();
+    }
+    return flowq.shift();
 }
 
 export default self;
