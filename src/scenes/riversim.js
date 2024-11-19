@@ -1,15 +1,22 @@
-import wrkr from '../delaunay_flow/delaunay.worker'
-
+import wrkr from '../delaunay_flow/delaunay.worker';
+import * as BABYLON from 'babylonjs';
 
 export async function makeRiverNetwork() {
+    const npts = 10000;
+    const gridWidth = 200;
+    const gridHeight = 200;
 
     const container = document.createElement('span');
-
     const canvas = document.createElement('canvas');
     const progressDiv = document.createElement('div');
+    const resetButton = document.createElement('button');
+    const toggle3DButton = document.createElement('button');
+    const toggleOverlayButton = document.createElement('button');
+
     container.appendChild(canvas);
     container.appendChild(progressDiv);
     document.body.appendChild(container);
+
     progressDiv.style.position = 'absolute';
     progressDiv.style.top = '90vh';
 
@@ -20,97 +27,249 @@ export async function makeRiverNetwork() {
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
-    
-    // Retrieve the worker script from the script tag
-    // const workerScriptContent = document.getElementById('worker-script').textContent;
-    
-    // Create a Blob URL for the worker
-    // const blob = new Blob([workerScriptContent], { type: 'application/javascript' });
-    // const workerURL = URL.createObjectURL(blob);
 
-    // Create a new Web Worker
+    resetButton.innerHTML = "Regenerate";
+    container.appendChild(resetButton);
+    resetButton.style.position = 'absolute';
+    resetButton.style.top = '90vh';
+    resetButton.style.left = '10vh';
+
+    toggle3DButton.innerHTML = "Toggle 3D View";
+    container.appendChild(toggle3DButton);
+    toggle3DButton.style.position = 'absolute';
+    toggle3DButton.style.top = '90vh';
+    toggle3DButton.style.left = '20vh';
+
+    toggleOverlayButton.innerHTML = "Toggle Canvas Overlay";
+    container.appendChild(toggleOverlayButton);
+    toggleOverlayButton.style.position = 'absolute';
+    toggleOverlayButton.style.top = '90vh';
+    toggleOverlayButton.style.left = '30vh';
+
+    let is3D = false;
+    let useOverlay = false;
+    let engine = null;
+    let scene = null;
+    let heightmapMesh = null;
+    let canvas3D = null;
+
     const worker = new Worker(wrkr);
 
-    // Receive messages from the worker
+    let meshBuffer, edges, pts;
+
     worker.onmessage = function (event) {
         const data = event.data;
         if (data.type === 'progress') {
-            // Update progress
             progressDiv.textContent = data.message;
         } else if (data.type === 'result') {
-            // Draw the river network
-            drawRiverNetwork(data.edges, data.pts);
+            ({ heightBuffer, edges, pts, meshBuffer } = data);
+            is3D ? render3D() : render2D();
             progressDiv.textContent = 'Rendering complete.';
-            // Revoke the Blob URL
             worker.terminate();
         }
     };
 
-    // Send a message to start computation
-    worker.postMessage({ type: 'start', npts: 40000 });
+    worker.postMessage({ 
+        type: 'start', 
+        npts,
+        seed1: 1122828271, 
+        seed2: 1075380921 + Date.now(),
+        width: gridWidth,
+        height: gridHeight
+    });
 
-    function drawRiverNetwork(edges, pts) {
+    function render2D() {
+        cleanup3D(); // Ensure 3D resources are cleaned up before rendering 2D
         ctx.clearRect(0, 0, width, height);
         ctx.lineCap = 'round';
-    
-        // Scale points to canvas size
+
         const scaleX = (x) => x * (width - 20) + 10;
         const scaleY = (y) => (1 - y) * (height - 20) + 10;
-    
-        // Find the range of weights for normalization
+
         const weights = edges.map((edge) => edge.weight);
         const minWeight = Math.min(...weights);
         const maxWeight = Math.max(...weights);
-    
-        // Function to calculate color based on weight
-        // Function to calculate greener gradient color based on weight
-    const getColor = (weight) => {
-        const normalized = (weight - minWeight) / (maxWeight - minWeight);
-        const baseGreen = [144, 238, 144]; // Light green RGB (base color)
 
-        // Calculate gradient transitions
-        const r = baseGreen[0] - Math.round(50 * (1 - normalized)); // Red reduces slightly
-        const g = baseGreen[1] + Math.round(50 * normalized); // Green becomes brighter
-        const b = baseGreen[2] - Math.round(100 * normalized); // Blue transitions to yellowish-green
+        const getColor = (weight) => {
+            const normalized = (weight - minWeight) / (maxWeight - minWeight);
+            const baseGreen = [144, 238, 255];
+            const r = baseGreen[0] - Math.round(50 * (1 - normalized));
+            const g = baseGreen[1] + Math.round(50 * normalized);
+            const b = baseGreen[2] - Math.round(100 * normalized);
+            return `rgb(${Math.min(255, r)},${Math.min(255, g)},${Math.min(255, b)})`;
+        };
 
-        return `rgb(${Math.min(255, r)},${Math.min(255, g)},${Math.min(255, b)})`;
-    };
-        // Draw edges
-        for (let i = 0; i < edges.length; i++) {
-            const edge = edges[i];
+        edges.forEach((edge) => {
             const source = pts[edge.source];
             const target = pts[edge.target];
-    
             const x1 = scaleX(source[0]);
             const y1 = scaleY(source[1]);
             const x2 = scaleX(target[0]);
             const y2 = scaleY(target[1]);
-    
             const weight = edge.weight;
             const lineWidth = Math.sqrt(weight) / 4;
             ctx.lineWidth = lineWidth;
-    
-            ctx.strokeStyle = getColor(weight); // Apply gradient color based on weight
-    
+            ctx.strokeStyle = getColor(weight);
+
             ctx.beginPath();
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);
             ctx.stroke();
+        });
+    }
+
+    async function render3D() {
+        if (!engine) {
+            canvas3D = document.createElement('canvas');
+            canvas3D.width = 800;
+            canvas3D.height = 800;
+            container.appendChild(canvas3D);
+    
+            engine = new BABYLON.WebGPUEngine(canvas3D, { antialias: true });
+            await engine.initAsync();
+            scene = new BABYLON.Scene(engine);
+    
+            const camera = new BABYLON.ArcRotateCamera(
+                "camera",
+                Math.PI / 4,
+                Math.PI / 3,
+                200,
+                new BABYLON.Vector3(0, 0, 0),
+                scene
+            );
+            camera.attachControl(canvas3D, true);
+    
+            const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+    
+            const positions = [];
+            const indices = [];
+            const uvs = [];
+            const colors = [];
+            const scale = 100;
+    
+            const gridSize = Math.sqrt(meshBuffer.length / 3);
+            let centerX = 0, centerY = 0, centerZ = 0;
+    
+            // Compute vertex positions and accumulate center coordinates
+            for (let i = 0; i < meshBuffer.length; i += 3) {
+                const x = meshBuffer[i];
+                const y = meshBuffer[i + 1];
+                const z = meshBuffer[i + 2];
+    
+                centerX += x;
+                centerY += y;
+                centerZ += z;
+    
+                positions.push(x, z * scale, y); // Temporarily push uncentered positions
+    
+                const col = i / 3 % gridSize;
+                const row = Math.floor(i / 3 / gridSize);
+                uvs.push(col / (gridSize - 1), row / (gridSize - 1));
+    
+                colors.push(0.5, 0.8, 0.5, 1);
+            }
+    
+            // Calculate the geometric center
+            centerX /= gridSize * gridSize;
+            centerY /= gridSize * gridSize;
+            centerZ /= gridSize * gridSize;
+    
+            // Center the positions
+            for (let i = 0; i < positions.length; i += 3) {
+                positions[i] -= centerX;     // Center X
+                positions[i + 1] -= centerZ * scale; // Center Z (scaled for height)
+                positions[i + 2] -= centerY; // Center Y
+            }
+    
+            // Generate indices for the mesh
+            for (let row = 0; row < gridSize - 1; row++) {
+                for (let col = 0; col < gridSize - 1; col++) {
+                    const topLeft = row * gridSize + col;
+                    const topRight = topLeft + 1;
+                    const bottomLeft = (row + 1) * gridSize + col;
+                    const bottomRight = bottomLeft + 1;
+    
+                    indices.push(topLeft, topRight, bottomLeft);
+                    indices.push(topRight, bottomRight, bottomLeft);
+                }
+            }
+    
+            // Create and apply vertex data to the mesh
+            heightmapMesh = new BABYLON.Mesh("heightmap", scene);
+            const vertexData = new BABYLON.VertexData();
+            vertexData.positions = positions;
+            vertexData.indices = indices;
+            vertexData.uvs = uvs;
+            vertexData.colors = colors;
+            vertexData.applyToMesh(heightmapMesh);
+    
+            useOverlay ? applyOverlayMaterial(heightmapMesh, canvas) : applyDefaultMaterial(heightmapMesh);
+    
+            engine.runRenderLoop(() => scene.render());
+    
+            window.addEventListener("resize", () => engine.resize());
         }
     }
     
-    
-    
 
-    return {
-        container,
-        canvas,
-        ctx,
-        worker
+    function applyOverlayMaterial(mesh, canvas) {
+        const texture = new BABYLON.DynamicTexture("dynamicTexture", canvas, scene, false);
+        texture.update();
+        const material = new BABYLON.StandardMaterial("overlayMaterial", scene);
+        material.diffuseTexture = texture;
+        material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+        mesh.material = material;
+    }
+
+    function applyDefaultMaterial(mesh) {
+        const material = new BABYLON.StandardMaterial("riverMaterial", scene);
+        material.diffuseColor = new BABYLON.Color3(0, 0, 1);
+        material.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+        mesh.material = material;
+    }
+
+    function cleanup3D() {
+        if (engine) {
+            engine.stopRenderLoop();
+            scene.dispose();
+            engine.dispose();
+            canvas3D?.remove();
+            engine = null;
+            scene = null;
+            heightmapMesh = null;
+            canvas3D = null;
+        }
+    }
+
+    resetButton.onclick = () => {
+        cleanup3D();
+        deleteRiverNetwork({ container, worker });
+        makeRiverNetwork();
     };
+
+    toggle3DButton.onclick = () => {
+        if (is3D) {
+            // Switch to 2D: Clean up 3D resources
+            cleanup3D();
+            render2D();
+        } else {
+            // Switch to 3D: Initialize 3D rendering
+            render3D();
+        }
+        is3D = !is3D;
+    };
+
+    toggleOverlayButton.onclick = () => {
+        useOverlay = !useOverlay;
+        if (is3D && heightmapMesh) {
+            useOverlay ? applyOverlayMaterial(heightmapMesh, canvas) : applyDefaultMaterial(heightmapMesh);
+        }
+    };
+
+    return { container, canvas, ctx, worker };
 }
 
-export async function deleteRiverNetwork(options) {
-    options.container?.remove();
-    options.worker?.terminate(); //if not terminated
+export async function deleteRiverNetwork({ container, worker }) {
+    container?.remove();
+    worker?.terminate();
 }
