@@ -17,6 +17,9 @@ Eventually I'll roll this all into one as a fun terrain or texture mixing tool b
   </tr>
 </table>
 
+
+
+
 <table>
   <tr>
     <td>
@@ -26,12 +29,31 @@ Eventually I'll roll this all into one as a fun terrain or texture mixing tool b
       <img width="466" alt="Capture" src="https://github.com/joshbrew/Noise_Textures/assets/18196383/b99793fd-1cc4-4774-9e10-bb86255448f3">
     </td>
   </tr>
+</table>
+
+<table>
+  <tr>
+    <td>
+      <img src="https://github.com/user-attachments/assets/507a27f6-6359-472e-9f23-52f5941be21a" alt="e" />
+    </td>
+    <td>
+      <img src="https://github.com/user-attachments/assets/188dfe4e-ee15-4f06-9079-e49c233b1b7a" alt="g" />
+    </td>
+    <td>
+      <img src="https://github.com/user-attachments/assets/1f51424d-182a-4cc3-99c7-8839925e0a77" alt="d - Copy" />
+    </td>
+  </tr>
+</table>
+
+<table>
     <tr>  
     <td colSpan="2">
       <img width="1516" alt="Capture-min (5)" src="https://github.com/joshbrew/Noise_Textures/assets/18196383/2718550c-06b9-48b5-9122-ee3ec5ab17ef">
     </td>
     </tr>
 </table>
+
+
 
 <table>
   <tr>
@@ -42,7 +64,6 @@ Eventually I'll roll this all into one as a fun terrain or texture mixing tool b
     </td>
   </tr>
 </table>
-
 
 <table>
   <tr>
