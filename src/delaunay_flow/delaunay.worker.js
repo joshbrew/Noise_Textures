@@ -23,6 +23,8 @@ const octaves = 8;        // Number of layers in fractal noise.
 const lacunarity = 2.0;   // Controls frequency increase between octaves.
 const gain = 0.5;         // Controls amplitude reduction between octaves.
 
+const maxEdgeLength = 0.05; //longest node length, limits boundary errors
+
 // Set up a worker to handle messages from the main thread. This enables the web worker 
 // to perform computationally intensive tasks asynchronously without blocking the main UI.
 self.onmessage = function (event) {
@@ -55,7 +57,7 @@ function computeRiverNetwork(
     self.postMessage({ type: 'progress', message: 'Heights computed.' });
 
     const delaunay = Delaunator.from(pts);
-    const neighbors = computeNeighbors(delaunay, pts, 0.03);
+    const neighbors = computeNeighbors(delaunay, pts, maxEdgeLength);
     self.postMessage({ type: 'progress', message: 'Neighbors computed.' });
 
     const riverEdges = constructRiverNetwork(pts, zs, neighbors);
