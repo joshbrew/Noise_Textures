@@ -10,6 +10,9 @@ export async function makeRiverNetwork() {
     container.appendChild(canvas);
     container.appendChild(progressDiv);
     document.body.appendChild(container);
+    progressDiv.style.position = 'absolute';
+    progressDiv.style.top = '90vh';
+
     canvas.width = 2400;
     canvas.height = 2400;
     canvas.style.height = '90vh';
