@@ -145,7 +145,7 @@ export async function makeRiverNetwork() {
             const indices = [];
             const uvs = [];
             const colors = [];
-            const scale = 100;
+            const scale = 1000;
     
             const gridSize = Math.sqrt(meshBuffer.length / 3);
             let centerX = 0, centerY = 0, centerZ = 0;
@@ -164,7 +164,7 @@ export async function makeRiverNetwork() {
     
                 const col = i / 3 % gridSize;
                 const row = Math.floor(i / 3 / gridSize);
-                uvs.push(col / (gridSize - 1), row / (gridSize - 1));
+                uvs.push(col / (gridSize), row / (gridSize));
     
                 colors.push(0.5, 0.8, 0.5, 1);
             }

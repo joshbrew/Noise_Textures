@@ -17,7 +17,7 @@ import {
 } from "../noiseFunctions";
 
 // Configure parameters for the noise function.
-const zoom = 400;         // Controls the scale of the noise.
+const zoom = 4000;         // Controls the scale of the noise.
 const freq = 1;           // Frequency of the noise pattern.
 const octaves = 8;        // Number of layers in fractal noise.
 const lacunarity = 2.0;   // Controls frequency increase between octaves.
