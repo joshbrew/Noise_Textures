@@ -1,3 +1,5 @@
+//based on https://github.com/Kreswell/Small-Projects/blob/master/FlowSim.ipynb
+
 import Delaunator from "./Delaunator";
 import { BaseNoise, PerlinNoise, RidgedMultifractalNoise4, RidgeNoise, VoronoiTileNoise, FractalBrownianMotion, RippleNoise, FractalRipples, FVoronoiRipple3D, VoronoiBrownianMotion3, FractalBrownianMotion3, FVoronoiCircularRipple3D } from "../noiseFunctions";
 

@@ -1,3 +1,5 @@
+//slightly optimized version of https://github.com/mapbox/delaunator
+
 class PseudoRandom {
     constructor(seed) {
         this.seed = seed % 2147483647;
