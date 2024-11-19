@@ -2,7 +2,7 @@ import wrkr from '../delaunay_flow/delaunay.worker';
 import * as BABYLON from 'babylonjs';
 
 export async function makeRiverNetwork() {
-    const npts = 10000;
+    const npts = 40000;
     const gridWidth = 200;
     const gridHeight = 200;
 
