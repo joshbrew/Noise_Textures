@@ -1,6 +1,6 @@
 import wrkr from '../delaunay_flow/delaunay.worker';
 import * as BABYLON from 'babylonjs';
-
+import { noiseGeneratorNames } from '../common';
 
 let is3D = false;
 let useOverlay = true;
@@ -9,6 +9,7 @@ let scene = null;
 let heightmapMesh = null;
 let canvas3D = null;
 let rendered2d = false;
+let noiseGen = 'RidgedMultifractalNoise4';
 
 
 export async function makeRiverNetwork() {
@@ -22,6 +23,10 @@ export async function makeRiverNetwork() {
     const resetButton = document.createElement('button');
     const toggle3DButton = document.createElement('button');
     const toggleOverlayButton = document.createElement('button');
+    const noiseSelector = document.createElement('select');
+    let selecthtml = ``;
+    (noiseGeneratorNames.forEach((n) => {selecthtml+=`<option id="${n}" ${n === noiseGen ? 'selected' : ''}>${n}</option>`}));
+    noiseSelector.innerHTML = selecthtml;
 
     container.appendChild(canvas);
     container.appendChild(progressDiv);
@@ -54,6 +59,14 @@ export async function makeRiverNetwork() {
     toggleOverlayButton.style.position = 'absolute';
     toggleOverlayButton.style.top = '90vh';
     toggleOverlayButton.style.left = '30vh';
+
+    container.appendChild(noiseSelector);
+    noiseSelector.style.position = 'absolute';
+    noiseSelector.style.top = '90vh';
+    noiseSelector.style.left = '40vh';
+    noiseSelector.onchange = () => {
+        noiseGen = noiseSelector.value;
+    }
 
     document.body.appendChild(container);
 
@@ -135,7 +148,7 @@ export async function makeRiverNetwork() {
             const indices = [];
             const uvs = [];
             const colors = [];
-            const scale = 1000;
+            const scale = 500;
     
             const gridSize = Math.sqrt(meshBuffer.length / 3);
             let centerX = 0, centerY = 0, centerZ = 0;
@@ -218,7 +231,6 @@ export async function makeRiverNetwork() {
         mesh.material = material;
     }
 
- 
     const options = {
         container,
         worker,
@@ -274,7 +286,8 @@ export async function makeRiverNetwork() {
         seed1: 1122828271, 
         seed2: 1075380921 + Date.now(),
         width: gridWidth,
-        height: gridHeight
+        height: gridHeight,
+        generator:noiseGen //todo replace with the main noise tool
     });
 
     return options;

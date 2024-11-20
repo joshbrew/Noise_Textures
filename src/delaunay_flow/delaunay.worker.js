@@ -9,12 +9,11 @@ import Delaunator from "./Delaunator";
 // for procedural generation, creating realistic terrain features such as ridges, 
 // ripples, and fractal patterns. Each noise function offers unique characteristics 
 // that affect the height and structure of the generated terrain.
-import { 
-    BaseNoise, PerlinNoise, RidgedMultifractalNoise4, RidgeNoise, VoronoiTileNoise, 
-    FractalBrownianMotion, RippleNoise, FractalRipples, FVoronoiRipple3D, 
-    VoronoiBrownianMotion3, FractalBrownianMotion3, FVoronoiCircularRipple3D, 
-    RidgedAntiMultifractalNoise4
-} from "../noiseFunctions";
+
+import * as noiseGen from "../noiseFunctions";
+import {noiseGeneratorNames} from '../common'
+
+
 
 // Configure parameters for the noise function.
 const zoom = 4000;         // Controls the scale of the noise.
@@ -33,7 +32,7 @@ self.onmessage = function (event) {
     // Check the type of the received message. If it is 'start', initialize the computation.
     if (data.type === 'start') {
         // Call the main function to compute the river network, passing the number of points to generate.
-        computeRiverNetwork(data.npts, data.seed1, data.seed2, data.width, data.height);
+        computeRiverNetwork(data.npts, data.seed1, data.seed2, data.width, data.height, data.generator);
     }
 };
 
@@ -43,11 +42,13 @@ function computeRiverNetwork(
     seed1 = 1122828271, 
     seed2 = 1075380921 + Date.now(),
     width = 200,
-    height = 200
+    height = 200,
+    generator = 'RidgedMultifractalNoise4'
 ) {
 
-    const rand1 = new BaseNoise(seed1);
-    const noise = new RidgedMultifractalNoise4(seed2); //VoronoiTileNoise
+    const rand1 = new noiseGen.BaseNoise(seed1);
+
+    const noise = new noiseGen[generator](seed2); //VoronoiTileNoise
     
     let pts = generatePoints(rand1, npts);  //generateGrid(width, height); //
     
