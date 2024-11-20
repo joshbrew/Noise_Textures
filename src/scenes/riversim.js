@@ -3,11 +3,12 @@ import * as BABYLON from 'babylonjs';
 
 
 let is3D = false;
-let useOverlay = false;
+let useOverlay = true;
 let engine = null;
 let scene = null;
 let heightmapMesh = null;
 let canvas3D = null;
+let rendered2d = false;
 
 
 export async function makeRiverNetwork() {
@@ -60,29 +61,9 @@ export async function makeRiverNetwork() {
 
     let meshBuffer, edges, pts;
 
-    worker.onmessage = function (event) {
-        const data = event.data;
-        if (data.type === 'progress') {
-            progressDiv.textContent = data.message;
-        } else if (data.type === 'result') {
-            ({ heightBuffer, edges, pts, meshBuffer } = data);
-            is3D ? render3D() : render2D();
-            progressDiv.textContent = 'Rendering complete.';
-            worker.terminate();
-        }
-    };
-
-    worker.postMessage({ 
-        type: 'start', 
-        npts,
-        seed1: 1122828271, 
-        seed2: 1075380921 + Date.now(),
-        width: gridWidth,
-        height: gridHeight
-    });
+  
 
     function render2D() {
-        cleanup3D(); // Ensure 3D resources are cleaned up before rendering 2D
         ctx.clearRect(0, 0, width, height);
         ctx.lineCap = 'round';
 
@@ -119,9 +100,15 @@ export async function makeRiverNetwork() {
             ctx.lineTo(x2, y2);
             ctx.stroke();
         });
+        rendered2d = true;
     }
 
     async function render3D() {
+        // Switch to 3D: Initialize 3D rendering
+        if(!rendered2d) {
+            render2D();
+            rendered2d = true;
+        }
         if (!engine) {
             canvas3D = document.createElement('canvas');
             canvas3D.width = 800;
@@ -233,30 +220,57 @@ export async function makeRiverNetwork() {
 
  
 
-    resetButton.onclick = () => {
+    resetButton.onclick = async () => {
+        rendered2d=false;
         cleanup3D();
-        deleteRiverNetwork({ container, worker });
-        makeRiverNetwork();
+        await deleteRiverNetwork({ container, worker });
+        await makeRiverNetwork();
     };
 
-    toggle3DButton.onclick = () => {
-        if (is3D) {
+
+    const render = async () => {
+        console.log(is3D);
+        if (!is3D) {
             // Switch to 2D: Clean up 3D resources
             cleanup3D();
             render2D();
         } else {
-            // Switch to 3D: Initialize 3D rendering
-            render3D();
+            await render3D(); 
+            useOverlay ? applyOverlayMaterial(heightmapMesh, canvas) : applyDefaultMaterial(heightmapMesh);
         }
+    }
+
+    toggle3DButton.onclick = () => {
         is3D = !is3D;
+        render();
     };
 
     toggleOverlayButton.onclick = () => {
         useOverlay = !useOverlay;
-        if (is3D && heightmapMesh) {
-            useOverlay ? applyOverlayMaterial(heightmapMesh, canvas) : applyDefaultMaterial(heightmapMesh);
+        useOverlay ? applyOverlayMaterial(heightmapMesh, canvas) : applyDefaultMaterial(heightmapMesh);
+         
+    };
+
+    worker.onmessage = async function (event) {
+        const data = event.data;
+        if (data.type === 'progress') {
+            progressDiv.textContent = data.message;
+        } else if (data.type === 'result') {
+            ({ heightBuffer, edges, pts, meshBuffer } = data);
+            await render();
+            progressDiv.textContent = 'Rendering complete.';
+            worker.terminate();
         }
     };
+
+    worker.postMessage({ 
+        type: 'start', 
+        npts,
+        seed1: 1122828271, 
+        seed2: 1075380921 + Date.now(),
+        width: gridWidth,
+        height: gridHeight
+    });
 
     return { container, canvas, ctx, worker };
 }
@@ -265,6 +279,7 @@ export async function makeRiverNetwork() {
 
 export async function deleteRiverNetwork({ container, worker }) {
     cleanup3D();
+    rendered2d = false;
     container?.remove();
     worker?.terminate();
 }
