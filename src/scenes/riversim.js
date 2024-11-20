@@ -1,6 +1,15 @@
 import wrkr from '../delaunay_flow/delaunay.worker';
 import * as BABYLON from 'babylonjs';
 
+
+let is3D = false;
+let useOverlay = false;
+let engine = null;
+let scene = null;
+let heightmapMesh = null;
+let canvas3D = null;
+
+
 export async function makeRiverNetwork() {
     const npts = 40000;
     const gridWidth = 200;
@@ -46,13 +55,6 @@ export async function makeRiverNetwork() {
     toggleOverlayButton.style.left = '30vh';
 
     document.body.appendChild(container);
-    
-    let is3D = false;
-    let useOverlay = false;
-    let engine = null;
-    let scene = null;
-    let heightmapMesh = null;
-    let canvas3D = null;
 
     const worker = new Worker(wrkr);
 
@@ -229,18 +231,7 @@ export async function makeRiverNetwork() {
         mesh.material = material;
     }
 
-    function cleanup3D() {
-        if (engine) {
-            engine.stopRenderLoop();
-            scene.dispose();
-            engine.dispose();
-            canvas3D?.remove();
-            engine = null;
-            scene = null;
-            heightmapMesh = null;
-            canvas3D = null;
-        }
-    }
+ 
 
     resetButton.onclick = () => {
         cleanup3D();
@@ -270,7 +261,23 @@ export async function makeRiverNetwork() {
     return { container, canvas, ctx, worker };
 }
 
+
+
 export async function deleteRiverNetwork({ container, worker }) {
+    cleanup3D();
     container?.remove();
     worker?.terminate();
+}
+
+function cleanup3D() {
+    if (engine) {
+        engine.stopRenderLoop();
+        scene.dispose();
+        engine.dispose();
+        canvas3D?.remove();
+        engine = null;
+        scene = null;
+        heightmapMesh = null;
+        canvas3D = null;
+    }
 }
