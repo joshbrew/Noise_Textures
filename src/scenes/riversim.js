@@ -219,17 +219,22 @@ export async function makeRiverNetwork() {
     }
 
  
+    const options = {
+        container,
+        worker,
+        canvas, 
+        ctx 
+    };
 
     resetButton.onclick = async () => {
         rendered2d=false;
         cleanup3D();
-        await deleteRiverNetwork({ container, worker });
-        await makeRiverNetwork();
+        await deleteRiverNetwork(options);
+        Object.assign(options, await makeRiverNetwork());
     };
 
 
     const render = async () => {
-        console.log(is3D);
         if (!is3D) {
             // Switch to 2D: Clean up 3D resources
             cleanup3D();
@@ -272,7 +277,7 @@ export async function makeRiverNetwork() {
         height: gridHeight
     });
 
-    return { container, canvas, ctx, worker };
+    return options;
 }
 
 
