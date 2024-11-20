@@ -15,7 +15,6 @@ export async function makeRiverNetwork() {
 
     container.appendChild(canvas);
     container.appendChild(progressDiv);
-    document.body.appendChild(container);
 
     progressDiv.style.position = 'absolute';
     progressDiv.style.top = '90vh';
@@ -46,6 +45,8 @@ export async function makeRiverNetwork() {
     toggleOverlayButton.style.top = '90vh';
     toggleOverlayButton.style.left = '30vh';
 
+    document.body.appendChild(container);
+    
     let is3D = false;
     let useOverlay = false;
     let engine = null;
