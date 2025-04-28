@@ -17,6 +17,28 @@ Eventually I'll roll this all into one as a fun terrain or texture mixing tool b
   </tr>
 </table>
 
+<table>
+  <tr>
+    <td>
+      <img width="1000" alt="Capture2-min" src="https://github.com/user-attachments/assets/c75c11e5-4999-4bcb-9c03-91e6d5a03e18">
+    </td>
+    <td>
+      <img width="1000" alt="Capture" src="https://github.com/user-attachments/assets/6d76dbc0-285b-4692-9af8-1a8e59ebb85d">
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td>
+      <img width="1000" alt="Capture2-min" src="https://github.com/user-attachments/assets/6219e2e1-4df4-4e74-b447-ad702e329504">
+    </td>
+    <td>
+      <img width="1000" alt="Capture" src="https://github.com/user-attachments/assets/d53f1ee5-22f5-4085-b8af-4a0d4828d915">
+    </td>
+  </tr>
+</table>
+
 
 
 
